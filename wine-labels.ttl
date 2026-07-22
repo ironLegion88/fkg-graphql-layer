@@ -1,0 +1,301 @@
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# Generated starter labels. Review wording before production use.
+# This file supplements wine.rdf; it does not modify it.
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#AlsaceRegion> rdfs:label "Alsace Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#AnjouRegion> rdfs:label "Anjou Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ArroyoGrandeRegion> rdfs:label "Arroyo Grande Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#AustralianRegion> rdfs:label "Australian Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#BeaujolaisRegion> rdfs:label "Beaujolais Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#BordeauxRegion> rdfs:label "Bordeaux Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#BourgogneRegion> rdfs:label "Bourgogne Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CaliforniaRegion> rdfs:label "California Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CentralCoastRegion> rdfs:label "Central Coast Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CentralTexasRegion> rdfs:label "Central Texas Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChiantiRegion> rdfs:label "Chianti Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CotesDOrRegion> rdfs:label "Cotes DOr Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#EdnaValleyRegion> rdfs:label "Edna Valley Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#FrenchRegion> rdfs:label "French Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#GermanyRegion> rdfs:label "Germany Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ItalianRegion> rdfs:label "Italian Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#LoireRegion> rdfs:label "Loire Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MargauxRegion> rdfs:label "Margaux Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MedocRegion> rdfs:label "Medoc Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MendocinoRegion> rdfs:label "Mendocino Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MeursaultRegion> rdfs:label "Meursault Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MuscadetRegion> rdfs:label "Muscadet Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#NapaRegion> rdfs:label "Napa Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#NewZealandRegion> rdfs:label "New Zealand Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#PauillacRegion> rdfs:label "Pauillac Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#PortugalRegion> rdfs:label "Portugal Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SancerreRegion> rdfs:label "Sancerre Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SantaBarbaraRegion> rdfs:label "Santa Barbara Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SantaCruzMountainsRegion> rdfs:label "Santa Cruz Mountains Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SauterneRegion> rdfs:label "Sauterne Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SonomaRegion> rdfs:label "Sonoma Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SouthAustraliaRegion> rdfs:label "South Australia Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#StEmilionRegion> rdfs:label "St Emilion Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#TexasRegion> rdfs:label "Texas Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ToursRegion> rdfs:label "Tours Region"@en .
+
+# Region
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#USRegion> rdfs:label "USRegion"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauDYchemSauterne> rdfs:label "Chateau DYchem Sauterne"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SchlossRothermelTrochenbierenausleseRiesling> rdfs:label "Schloss Rothermel Trochenbierenauslese Riesling"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SchlossVolradTrochenbierenausleseRiesling> rdfs:label "Schloss Volrad Trochenbierenauslese Riesling"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#WhitehallLanePrimavera> rdfs:label "Whitehall Lane Primavera"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CabernetFrancGrape> rdfs:label "Cabernet Franc Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CabernetSauvignonGrape> rdfs:label "Cabernet Sauvignon Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChardonnayGrape> rdfs:label "Chardonnay Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CheninBlancGrape> rdfs:label "Chenin Blanc Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#GamayGrape> rdfs:label "Gamay Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MalbecGrape> rdfs:label "Malbec Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MerlotGrape> rdfs:label "Merlot Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#PetiteSyrahGrape> rdfs:label "Petite Syrah Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#PetiteVerdotGrape> rdfs:label "Petite Verdot Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#PinotBlancGrape> rdfs:label "Pinot Blanc Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#PinotNoirGrape> rdfs:label "Pinot Noir Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#RieslingGrape> rdfs:label "Riesling Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SangioveseGrape> rdfs:label "Sangiovese Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SauvignonBlancGrape> rdfs:label "Sauvignon Blanc Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SemillonGrape> rdfs:label "Semillon Grape"@en .
+
+# WineGrape
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ZinfandelGrape> rdfs:label "Zinfandel Grape"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Bancroft> rdfs:label "Bancroft"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Beringer> rdfs:label "Beringer"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauChevalBlanc> rdfs:label "Chateau Cheval Blanc"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauDYchem> rdfs:label "Chateau DYchem"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauDeMeursault> rdfs:label "Chateau De Meursault"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauLafiteRothschild> rdfs:label "Chateau Lafite Rothschild"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauMargauxWinery> rdfs:label "Chateau Margaux Winery"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauMorgon> rdfs:label "Chateau Morgon"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ClosDeLaPoussie> rdfs:label "Clos De La Poussie"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ClosDeVougeot> rdfs:label "Clos De Vougeot"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CongressSprings> rdfs:label "Congress Springs"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Corbans> rdfs:label "Corbans"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CortonMontrachet> rdfs:label "Corton Montrachet"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Cotturi> rdfs:label "Cotturi"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#DAnjou> rdfs:label "DAnjou"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Elyse> rdfs:label "Elyse"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Forman> rdfs:label "Forman"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Foxen> rdfs:label "Foxen"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#GaryFarrell> rdfs:label "Gary Farrell"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Handley> rdfs:label "Handley"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#KalinCellars> rdfs:label "Kalin Cellars"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#KathrynKennedy> rdfs:label "Kathryn Kennedy"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#LaneTanner> rdfs:label "Lane Tanner"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Longridge> rdfs:label "Longridge"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Marietta> rdfs:label "Marietta"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#McGuinnesso> rdfs:label "Mc Guinnesso"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MountEdenVineyard> rdfs:label "Mount Eden Vineyard"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Mountadam> rdfs:label "Mountadam"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#PageMillWinery> rdfs:label "Page Mill Winery"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#PeterMccoy> rdfs:label "Peter Mccoy"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#PulignyMontrachet> rdfs:label "Puligny Montrachet"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SantaCruzMountainVineyard> rdfs:label "Santa Cruz Mountain Vineyard"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SaucelitoCanyon> rdfs:label "Saucelito Canyon"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SchlossRothermel> rdfs:label "Schloss Rothermel"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SchlossVolrad> rdfs:label "Schloss Volrad"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SeanThackrey> rdfs:label "Sean Thackrey"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Selaks> rdfs:label "Selaks"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SevreEtMaine> rdfs:label "Sevre Et Maine"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#StGenevieve> rdfs:label "St Genevieve"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Stonleigh> rdfs:label "Stonleigh"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Taylor> rdfs:label "Taylor"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#Ventana> rdfs:label "Ventana"@en .
+
+# Winery
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#WhitehallLane> rdfs:label "Whitehall Lane"@en .

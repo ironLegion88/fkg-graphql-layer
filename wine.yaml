@@ -1,0 +1,319 @@
+id: /soml/wine
+prefixes:
+  food: http://www.w3.org/TR/2003/PR-owl-guide-20031209/food#
+  owl: http://www.w3.org/2002/07/owl#
+  vin: http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#
+specialPrefixes:
+  ontology_iri: http://www.w3.org/TR/2003/CR-owl-guide-20030818/wine
+  base_iri: http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#
+  vocab_prefix: vin
+  vocab_iri: http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#
+properties:
+  hasBody:
+    kind: object
+    range: WineBody
+    rdfProp: vin:hasBody
+  hasFlavor:
+    kind: object
+    range: WineFlavor
+    rdfProp: vin:hasFlavor
+  hasMaker:
+    kind: object
+    range: iri
+    rdfProp: vin:hasMaker
+  hasSugar:
+    kind: object
+    range: WineSugar
+    rdfProp: vin:hasSugar
+objects:
+  AlsatianWine:
+    type: vin:AlsatianWine
+  AmericanWine:
+    type: vin:AmericanWine
+  Anjou:
+    type: vin:Anjou
+  Beaujolais:
+    type: vin:Beaujolais
+    props:
+      madeFromGrape:
+        max: 1
+  Bordeaux:
+    kind: abstract
+    type: vin:Bordeaux
+  Burgundy:
+    type: vin:Burgundy
+  CabernetFranc:
+    type: vin:CabernetFranc
+  CabernetSauvignon:
+    type: vin:CabernetSauvignon
+  CaliforniaWine:
+    type: vin:CaliforniaWine
+  Chardonnay:
+    type: vin:Chardonnay
+  CheninBlanc:
+    type: vin:CheninBlanc
+  Chianti:
+    inherits: ItalianWine
+    type: vin:Chianti
+  CotesDOr:
+    type: vin:CotesDOr
+  DessertWine:
+    kind: abstract
+    type: vin:DessertWine
+  DryRedWine:
+    type: vin:DryRedWine
+  DryRiesling:
+    type: vin:DryRiesling
+  DryWhiteWine:
+    type: vin:DryWhiteWine
+  DryWine:
+    type: vin:DryWine
+  EarlyHarvest:
+    inherits: WineInterface
+    type: vin:EarlyHarvest
+  FrenchWine:
+    type: vin:FrenchWine
+  FullBodiedWine:
+    type: vin:FullBodiedWine
+  Gamay:
+    type: vin:Gamay
+  GermanWine:
+    type: vin:GermanWine
+  IceWine:
+    type: vin:IceWine
+  ItalianWine:
+    kind: abstract
+    type: vin:ItalianWine
+  LateHarvest:
+    kind: abstract
+    type: vin:LateHarvest
+  Loire:
+    type: vin:Loire
+  Margaux:
+    type: vin:Margaux
+    props:
+      madeFromGrape:
+        max: 1
+  Medoc:
+    type: vin:Medoc
+  Meritage:
+    type: vin:Meritage
+  Merlot:
+    type: vin:Merlot
+  Meursault:
+    type: vin:Meursault
+  Muscadet:
+    type: vin:Muscadet
+    props:
+      madeFromGrape:
+        max: 1
+  Pauillac:
+    type: vin:Pauillac
+    props:
+      madeFromGrape:
+        max: 1
+  PetiteSyrah:
+    type: vin:PetiteSyrah
+  PinotBlanc:
+    type: vin:PinotBlanc
+  PinotNoir:
+    type: vin:PinotNoir
+  Port:
+    inherits: RedWine
+    type: vin:Port
+  RedBordeaux:
+    type: vin:RedBordeaux
+  RedBurgundy:
+    type: vin:RedBurgundy
+    props:
+      madeFromGrape:
+        max: 1
+  RedTableWine:
+    type: vin:RedTableWine
+  RedWine:
+    kind: abstract
+    type: vin:RedWine
+  Region:
+    type: vin:Region
+    props:
+      adjacentRegion:
+        kind: object
+        max: inf
+        range: Region
+        rdfProp: vin:adjacentRegion
+        symmetric: true
+  Riesling:
+    type: vin:Riesling
+  RoseWine:
+    type: vin:RoseWine
+  Sancerre:
+    type: vin:Sancerre
+    props:
+      madeFromGrape:
+        max: 1
+  Sauternes:
+    inherits:
+      - Bordeaux
+      - LateHarvest
+      - WineInterface
+    type: vin:Sauternes
+  SauvignonBlanc:
+    type: vin:SauvignonBlanc
+  Semillon:
+    type: vin:Semillon
+  SemillonOrSauvignonBlanc:
+    type: vin:SemillonOrSauvignonBlanc
+  StEmilion:
+    type: vin:StEmilion
+    props:
+      madeFromGrape:
+        max: 1
+  SweetRiesling:
+    inherits:
+      - DessertWine
+      - WineInterface
+    type: vin:SweetRiesling
+  SweetWine:
+    type: vin:SweetWine
+  TableWine:
+    type: vin:TableWine
+  TexasWine:
+    type: vin:TexasWine
+  Tours:
+    type: vin:Tours
+    props:
+      madeFromGrape:
+        max: 1
+  Vintage:
+    type: vin:Vintage
+    props:
+      hasVintageYear:
+        kind: object
+        max: 1
+        min: 1
+        range: VintageYear
+        rdfProp: vin:hasVintageYear
+  VintageYear:
+    type: vin:VintageYear
+    props:
+      yearValue:
+        kind: literal
+        max: inf
+        range: positiveInteger
+        rdfProp: vin:yearValue
+  WhiteBordeaux:
+    type: vin:WhiteBordeaux
+  WhiteBurgundy:
+    type: vin:WhiteBurgundy
+    props:
+      madeFromGrape:
+        max: 1
+  WhiteLoire:
+    type: vin:WhiteLoire
+  WhiteNonSweetWine:
+    type: vin:WhiteNonSweetWine
+  WhiteTableWine:
+    type: vin:WhiteTableWine
+  WhiteWine:
+    type: vin:WhiteWine
+  Wine:
+    inherits: WineInterface
+    type: vin:Wine
+    label: wine
+  WineBody:
+    inherits:
+      - WineDescriptorInterface
+      - WineTaste
+    type: vin:WineBody
+  WineColor:
+    inherits: WineDescriptorInterface
+    type: vin:WineColor
+  WineColorOrWineDescriptorOrWineTaste:
+    kind: union
+    unionOf:
+      - WineColor
+      - WineDescriptor
+      - WineTaste
+  WineDescriptor:
+    inherits: WineDescriptorInterface
+    type: vin:WineDescriptor
+    descr: Made WineDescriptor unionType of tastes and color
+  WineDescriptorInterface:
+    kind: abstract
+    descr: Abstract superclass of WineDescriptor
+  WineFlavor:
+    inherits:
+      - WineDescriptorInterface
+      - WineTaste
+    type: vin:WineFlavor
+  WineGrape:
+    inherits: food:Grape
+    type: vin:WineGrape
+  WineInterface:
+    inherits: food:PotableLiquidInterface
+    kind: abstract
+    descr: Abstract superclass of Wine
+    props:
+      hasBody:
+        max: 1
+        min: 1
+      hasColor:
+        kind: object
+        max: 1
+        min: 1
+        range: WineColor
+        rdfProp: vin:hasColor
+      hasFlavor:
+        max: 1
+        min: 1
+      hasMaker:
+        max: 1
+        min: 1
+        range: Winery
+      hasSugar:
+        max: 1
+        min: 1
+      hasWineDescriptor:
+        kind: object
+        max: inf
+        range: WineColorOrWineDescriptorOrWineTaste
+        rdfProp: vin:hasWineDescriptor
+      locatedIn:
+        max: inf
+        min: 1
+        range: Region
+      madeFromGrape:
+        kind: object
+        max: inf
+        min: 1
+        range: WineGrape
+        rdfProp: vin:madeFromGrape
+  WineSugar:
+    inherits:
+      - WineDescriptorInterface
+      - WineTaste
+    type: vin:WineSugar
+  WineTaste:
+    kind: abstract
+    type: vin:WineTaste
+  Winery:
+    type: vin:Winery
+  Zinfandel:
+    type: vin:Zinfandel
+  food:Grape:
+    kind: abstract
+    type: food:Grape
+  food:PotableLiquid:
+    inherits: food:PotableLiquidInterface
+    type: food:PotableLiquid
+  food:PotableLiquidInterface:
+    kind: abstract
+    descr: Abstract superclass of food:PotableLiquid
+  owl:Thing:
+    type: owl:Thing
+    props:
+      locatedIn:
+        kind: object
+        max: inf
+        range: Region
+        rdfProp: vin:locatedIn
