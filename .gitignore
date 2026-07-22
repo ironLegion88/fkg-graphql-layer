@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Node and Vite
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Environment and editor files
+.env
+.env.local
+.vscode/
+
+# Operating system files
+.DS_Store
+Thumbs.db
