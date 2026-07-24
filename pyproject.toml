@@ -25,7 +25,14 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["api", "domain", "ingestion", "services"]
+packages = [
+    "adapters",
+    "adapters.oxigraph",
+    "api",
+    "domain",
+    "ingestion",
+    "services",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -1,0 +1,1 @@
+"""Storage adapters implementing database-neutral domain ports."""

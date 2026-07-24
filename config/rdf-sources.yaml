@@ -11,4 +11,4 @@ imports:
   mode: disabled
   allowlist:
     - http://www.w3.org/TR/2003/PR-owl-guide-20031209/food
-reasoning_profile: none
+reasoning_profile: rdfs-wine-parity
