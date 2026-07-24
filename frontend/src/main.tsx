@@ -13,10 +13,16 @@ const queryClient = new QueryClient({
   },
 })
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </StrictMode>,
-)
+if (new URLSearchParams(window.location.search).get('benchmark') === '1') {
+  void import('./benchmark/runRendererBenchmark').then(({ runRendererBenchmark }) =>
+    runRendererBenchmark(),
+  )
+} else {
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </StrictMode>,
+  )
+}
