@@ -17,10 +17,12 @@ import httpx
 from domain.models import (
     EntityKind,
     GraphEntity,
+    GraphExpansion,
     GraphRelationship,
     TraversalDirection,
     TraversalOptions,
 )
+from domain.traversal import paginate_relationships
 from services.exceptions import GraphBackendError
 
 
@@ -185,6 +187,22 @@ class GraphRetrievalService:
             if self._relationship_matches(relationship, entity_id, traversal)
         ]
         return relationships[: traversal.edge_limit]
+
+    async def expand_graph(
+        self,
+        entity_id: str,
+        options: TraversalOptions,
+    ) -> GraphExpansion:
+        center = await self.get_entity(entity_id)
+        if center is None:
+            raise ValueError(f"No graph entity exists with id '{entity_id}'")
+        data = await self._execute_query(self._ENTITY_BY_ID_QUERY, {})
+        relationships = [
+            relationship
+            for relationship in self._relationships_from_data(data)
+            if self._relationship_matches(relationship, entity_id, options)
+        ]
+        return paginate_relationships(center, relationships, options)
 
     async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]:
         """Expand one supported W3C Wine ontology relation from any core node type."""
