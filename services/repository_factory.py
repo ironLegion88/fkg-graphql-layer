@@ -16,7 +16,7 @@ def create_graph_repository(
     client: httpx.AsyncClient | None = None,
 ) -> GraphRepository:
     """Create the configured storage adapter behind the neutral repository port."""
-    backend = os.getenv("GRAPH_BACKEND", "graphdb").strip().casefold()
+    backend = os.getenv("GRAPH_BACKEND", "oxigraph").strip().casefold()
     if backend == "graphdb":
         return GraphRetrievalService(GraphDBSettings.from_environment(), client)
     if backend == "oxigraph":
