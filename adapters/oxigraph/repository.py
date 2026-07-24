@@ -13,10 +13,12 @@ from pyoxigraph import Literal, NamedNode, Store, Variable
 from domain.models import (
     EntityKind,
     GraphEntity,
+    GraphExpansion,
     GraphRelationship,
     TraversalDirection,
     TraversalOptions,
 )
+from domain.traversal import paginate_relationships
 from services.exceptions import GraphBackendError
 
 
@@ -117,6 +119,13 @@ class OxigraphGraphRepository:
             options or TraversalOptions(),
         )
 
+    async def expand_graph(
+        self,
+        entity_id: str,
+        options: TraversalOptions,
+    ) -> GraphExpansion:
+        return await asyncio.to_thread(self._expand_graph, entity_id, options)
+
     async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]:
         if relation not in RELATION_BY_NAME:
             allowed = ", ".join(sorted(RELATION_BY_NAME))
@@ -202,6 +211,8 @@ class OxigraphGraphRepository:
         self,
         entity_id: str,
         options: TraversalOptions,
+        *,
+        apply_limit: bool = True,
     ) -> list[GraphRelationship]:
         entity_node = NamedNode(entity_id)
         relation_names = options.relations or tuple(RELATION_BY_NAME)
@@ -243,9 +254,25 @@ class OxigraphGraphRepository:
                         relationships.setdefault(
                             (source.id, target.id, relation_name), relationship
                         )
-            if len(relationships) >= options.edge_limit:
+            if apply_limit and len(relationships) >= options.edge_limit:
                 break
-        return list(relationships.values())[: options.edge_limit]
+        values = list(relationships.values())
+        return values[: options.edge_limit] if apply_limit else values
+
+    def _expand_graph(
+        self,
+        entity_id: str,
+        options: TraversalOptions,
+    ) -> GraphExpansion:
+        center = self._get_entity(entity_id)
+        if center is None:
+            raise ValueError(f"No graph entity exists with id '{entity_id}'")
+        relationships = self._get_relationships(
+            entity_id,
+            options,
+            apply_limit=False,
+        )
+        return paginate_relationships(center, relationships, options)
 
     def _kind_for(self, entity: NamedNode) -> EntityKind:
         for kind, type_node in TYPE_BY_KIND.items():
