@@ -1,0 +1,14 @@
+version: 1
+sources:
+  - path: ../wine.rdf
+    format: rdf-xml
+    graph: urn:fkg:graph:asserted
+  - path: ../wine-labels.ttl
+    format: turtle
+    graph: urn:fkg:graph:labels
+imports:
+  # Import resolution and vendoring are implemented in the next semantic phase.
+  mode: disabled
+  allowlist:
+    - http://www.w3.org/TR/2003/PR-owl-guide-20031209/food
+reasoning_profile: none

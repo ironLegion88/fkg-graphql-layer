@@ -1,0 +1,1 @@
+"""Reproducible RDF store ingestion for embedded graph backends."""
