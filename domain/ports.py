@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from domain.models import GraphEntity, GraphRelationship, TraversalOptions
+from domain.models import GraphEntity, GraphExpansion, GraphRelationship, TraversalOptions
 
 
 class GraphRepository(Protocol):
@@ -25,6 +25,12 @@ class GraphRepository(Protocol):
         entity_id: str,
         options: TraversalOptions | None = None,
     ) -> list[GraphRelationship]: ...
+
+    async def expand_graph(
+        self,
+        entity_id: str,
+        options: TraversalOptions,
+    ) -> GraphExpansion: ...
 
     async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]: ...
 
