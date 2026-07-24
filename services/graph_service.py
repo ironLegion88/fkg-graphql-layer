@@ -3,17 +3,39 @@
 from __future__ import annotations
 
 from collections import deque
+from dataclasses import dataclass, replace
 
-from domain.models import EntityKind, GraphEntity, GraphPath, GraphRelationship
+from domain.models import (
+    EntityKind,
+    GraphEntity,
+    GraphExpansion,
+    GraphPath,
+    GraphRelationship,
+    TraversalOptions,
+)
 from domain.ports import GraphRepository
-from services.exceptions import EntityNotFoundError
+from services.exceptions import EntityNotFoundError, InvalidTraversalError
+
+
+@dataclass(frozen=True, slots=True)
+class GraphServiceLimits:
+    """Server-owned hard limits for graph traversal operations."""
+
+    max_depth: int = 1
+    max_nodes: int = 2_000
+    max_edges: int = 4_000
 
 
 class GraphService:
     """Apply domain rules while delegating all persistence to the retrieval service."""
 
-    def __init__(self, repository: GraphRepository) -> None:
+    def __init__(
+        self,
+        repository: GraphRepository,
+        limits: GraphServiceLimits | None = None,
+    ) -> None:
         self._repository = repository
+        self._limits = limits or GraphServiceLimits()
 
     async def get_entity(self, entity_id: str) -> GraphEntity:
         entity = await self._repository.get_entity(entity_id)
@@ -42,6 +64,19 @@ class GraphService:
         """Return labelled edges touching an entity in either graph direction."""
         await self.get_entity(entity_id)
         return await self._repository.get_relationships(entity_id)
+
+    async def expand_graph(
+        self,
+        entity_id: str,
+        options: TraversalOptions | None = None,
+    ) -> GraphExpansion:
+        """Return one server-bounded graph page around an existing entity."""
+        await self.get_entity(entity_id)
+        traversal = self._normalize_traversal(options or TraversalOptions())
+        try:
+            return await self._repository.expand_graph(entity_id, traversal)
+        except ValueError as error:
+            raise InvalidTraversalError(str(error)) from error
 
     async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]:
         if not relation.strip():
@@ -97,3 +132,20 @@ class GraphService:
 
     async def get_wines_by_grape(self, grape_id: str) -> list[GraphEntity]:
         return await self._repository.get_wines_by_grape(grape_id)
+
+    def _normalize_traversal(self, options: TraversalOptions) -> TraversalOptions:
+        if options.max_depth <= 0 or options.max_depth > self._limits.max_depth:
+            raise InvalidTraversalError(
+                f"max_depth must be between 1 and {self._limits.max_depth}"
+            )
+        if options.node_limit <= 0 or options.edge_limit <= 0:
+            raise InvalidTraversalError("node_limit and edge_limit must be positive")
+        relations = tuple(
+            dict.fromkeys(relation.strip() for relation in options.relations if relation.strip())
+        )
+        return replace(
+            options,
+            relations=relations,
+            node_limit=min(options.node_limit, self._limits.max_nodes),
+            edge_limit=min(options.edge_limit, self._limits.max_edges),
+        )
