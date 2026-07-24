@@ -29,6 +29,7 @@ packages = [
     "adapters",
     "adapters.oxigraph",
     "api",
+    "benchmarks",
     "domain",
     "ingestion",
     "services",

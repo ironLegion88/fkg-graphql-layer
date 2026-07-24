@@ -1,0 +1,31 @@
+entities:
+  - name: wine
+    id: http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauDYchemSauterne
+  - name: winery
+    id: http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauDYchem
+  - name: grape
+    id: http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SauvignonBlancGrape
+  - name: region
+    id: http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SauterneRegion
+  - name: missing
+    id: http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MissingEntity
+searches:
+  - Chateau
+  - Region
+  - Grape
+path:
+  source: http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SauvignonBlancGrape
+  target: http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauDYchem
+accepted_differences:
+  - section: relationships
+    case: region
+    reason: >-
+      Oxigraph exposes the explicitly asserted SauterneRegion locatedIn
+      BordeauxRegion edge. The generated GraphDB Region type omitted locatedIn
+      from its schema, so the GraphDB adapter could not retrieve this source fact.
+  - section: searches
+    case: Chateau
+    reason: >-
+      Oxigraph applies the configured class-membership closure and therefore
+      returns Wine subclass instances. The generated GraphDB wine root returned
+      only a subset of those valid Wine individuals.
