@@ -112,13 +112,160 @@
 <http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#USRegion> rdfs:label "USRegion"@en .
 
 # Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#BancroftChardonnay> rdfs:label "Bancroft Chardonnay"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauChevalBlancStEmilion> rdfs:label "Chateau Cheval Blanc St Emilion"@en .
+
+# Wine
 <http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauDYchemSauterne> rdfs:label "Chateau DYchem Sauterne"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauDeMeursaultMeursault> rdfs:label "Chateau De Meursault Meursault"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauLafiteRothschildPauillac> rdfs:label "Chateau Lafite Rothschild Pauillac"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauMargaux> rdfs:label "Chateau Margaux"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChateauMorgonBeaujolais> rdfs:label "Chateau Morgon Beaujolais"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ChiantiClassico> rdfs:label "Chianti Classico"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ClosDeLaPoussieSancerre> rdfs:label "Clos De La Poussie Sancerre"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ClosDeVougeotCotesDOr> rdfs:label "Clos De Vougeot Cotes DOr"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CongressSpringsSemillon> rdfs:label "Congress Springs Semillon"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CorbansDryWhiteRiesling> rdfs:label "Corbans Dry White Riesling"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CorbansPrivateBinSauvignonBlanc> rdfs:label "Corbans Private Bin Sauvignon Blanc"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CorbansSauvignonBlanc> rdfs:label "Corbans Sauvignon Blanc"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CortonMontrachetWhiteBurgundy> rdfs:label "Corton Montrachet White Burgundy"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#CotturiZinfandel> rdfs:label "Cotturi Zinfandel"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#ElyseZinfandel> rdfs:label "Elyse Zinfandel"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#FormanCabernetSauvignon> rdfs:label "Forman Cabernet Sauvignon"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#FormanChardonnay> rdfs:label "Forman Chardonnay"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#FoxenCheninBlanc> rdfs:label "Foxen Chenin Blanc"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#GaryFarrellMerlot> rdfs:label "Gary Farrell Merlot"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#KalinCellarsSemillon> rdfs:label "Kalin Cellars Semillon"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#KathrynKennedyLateral> rdfs:label "Kathryn Kennedy Lateral"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#LaneTannerPinotNoir> rdfs:label "Lane Tanner Pinot Noir"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#LongridgeMerlot> rdfs:label "Longridge Merlot"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MariettaCabernetSauvignon> rdfs:label "Marietta Cabernet Sauvignon"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MariettaOldVinesRed> rdfs:label "Marietta Old Vines Red"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MariettaPetiteSyrah> rdfs:label "Marietta Petite Syrah"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MariettaZinfandel> rdfs:label "Marietta Zinfandel"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MountEdenVineyardEdnaValleyChardonnay> rdfs:label "Mount Eden Vineyard Edna Valley Chardonnay"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MountEdenVineyardEstatePinotNoir> rdfs:label "Mount Eden Vineyard Estate Pinot Noir"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MountadamChardonnay> rdfs:label "Mountadam Chardonnay"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MountadamPinotNoir> rdfs:label "Mountadam Pinot Noir"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#MountadamRiesling> rdfs:label "Mountadam Riesling"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#PageMillWineryCabernetSauvignon> rdfs:label "Page Mill Winery Cabernet Sauvignon"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#PeterMccoyChardonnay> rdfs:label "Peter Mccoy Chardonnay"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#PulignyMontrachetWhiteBurgundy> rdfs:label "Puligny Montrachet White Burgundy"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#RoseDAnjou> rdfs:label "Rose DAnjou"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SantaCruzMountainVineyardCabernetSauvignon> rdfs:label "Santa Cruz Mountain Vineyard Cabernet Sauvignon"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SaucelitoCanyonZinfandel> rdfs:label "Saucelito Canyon Zinfandel"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SaucelitoCanyonZinfandel1998> rdfs:label "Saucelito Canyon Zinfandel1998"@en .
 
 # Wine
 <http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SchlossRothermelTrochenbierenausleseRiesling> rdfs:label "Schloss Rothermel Trochenbierenauslese Riesling"@en .
 
 # Wine
 <http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SchlossVolradTrochenbierenausleseRiesling> rdfs:label "Schloss Volrad Trochenbierenauslese Riesling"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SeanThackreySiriusPetiteSyrah> rdfs:label "Sean Thackrey Sirius Petite Syrah"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SelaksIceWine> rdfs:label "Selaks Ice Wine"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SelaksSauvignonBlanc> rdfs:label "Selaks Sauvignon Blanc"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#SevreEtMaineMuscadet> rdfs:label "Sevre Et Maine Muscadet"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#StGenevieveTexasWhite> rdfs:label "St Genevieve Texas White"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#StonleighSauvignonBlanc> rdfs:label "Stonleigh Sauvignon Blanc"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#TaylorPort> rdfs:label "Taylor Port"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#VentanaCheninBlanc> rdfs:label "Ventana Chenin Blanc"@en .
+
+# Wine
+<http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#WhitehallLaneCabernetFranc> rdfs:label "Whitehall Lane Cabernet Franc"@en .
 
 # Wine
 <http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#WhitehallLanePrimavera> rdfs:label "Whitehall Lane Primavera"@en .
