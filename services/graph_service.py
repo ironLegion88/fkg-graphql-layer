@@ -5,18 +5,18 @@ from __future__ import annotations
 from collections import deque
 
 from domain.models import EntityKind, GraphEntity, GraphPath, GraphRelationship
+from domain.ports import GraphRepository
 from services.exceptions import EntityNotFoundError
-from services.graph_retrieval import GraphRetrievalService
 
 
 class GraphService:
     """Apply domain rules while delegating all persistence to the retrieval service."""
 
-    def __init__(self, retrieval_service: GraphRetrievalService | None = None) -> None:
-        self._retrieval = retrieval_service or GraphRetrievalService()
+    def __init__(self, repository: GraphRepository) -> None:
+        self._repository = repository
 
     async def get_entity(self, entity_id: str) -> GraphEntity:
-        entity = await self._retrieval.get_entity(entity_id)
+        entity = await self._repository.get_entity(entity_id)
         if entity is None:
             raise EntityNotFoundError(f"No graph entity exists with id '{entity_id}'")
         return entity
@@ -32,22 +32,22 @@ class GraphService:
         normalized_query = query.strip()
         if not normalized_query:
             return []
-        return await self._retrieval.search_entities(normalized_query)
+        return await self._repository.search_entities(normalized_query)
 
     async def get_neighbors(self, entity_id: str) -> list[GraphEntity]:
         await self.get_entity(entity_id)
-        return await self._retrieval.get_neighbors(entity_id)
+        return await self._repository.get_neighbors(entity_id)
 
     async def get_relationships(self, entity_id: str) -> list[GraphRelationship]:
         """Return labelled edges touching an entity in either graph direction."""
         await self.get_entity(entity_id)
-        return await self._retrieval.get_relationships(entity_id)
+        return await self._repository.get_relationships(entity_id)
 
     async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]:
         if not relation.strip():
             return []
         await self.get_entity(entity_id)
-        return await self._retrieval.expand(entity_id, relation.strip())
+        return await self._repository.expand(entity_id, relation.strip())
 
     async def find_path(
         self,
@@ -93,7 +93,7 @@ class GraphService:
         return None
 
     async def get_wines_by_region(self, region_id: str) -> list[GraphEntity]:
-        return await self._retrieval.get_wines_by_region(region_id)
+        return await self._repository.get_wines_by_region(region_id)
 
     async def get_wines_by_grape(self, grape_id: str) -> list[GraphEntity]:
-        return await self._retrieval.get_wines_by_grape(grape_id)
+        return await self._repository.get_wines_by_grape(grape_id)
