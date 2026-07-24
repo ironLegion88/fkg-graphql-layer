@@ -15,6 +15,16 @@ export interface GraphRelationship {
   target: GraphEntity
 }
 
+export interface GraphExpansion {
+  center: GraphEntity
+  nodes: GraphEntity[]
+  relationships: GraphRelationship[]
+  page_info: {
+    truncated: boolean
+    next_cursor: string | null
+  }
+}
+
 const client = new GraphQLClient(
   import.meta.env.VITE_GRAPHQL_URL ?? 'http://localhost:8000/graphql',
 )
@@ -30,22 +40,20 @@ const searchEntitiesQuery = `
   }
 `
 
-const relationshipsQuery = `
-  query GetRelationships($id: ID!) {
-    get_relationships(id: $id) {
-      relation
-      source {
-        __typename
-        id
-        label
-        description
+const expansionQuery = `
+  query ExpandGraph($id: ID!, $cursor: String) {
+    expand_graph(
+      id: $id
+      options: {node_limit: 50, edge_limit: 100, cursor: $cursor}
+    ) {
+      center { __typename id label description }
+      nodes { __typename id label description }
+      relationships {
+        relation
+        source { __typename id label description }
+        target { __typename id label description }
       }
-      target {
-        __typename
-        id
-        label
-        description
-      }
+      page_info { truncated next_cursor }
     }
   }
 `
@@ -73,9 +81,13 @@ export async function searchEntities(query: string): Promise<GraphEntity[]> {
   return response.search_entities
 }
 
-export async function getRelationships(id: string): Promise<GraphRelationship[]> {
-  const response = await client.request<{
-    get_relationships: GraphRelationship[]
-  }>(relationshipsQuery, { id })
-  return response.get_relationships
+export async function expandGraph(
+  id: string,
+  cursor: string | null = null,
+): Promise<GraphExpansion> {
+  const response = await client.request<{ expand_graph: GraphExpansion }>(
+    expansionQuery,
+    { id, cursor },
+  )
+  return response.expand_graph
 }
