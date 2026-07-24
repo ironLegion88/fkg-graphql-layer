@@ -62,7 +62,25 @@ button { font: inherit; }
 
 .detail-empty { margin-top: 22px; }.selected-entity { display: grid; gap: 14px; }.entity-kind { justify-self: start; padding: 5px 8px; border-radius: 4px; color: #fff; font: 700 11px 'Space Grotesk', sans-serif; text-transform: uppercase; letter-spacing: 0.06em; }.entity-id { overflow-wrap: anywhere; color: #728780; font: 11px/1.55 'IBM Plex Mono', monospace; }.entity-description { color: #49635e; font-size: 13px; line-height: 1.5; }
 .primary-action { justify-content: center; gap: 8px; height: 40px; border: 1px solid #173b37; border-radius: 5px; color: #fffdf8; background: #173b37; cursor: pointer; font-weight: 700; font-size: 13px; }.primary-action:hover:not(:disabled) { background: #24564f; }.primary-action:disabled { opacity: 0.65; cursor: wait; }
-.relation-summary { display: grid; gap: 7px; margin-top: 8px; padding-top: 16px; border-top: 1px solid #dbe1d8; }.relation-row { justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid #ebeee8; font-size: 12px; }.relation-row span { color: #5f7d74; }.relation-row strong { max-width: 145px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.traversal-controls { display: grid; gap: 11px; padding: 15px 0; border-block: 1px solid #dbe1d8; }
+.direction-control { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #b8c9c0; border-radius: 5px; overflow: hidden; }
+.direction-control button { min-height: 32px; border: 0; border-right: 1px solid #dbe1d8; color: #49635e; background: #fffdf8; cursor: pointer; font-size: 12px; font-weight: 700; }
+.direction-control button:last-child { border-right: 0; }
+.direction-control button.active { color: #fffdf8; background: #287b73; }
+.direction-control button:focus-visible, .relationship-table button:focus-visible { position: relative; z-index: 1; outline: 2px solid #173b37; outline-offset: -2px; }
+.relation-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 10px; margin: 0; padding: 0; border: 0; }
+.relation-filters legend { margin-bottom: 7px; color: #5f7d74; font-size: 11px; font-weight: 700; }
+.relation-filters label, .inference-toggle { display: flex; align-items: center; gap: 6px; color: #49635e; font-size: 11px; overflow-wrap: anywhere; }
+.relation-filters input, .inference-toggle input { width: 14px; height: 14px; margin: 0; accent-color: #287b73; }
+.relation-summary { display: grid; gap: 9px; margin-top: 8px; padding-top: 16px; border-top: 1px solid #dbe1d8; }
+.relationship-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 11px; }
+.relationship-table th { padding: 6px 4px; color: #6a827a; text-align: left; border-bottom: 1px solid #cbd7cf; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+.relationship-table th:first-child, .relationship-table td:first-child { width: 28px; text-align: center; }
+.relationship-table th:nth-child(2), .relationship-table td:nth-child(2) { width: 92px; }
+.relationship-table td { padding: 7px 4px; color: #49635e; border-bottom: 1px solid #ebeee8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.relationship-table button { max-width: 100%; padding: 2px 0; overflow: hidden; border: 0; color: #173b37; background: transparent; cursor: pointer; font-weight: 700; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.relationship-table button:hover { color: #287b73; text-decoration: underline; }
+.direction-badge { display: inline-grid; width: 20px; height: 20px; place-items: center; border-radius: 50%; color: #fffdf8; background: #5f7d74; font-size: 12px; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 1050px) { .explorer-layout { grid-template-columns: 256px minmax(360px, 1fr); }.detail-panel { grid-column: 1 / -1; border-top: 1px solid #dbe1d8; border-left: 0; }.selected-entity { grid-template-columns: auto 1fr; }.relation-summary { grid-column: 1 / -1; } }
