@@ -9,5 +9,9 @@ class EntityNotFoundError(GraphServiceError):
     """Raised when a requested entity does not exist."""
 
 
+class InvalidTraversalError(GraphServiceError):
+    """Raised when graph traversal options or cursors are invalid."""
+
+
 class GraphBackendError(GraphServiceError):
     """Raised when the backing graph database rejects or fails a request."""
