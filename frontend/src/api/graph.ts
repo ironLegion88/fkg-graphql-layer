@@ -25,6 +25,16 @@ export interface GraphExpansion {
   }
 }
 
+export type TraversalDirection = 'OUTGOING' | 'INCOMING' | 'BOTH'
+
+export interface ExpansionRequest {
+  id: string
+  cursor?: string | null
+  direction?: TraversalDirection
+  relations?: string[]
+  includeInferred?: boolean
+}
+
 const client = new GraphQLClient(
   import.meta.env.VITE_GRAPHQL_URL ?? 'http://localhost:8000/graphql',
 )
@@ -41,10 +51,23 @@ const searchEntitiesQuery = `
 `
 
 const expansionQuery = `
-  query ExpandGraph($id: ID!, $cursor: String) {
+  query ExpandGraph(
+    $id: ID!
+    $cursor: String
+    $direction: TraversalDirection!
+    $relations: [String!]
+    $includeInferred: Boolean!
+  ) {
     expand_graph(
       id: $id
-      options: {node_limit: 50, edge_limit: 100, cursor: $cursor}
+      options: {
+        node_limit: 50
+        edge_limit: 100
+        cursor: $cursor
+        direction: $direction
+        relations: $relations
+        include_inferred: $includeInferred
+      }
     ) {
       center { __typename id label description }
       nodes { __typename id label description }
@@ -82,12 +105,17 @@ export async function searchEntities(query: string): Promise<GraphEntity[]> {
 }
 
 export async function expandGraph(
-  id: string,
-  cursor: string | null = null,
+  request: ExpansionRequest,
 ): Promise<GraphExpansion> {
   const response = await client.request<{ expand_graph: GraphExpansion }>(
     expansionQuery,
-    { id, cursor },
+    {
+      id: request.id,
+      cursor: request.cursor ?? null,
+      direction: request.direction ?? 'BOTH',
+      relations: request.relations?.length ? request.relations : null,
+      includeInferred: request.includeInferred ?? true,
+    },
   )
   return response.expand_graph
 }
