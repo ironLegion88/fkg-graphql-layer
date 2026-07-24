@@ -1,8 +1,8 @@
 # OWL Store Migration Implementation Plan
 
-**Status:** Ready for execution  
-**Branch:** `feat/owl-store-migration`  
-**Related documents:**
+- **Status:** Ready for execution
+- **Branch:** `feat/owl-store-migration`
+- **Related documents:**
 
 - [Migration analysis](owl-store-migration-analysis.md)
 - [Specification and requirements](owl-store-migration-requirements.md)

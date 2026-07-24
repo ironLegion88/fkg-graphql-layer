@@ -1,9 +1,9 @@
 # OWL Store Migration Specification and Requirements
 
-**Document type:** Normative specification  
-**Status:** Draft for implementation  
-**Version:** 0.1.0  
-**Last updated:** 2026-07-24
+- **Document type:** Normative specification
+- **Status:** Draft for implementation
+- **Version:** 0.1.0
+- **Last updated:** 2026-07-24
 
 The terms **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are used
 as normative requirement levels.

@@ -1,8 +1,8 @@
 # OWL Store Migration Analysis
 
-**Status:** Proposed  
-**Branch:** `feat/owl-store-migration`  
-**Last updated:** 2026-07-24
+- **Status:** Proposed
+- **Branch:** `feat/owl-store-migration`
+- **Last updated:** 2026-07-24
 
 ## 1. Executive Decision
 
