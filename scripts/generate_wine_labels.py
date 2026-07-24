@@ -16,8 +16,10 @@ from pathlib import Path
 
 BASE_IRI = "http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#"
 RDF_ID = "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}ID"
+RDF_ABOUT = "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}about"
 RDF_RESOURCE = "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}resource"
 OWL_CLASS = "{http://www.w3.org/2002/07/owl#}Class"
+OWL_INTERSECTION_OF = "{http://www.w3.org/2002/07/owl#}intersectionOf"
 RDFS_SUBCLASS_OF = "{http://www.w3.org/2000/01/rdf-schema#}subClassOf"
 CORE_DIRECT_TYPES = {"Winery", "Region", "WineGrape"}
 
@@ -56,14 +58,22 @@ def generate_labels(source: Path, destination: Path) -> Counter[str]:
     root = element_tree.parse(source).getroot()
     parents: dict[str, set[str]] = {}
     for class_element in root.findall(f".//{OWL_CLASS}"):
-        class_identifier = class_element.get(RDF_ID)
-        if class_identifier is None:
+        class_reference = class_element.get(RDF_ID) or class_element.get(RDF_ABOUT)
+        if class_reference is None:
             continue
-        parents[class_identifier] = {
+        class_identifier = local_name(class_reference)
+        class_parents = parents.setdefault(class_identifier, set())
+        class_parents.update(
             local_name(parent.get(RDF_RESOURCE, ""))
             for parent in class_element.findall(RDFS_SUBCLASS_OF)
             if parent.get(RDF_RESOURCE)
-        }
+        )
+        for intersection in class_element.findall(OWL_INTERSECTION_OF):
+            class_parents.update(
+                local_name(member_reference)
+                for member in intersection.findall(OWL_CLASS)
+                if (member_reference := member.get(RDF_ABOUT) or member.get(RDF_ID))
+            )
 
     labels: list[tuple[str, str, str]] = []
     for element in root:
