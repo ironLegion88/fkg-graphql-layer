@@ -15,9 +15,10 @@ import {
 import './App.css'
 import {
   type GraphEntity,
+  type GraphExpansion,
   type GraphRelationship,
   entityKind,
-  getRelationships,
+  expandGraph,
   searchEntities,
 } from './api/graph'
 
@@ -40,6 +41,7 @@ function App() {
   const [searchInput, setSearchInput] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [graph, setGraph] = useState<ExplorerGraph>(emptyGraph)
+  const [nextCursorByEntity, setNextCursorByEntity] = useState<Record<string, string | null>>({})
   const [notice, setNotice] = useState<string | null>(null)
   const deferredSearch = useDeferredValue(searchInput.trim())
   const cyRef = useRef<Core | null>(null)
@@ -51,7 +53,8 @@ function App() {
   })
 
   const relationshipsMutation = useMutation({
-    mutationFn: getRelationships,
+    mutationFn: ({ id, cursor }: { id: string; cursor: string | null }) =>
+      expandGraph(id, cursor),
   })
 
   const selectedEntity = selectedId ? graph.entities[selectedId] : undefined
@@ -94,18 +97,26 @@ function App() {
     return () => window.clearTimeout(timer)
   }, [nodeCount, edgeCount, selectedId])
 
-  function mergeRelationships(relationships: GraphRelationship[]) {
+  function mergeExpansion(expansion: GraphExpansion) {
     startTransition(() => {
       setGraph((current) => {
         const entities = { ...current.entities }
         const nextRelationships = { ...current.relationships }
-        for (const relationship of relationships) {
+        entities[expansion.center.id] = expansion.center
+        for (const entity of expansion.nodes) {
+          entities[entity.id] = entity
+        }
+        for (const relationship of expansion.relationships) {
           entities[relationship.source.id] = relationship.source
           entities[relationship.target.id] = relationship.target
           nextRelationships[relationshipKey(relationship)] = relationship
         }
         return { entities, relationships: nextRelationships }
       })
+      setNextCursorByEntity((current) => ({
+        ...current,
+        [expansion.center.id]: expansion.page_info.next_cursor,
+      }))
     })
   }
 
@@ -117,8 +128,14 @@ function App() {
       entities: { ...current.entities, [entity.id]: entity },
     }))
     try {
-      const relationships = await relationshipsMutation.mutateAsync(entity.id)
-      mergeRelationships(relationships)
+      const expansion = await relationshipsMutation.mutateAsync({
+        id: entity.id,
+        cursor: null,
+      })
+      mergeExpansion(expansion)
+      if (expansion.page_info.truncated) {
+        setNotice('More relationships are available for this entity.')
+      }
     } catch {
       setNotice('The graph service could not load relationships for this entity.')
     }
@@ -128,12 +145,25 @@ function App() {
     if (!selectedEntity) {
       return
     }
-    await inspectEntity(selectedEntity)
+    setNotice(null)
+    try {
+      const expansion = await relationshipsMutation.mutateAsync({
+        id: selectedEntity.id,
+        cursor: nextCursorByEntity[selectedEntity.id] ?? null,
+      })
+      mergeExpansion(expansion)
+      if (expansion.page_info.truncated) {
+        setNotice('More relationships are available for this entity.')
+      }
+    } catch {
+      setNotice('The graph service could not load relationships for this entity.')
+    }
   }
 
   function resetGraph() {
     setGraph(emptyGraph)
     setSelectedId(null)
+    setNextCursorByEntity({})
     setNotice(null)
   }
 
@@ -330,7 +360,9 @@ function App() {
                 disabled={relationshipsMutation.isPending}
               >
                 {relationshipsMutation.isPending ? <LoaderCircle size={17} className="spin" /> : <Network size={17} />}
-                Expand relationships
+                {nextCursorByEntity[selectedEntity.id]
+                  ? 'Load more relationships'
+                  : 'Refresh relationships'}
               </button>
 
               <div className="relation-summary">
