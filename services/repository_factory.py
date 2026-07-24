@@ -6,6 +6,7 @@ import os
 
 import httpx
 
+from adapters.oxigraph import OxigraphGraphRepository
 from domain.ports import GraphRepository
 from services.exceptions import GraphBackendError
 from services.graph_retrieval import GraphDBSettings, GraphRetrievalService
@@ -18,4 +19,6 @@ def create_graph_repository(
     backend = os.getenv("GRAPH_BACKEND", "graphdb").strip().casefold()
     if backend == "graphdb":
         return GraphRetrievalService(GraphDBSettings.from_environment(), client)
+    if backend == "oxigraph":
+        return OxigraphGraphRepository()
     raise GraphBackendError(f"Unsupported graph backend '{backend}'")
