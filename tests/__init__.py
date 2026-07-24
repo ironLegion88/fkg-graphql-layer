@@ -1,0 +1,1 @@
+"""Automated tests for the graph facade and migration contracts."""
