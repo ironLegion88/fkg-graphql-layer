@@ -21,6 +21,7 @@ from ingestion.manifest import (
     load_source_manifest,
     resolve_sources,
 )
+from ingestion.reasoning import materialize_semantics
 
 
 FORMAT_BY_NAME: dict[RDFFormatName, RdfFormat] = {
@@ -41,6 +42,7 @@ class StoreBuildResult:
     build_id: str
     build_path: str
     triple_count: int
+    inferred_triple_count: int
     reused: bool
     dry_run: bool
 
@@ -61,7 +63,7 @@ def build_store(
     final_directory = output_root / "builds" / build_id
 
     if dry_run:
-        return StoreBuildResult(build_id, str(final_directory), 0, False, True)
+        return StoreBuildResult(build_id, str(final_directory), 0, 0, False, True)
 
     if final_directory.is_dir() and not force:
         metadata = _read_build_metadata(final_directory)
@@ -70,6 +72,7 @@ def build_store(
             build_id,
             str(final_directory),
             int(metadata["triple_count"]),
+            int(metadata.get("inferred_triple_count", 0)),
             True,
             False,
         )
@@ -80,13 +83,18 @@ def build_store(
     temporary_directory.mkdir()
 
     try:
-        triple_count = _load_store(temporary_directory, sources)
+        triple_count, inferred_triple_count = _load_store(
+            temporary_directory,
+            sources,
+            manifest.reasoning_profile,
+        )
         metadata = _write_build_metadata(
             temporary_directory,
             manifest_path,
             manifest.reasoning_profile,
             sources,
             triple_count,
+            inferred_triple_count,
         )
         _replace_build_directory(temporary_directory, final_directory)
         _promote(output_root, build_id, metadata["triple_count"])
@@ -94,13 +102,21 @@ def build_store(
         shutil.rmtree(temporary_directory, ignore_errors=True)
         raise
 
-    return StoreBuildResult(build_id, str(final_directory), triple_count, False, False)
+    return StoreBuildResult(
+        build_id,
+        str(final_directory),
+        triple_count,
+        inferred_triple_count,
+        False,
+        False,
+    )
 
 
 def _load_store(
     build_directory: Path,
     sources: tuple[ResolvedRDFSource, ...],
-) -> int:
+    reasoning_profile: str,
+) -> tuple[int, int]:
     store_directory = build_directory / "store"
     store = Store(store_directory)
     for source in sources:
@@ -109,12 +125,13 @@ def _load_store(
             format=FORMAT_BY_NAME[source.format],
             to_graph=NamedNode(source.graph),
         )
+    inferred_triple_count = materialize_semantics(store, reasoning_profile)
     store.optimize()
     store.flush()
     triple_count = len(store)
     del store
     gc.collect()
-    return triple_count
+    return triple_count, inferred_triple_count
 
 
 def _write_build_metadata(
@@ -123,12 +140,14 @@ def _write_build_metadata(
     reasoning_profile: str,
     sources: tuple[ResolvedRDFSource, ...],
     triple_count: int,
+    inferred_triple_count: int,
 ) -> dict[str, object]:
     metadata: dict[str, object] = {
         "created_at": datetime.now(UTC).isoformat(),
         "manifest": str(manifest_path),
         "reasoning_profile": reasoning_profile,
         "triple_count": triple_count,
+        "inferred_triple_count": inferred_triple_count,
         "sources": [
             {
                 "path": source.manifest_path,
