@@ -1,7 +1,5 @@
-import { useDeferredValue, useEffect, useRef, useState, startTransition } from 'react'
+import { startTransition, useDeferredValue, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import CytoscapeComponent from 'react-cytoscapejs'
-import type { Core, ElementDefinition } from 'cytoscape'
 import {
   CircleAlert,
   Crosshair,
@@ -10,28 +8,37 @@ import {
   Plus,
   RotateCcw,
   Search,
+  Undo2,
   X,
 } from 'lucide-react'
 import './App.css'
 import {
   type GraphEntity,
   type GraphExpansion,
-  type GraphRelationship,
+  type ExpansionRequest,
+  type TraversalDirection,
   entityKind,
   expandGraph,
   searchEntities,
 } from './api/graph'
+import CytoscapeGraph, { type GraphRendererHandle } from './graph/CytoscapeGraph'
+import {
+  DEFAULT_VISIBLE_LIMITS,
+  addStandaloneEntity,
+  collapseExpansion,
+  emptyGraph,
+  mergeExpansion as mergeGraphExpansion,
+  relationshipsForEntity,
+  type ExpansionRecord,
+  type ExplorerGraph,
+} from './graph/state'
 
-interface ExplorerGraph {
-  entities: Record<string, GraphEntity>
-  relationships: Record<string, GraphRelationship>
-}
-
-const emptyGraph: ExplorerGraph = { entities: {}, relationships: {} }
-
-function relationshipKey(relationship: GraphRelationship): string {
-  return `${relationship.source.id}|${relationship.relation}|${relationship.target.id}`
-}
+const RELATION_OPTIONS = [
+  'hasMaker',
+  'locatedIn',
+  'madeFromGrape',
+  'adjacentRegion',
+]
 
 function typeLabel(entity: GraphEntity): string {
   return entityKind(entity).toLowerCase().replace(/^./, (letter) => letter.toUpperCase())
@@ -41,10 +48,14 @@ function App() {
   const [searchInput, setSearchInput] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [graph, setGraph] = useState<ExplorerGraph>(emptyGraph)
+  const [expansionHistory, setExpansionHistory] = useState<ExpansionRecord[]>([])
   const [nextCursorByEntity, setNextCursorByEntity] = useState<Record<string, string | null>>({})
+  const [direction, setDirection] = useState<TraversalDirection>('BOTH')
+  const [selectedRelations, setSelectedRelations] = useState<string[]>([])
+  const [includeInferred, setIncludeInferred] = useState(true)
   const [notice, setNotice] = useState<string | null>(null)
   const deferredSearch = useDeferredValue(searchInput.trim())
-  const cyRef = useRef<Core | null>(null)
+  const rendererRef = useRef<GraphRendererHandle | null>(null)
 
   const searchQuery = useQuery({
     queryKey: ['entity-search', deferredSearch],
@@ -53,89 +64,66 @@ function App() {
   })
 
   const relationshipsMutation = useMutation({
-    mutationFn: ({ id, cursor }: { id: string; cursor: string | null }) =>
-      expandGraph(id, cursor),
+    mutationFn: (request: ExpansionRequest) => expandGraph(request),
   })
 
   const selectedEntity = selectedId ? graph.entities[selectedId] : undefined
   const nodeCount = Object.keys(graph.entities).length
   const edgeCount = Object.keys(graph.relationships).length
+  const visibleRelationships = selectedEntity
+    ? relationshipsForEntity(graph, selectedEntity.id)
+    : []
 
-  const graphElements: ElementDefinition[] = [
-    ...Object.values(graph.entities).map((entity) => ({
-      data: { id: entity.id, label: entity.label },
-      classes: entityKind(entity).toLowerCase(),
-    })),
-    ...Object.values(graph.relationships).map((relationship) => ({
-      data: {
-        id: relationshipKey(relationship),
-        source: relationship.source.id,
-        target: relationship.target.id,
-        label: relationship.relation,
-      },
-    })),
-  ]
-
-  useEffect(() => {
-    const cy = cyRef.current
-    if (!cy || nodeCount === 0) {
-      return
-    }
-    const timer = window.setTimeout(() => {
-      cy.layout({
-        name: 'breadthfirst',
-        animate: true,
-        animationDuration: 360,
-        fit: true,
-        padding: 84,
-        roots: selectedId ? [selectedId] : undefined,
-        directed: false,
-        spacingFactor: 1.7,
-        avoidOverlap: true,
-      }).run()
-    }, 80)
-    return () => window.clearTimeout(timer)
-  }, [nodeCount, edgeCount, selectedId])
-
-  function mergeExpansion(expansion: GraphExpansion) {
+  function applyExpansion(expansion: GraphExpansion) {
+    const result = mergeGraphExpansion(graph, expansion, DEFAULT_VISIBLE_LIMITS)
     startTransition(() => {
-      setGraph((current) => {
-        const entities = { ...current.entities }
-        const nextRelationships = { ...current.relationships }
-        entities[expansion.center.id] = expansion.center
-        for (const entity of expansion.nodes) {
-          entities[entity.id] = entity
-        }
-        for (const relationship of expansion.relationships) {
-          entities[relationship.source.id] = relationship.source
-          entities[relationship.target.id] = relationship.target
-          nextRelationships[relationshipKey(relationship)] = relationship
-        }
-        return { entities, relationships: nextRelationships }
-      })
+      setGraph(result.graph)
+      if (
+        result.record.addedNodeIds.length > 0 ||
+        result.record.addedRelationshipIds.length > 0
+      ) {
+        setExpansionHistory((current) => [...current.slice(-19), result.record])
+      }
       setNextCursorByEntity((current) => ({
         ...current,
-        [expansion.center.id]: expansion.page_info.next_cursor,
+        [expansion.center.id]: result.limitReached
+          ? null
+          : expansion.page_info.next_cursor,
       }))
     })
+    return result
+  }
+
+  function expansionRequest(id: string, cursor: string | null): ExpansionRequest {
+    return {
+      id,
+      cursor,
+      direction,
+      relations: selectedRelations,
+      includeInferred,
+    }
+  }
+
+  function updateNotice(expansion: GraphExpansion, limitReached: boolean) {
+    if (limitReached) {
+      setNotice(
+        `Visible graph limit reached (${DEFAULT_VISIBLE_LIMITS.maxNodes} nodes / ${DEFAULT_VISIBLE_LIMITS.maxEdges} edges). Undo or reset before expanding further.`,
+      )
+    } else if (expansion.page_info.truncated) {
+      setNotice('More relationships are available for this entity.')
+    }
   }
 
   async function inspectEntity(entity: GraphEntity) {
     setNotice(null)
     setSelectedId(entity.id)
-    setGraph((current) => ({
-      ...current,
-      entities: { ...current.entities, [entity.id]: entity },
-    }))
+    setGraph((current) => addStandaloneEntity(current, entity))
     try {
-      const expansion = await relationshipsMutation.mutateAsync({
-        id: entity.id,
-        cursor: null,
-      })
-      mergeExpansion(expansion)
-      if (expansion.page_info.truncated) {
-        setNotice('More relationships are available for this entity.')
-      }
+      const expansion = await relationshipsMutation.mutateAsync(
+        expansionRequest(entity.id, null),
+      )
+      const result = applyExpansion(expansion)
+      updateNotice(expansion, result.limitReached)
     } catch {
       setNotice('The graph service could not load relationships for this entity.')
     }
@@ -147,14 +135,14 @@ function App() {
     }
     setNotice(null)
     try {
-      const expansion = await relationshipsMutation.mutateAsync({
-        id: selectedEntity.id,
-        cursor: nextCursorByEntity[selectedEntity.id] ?? null,
-      })
-      mergeExpansion(expansion)
-      if (expansion.page_info.truncated) {
-        setNotice('More relationships are available for this entity.')
-      }
+      const expansion = await relationshipsMutation.mutateAsync(
+        expansionRequest(
+          selectedEntity.id,
+          nextCursorByEntity[selectedEntity.id] ?? null,
+        ),
+      )
+      const result = applyExpansion(expansion)
+      updateNotice(expansion, result.limitReached)
     } catch {
       setNotice('The graph service could not load relationships for this entity.')
     }
@@ -163,26 +151,51 @@ function App() {
   function resetGraph() {
     setGraph(emptyGraph)
     setSelectedId(null)
+    setExpansionHistory([])
     setNextCursorByEntity({})
     setNotice(null)
   }
 
   function fitGraph() {
-    cyRef.current?.fit(undefined, 48)
+    rendererRef.current?.fit()
   }
 
-  function onGraphReady(cy: Core) {
-    cyRef.current = cy
-    if (cy.scratch('wine-node-tap-bound')) {
+  function undoLastExpansion() {
+    const lastExpansion = expansionHistory.at(-1)
+    if (!lastExpansion) {
       return
     }
-    cy.on('tap', 'node', (event) => {
-      const entity = graph.entities[event.target.id()]
-      if (entity) {
-        void inspectEntity(entity)
-      }
+    const collapsed = collapseExpansion(graph, lastExpansion)
+    setGraph(collapsed)
+    setExpansionHistory((current) => current.slice(0, -1))
+    setNextCursorByEntity((current) => {
+      const next = { ...current }
+      delete next[lastExpansion.centerId]
+      return next
     })
-    cy.scratch('wine-node-tap-bound', true)
+    if (selectedId && !collapsed.entities[selectedId]) {
+      setSelectedId(null)
+    }
+    setNotice(null)
+  }
+
+  function toggleRelation(relation: string) {
+    setNextCursorByEntity({})
+    setSelectedRelations((current) =>
+      current.includes(relation)
+        ? current.filter((value) => value !== relation)
+        : [...current, relation],
+    )
+  }
+
+  function changeDirection(value: TraversalDirection) {
+    setNextCursorByEntity({})
+    setDirection(value)
+  }
+
+  function changeInferenceFilter(value: boolean) {
+    setNextCursorByEntity({})
+    setIncludeInferred(value)
   }
 
   return (
@@ -260,6 +273,9 @@ function App() {
               <h2>Relationship map</h2>
             </div>
             <div className="icon-actions">
+              <button type="button" title="Undo last expansion" aria-label="Undo last expansion" onClick={undoLastExpansion} disabled={expansionHistory.length === 0}>
+                <Undo2 size={18} />
+              </button>
               <button type="button" title="Fit graph" aria-label="Fit graph" onClick={fitGraph} disabled={nodeCount === 0}>
                 <Crosshair size={18} />
               </button>
@@ -279,58 +295,11 @@ function App() {
                 <p>Search on the left, then choose an entity to reveal its connected graph.</p>
               </div>
             )}
-            <CytoscapeComponent
-              elements={graphElements}
-              cy={onGraphReady}
-              style={{ width: '100%', height: '100%' }}
-              stylesheet={[
-                {
-                  selector: 'node',
-                  style: {
-                    label: 'data(label)',
-                    color: '#173b37',
-                    'font-family': 'Manrope',
-                    'font-size': '10px',
-                    'font-weight': 700,
-                    'text-wrap': 'wrap',
-                    'text-max-width': '72px',
-                    'text-valign': 'bottom',
-                    'text-margin-y': '12px',
-                    width: '54px',
-                    height: '54px',
-                    'border-width': '3px',
-                    'border-color': '#ffffff',
-                    'overlay-opacity': 0,
-                  },
-                },
-                { selector: 'node.wine', style: { 'background-color': '#b83c50' } },
-                { selector: 'node.winery', style: { 'background-color': '#d7972f' } },
-                { selector: 'node.region', style: { 'background-color': '#287b73' } },
-                { selector: 'node.grape', style: { 'background-color': '#6c5ca4' } },
-                {
-                  selector: 'edge',
-                  style: {
-                    width: '2px',
-                    'line-color': '#aebdb7',
-                    'target-arrow-color': '#aebdb7',
-                    'target-arrow-shape': 'triangle',
-                    'curve-style': 'bezier',
-                    label: 'data(label)',
-                    color: '#49635e',
-                    'font-size': '10px',
-                    'font-family': 'Manrope',
-                    'text-background-color': '#fffdf8',
-                    'text-background-opacity': 1,
-                    'text-background-padding': '3px',
-                    'text-rotation': 'autorotate',
-                  },
-                },
-                {
-                  selector: 'node:selected',
-                  style: { 'border-color': '#173b37', 'border-width': '5px' },
-                },
-              ] as never}
-              layout={{ name: 'cose', fit: true, padding: 48 }}
+            <CytoscapeGraph
+              ref={rendererRef}
+              graph={graph}
+              selectedId={selectedId}
+              onSelectEntity={setSelectedId}
             />
           </div>
           <div className="legend" aria-label="Node legend">
@@ -353,6 +322,45 @@ function App() {
               <h3>{selectedEntity.label}</h3>
               <p className="entity-id">{selectedEntity.id}</p>
               {selectedEntity.description && <p className="entity-description">{selectedEntity.description}</p>}
+
+              <div className="traversal-controls">
+                <p className="eyebrow">Traversal filters</p>
+                <div className="direction-control" role="group" aria-label="Relationship direction">
+                  {(['BOTH', 'OUTGOING', 'INCOMING'] as TraversalDirection[]).map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={direction === value ? 'active' : ''}
+                      aria-pressed={direction === value}
+                      onClick={() => changeDirection(value)}
+                    >
+                      {value === 'BOTH' ? 'Both' : value === 'OUTGOING' ? 'Out' : 'In'}
+                    </button>
+                  ))}
+                </div>
+                <fieldset className="relation-filters">
+                  <legend>Relationships</legend>
+                  {RELATION_OPTIONS.map((relation) => (
+                    <label key={relation}>
+                      <input
+                        type="checkbox"
+                        checked={selectedRelations.includes(relation)}
+                        onChange={() => toggleRelation(relation)}
+                      />
+                      {relation}
+                    </label>
+                  ))}
+                </fieldset>
+                <label className="inference-toggle">
+                  <input
+                    type="checkbox"
+                    checked={includeInferred}
+                    onChange={(event) => changeInferenceFilter(event.target.checked)}
+                  />
+                  Include inferred relationships
+                </label>
+              </div>
+
               <button
                 type="button"
                 className="primary-action"
@@ -367,15 +375,27 @@ function App() {
 
               <div className="relation-summary">
                 <p className="eyebrow">Visible connections</p>
-                {Object.values(graph.relationships)
-                  .filter((relationship) => relationship.source.id === selectedEntity.id || relationship.target.id === selectedEntity.id)
-                  .map((relationship) => (
-                    <div className="relation-row" key={relationshipKey(relationship)}>
-                      <span>{relationship.relation}</span>
-                      <strong>{relationship.source.id === selectedEntity.id ? relationship.target.label : relationship.source.label}</strong>
-                    </div>
-                  ))}
-                {Object.values(graph.relationships).every((relationship) => relationship.source.id !== selectedEntity.id && relationship.target.id !== selectedEntity.id) && (
+                {visibleRelationships.length > 0 && (
+                  <table className="relationship-table">
+                    <thead>
+                      <tr><th>Dir</th><th>Relation</th><th>Entity</th></tr>
+                    </thead>
+                    <tbody>
+                      {visibleRelationships.map((relationship) => {
+                        const outgoing = relationship.source.id === selectedEntity.id
+                        const neighbor = outgoing ? relationship.target : relationship.source
+                        return (
+                          <tr key={`${relationship.source.id}|${relationship.relation}|${relationship.target.id}`}>
+                            <td><span className="direction-badge" title={outgoing ? 'Outgoing' : 'Incoming'}>{outgoing ? '→' : '←'}</span></td>
+                            <td>{relationship.relation}</td>
+                            <td><button type="button" onClick={() => setSelectedId(neighbor.id)}>{neighbor.label}</button></td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                )}
+                {visibleRelationships.length === 0 && (
                   <p className="empty-copy">No graph relationships are available for this entity.</p>
                 )}
               </div>
