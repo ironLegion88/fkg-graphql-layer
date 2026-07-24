@@ -149,3 +149,25 @@ async def test_expand_and_domain_helpers_use_canonical_relationships(
 
     with pytest.raises(GraphBackendError, match="Unsupported graph relation"):
         await repository.expand(wine_id, "unknown")
+
+
+async def test_expand_graph_returns_cursor_pages(
+    repository: OxigraphGraphRepository,
+) -> None:
+    wine_id = f"{WINE}DemoWine"
+    options = TraversalOptions(node_limit=1, edge_limit=1)
+
+    first = await repository.expand_graph(wine_id, options)
+    second = await repository.expand_graph(
+        wine_id,
+        TraversalOptions(
+            node_limit=1,
+            edge_limit=1,
+            cursor=first.page_info.next_cursor,
+        ),
+    )
+
+    assert len(first.nodes) == 1
+    assert len(first.relationships) == 1
+    assert first.page_info.truncated is True
+    assert second.nodes[0].id != first.nodes[0].id

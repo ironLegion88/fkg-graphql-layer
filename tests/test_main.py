@@ -49,7 +49,11 @@ async def test_graphql_runs_without_graphdb_using_promoted_oxigraph_store(
         @prefix owl: <http://www.w3.org/2002/07/owl#> .
         @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
         wine:Wine a owl:Class .
-        wine:DemoWine a wine:Wine ; rdfs:label "GraphDB-free Wine"@en .
+                wine:Winery a owl:Class .
+                wine:DemoWine a wine:Wine ;
+                    rdfs:label "GraphDB-free Wine"@en ;
+                    wine:hasMaker wine:DemoWinery .
+                wine:DemoWinery a wine:Winery ; rdfs:label "GraphDB-free Winery"@en .
         """,
         encoding="utf-8",
     )
@@ -77,7 +81,19 @@ async def test_graphql_runs_without_graphdb_using_promoted_oxigraph_store(
             response = await client.post(
                 "/graphql",
                 json={
-                    "query": "query($id: ID!) { get_wine(id: $id) { id label } }",
+                                        "query": """
+                                                query($id: ID!) {
+                                                    get_wine(id: $id) { id label }
+                                                    expand_graph(
+                                                        id: $id
+                                                        options: {node_limit: 10, edge_limit: 10}
+                                                    ) {
+                                                        nodes { id label }
+                                                        relationships { relation }
+                                                        page_info { truncated next_cursor }
+                                                    }
+                                                }
+                                        """,
                     "variables": {"id": wine_iri},
                 },
             )
@@ -88,6 +104,19 @@ async def test_graphql_runs_without_graphdb_using_promoted_oxigraph_store(
             "get_wine": {
                 "id": wine_iri,
                 "label": "GraphDB-free Wine",
-            }
+            },
+            "expand_graph": {
+                "nodes": [
+                    {
+                        "id": (
+                            "http://www.w3.org/TR/2003/PR-owl-guide-20031209/"
+                            "wine#DemoWinery"
+                        ),
+                        "label": "GraphDB-free Winery",
+                    }
+                ],
+                "relationships": [{"relation": "hasMaker"}],
+                "page_info": {"truncated": False, "next_cursor": None},
+            },
         }
     }

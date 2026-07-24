@@ -5,10 +5,12 @@ from __future__ import annotations
 from domain.models import (
     EntityKind,
     GraphEntity,
+    GraphExpansion,
     GraphRelationship,
     TraversalDirection,
     TraversalOptions,
 )
+from domain.traversal import paginate_relationships
 
 
 class FakeGraphRepository:
@@ -52,6 +54,28 @@ class FakeGraphRepository:
         options: TraversalOptions | None = None,
     ) -> list[GraphRelationship]:
         traversal = options or TraversalOptions()
+        matches = self._matching_relationships(entity_id, traversal)
+        return matches[: traversal.edge_limit]
+
+    async def expand_graph(
+        self,
+        entity_id: str,
+        options: TraversalOptions,
+    ) -> GraphExpansion:
+        center = self.entities.get(entity_id)
+        if center is None:
+            raise ValueError(f"No graph entity exists with id '{entity_id}'")
+        return paginate_relationships(
+            center,
+            self._matching_relationships(entity_id, options),
+            options,
+        )
+
+    def _matching_relationships(
+        self,
+        entity_id: str,
+        traversal: TraversalOptions,
+    ) -> list[GraphRelationship]:
         matches: list[GraphRelationship] = []
         for relationship in self.relationships:
             if traversal.relations and relationship.relation not in traversal.relations:
@@ -73,7 +97,7 @@ class FakeGraphRepository:
             ):
                 continue
             matches.append(relationship)
-        return matches[: traversal.edge_limit]
+        return matches
 
     async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]:
         relationships = await self.get_relationships(

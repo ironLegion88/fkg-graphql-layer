@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from domain.models import EntityKind
-from services.exceptions import EntityNotFoundError
-from services.graph_service import GraphService
+from dataclasses import replace
+
+from domain.models import EntityKind, TraversalOptions
+from services.exceptions import EntityNotFoundError, InvalidTraversalError
+from services.graph_service import GraphService, GraphServiceLimits
 from tests.fakes import FakeGraphRepository, wine_graph_fixture
 
 
@@ -93,3 +95,34 @@ async def test_domain_helpers_delegate_to_relationship_data(service: GraphServic
     assert [entity.id for entity in await service.get_wines_by_grape("grape:demo")] == [
         "wine:demo"
     ]
+
+
+async def test_bounded_expansion_clamps_limits_and_continues_with_cursor(
+    repository: FakeGraphRepository,
+) -> None:
+    service = GraphService(
+        repository,
+        GraphServiceLimits(max_nodes=1, max_edges=2),
+    )
+    requested = TraversalOptions(node_limit=100, edge_limit=100)
+
+    first = await service.expand_graph("wine:demo", requested)
+    second = await service.expand_graph(
+        "wine:demo",
+        replace(requested, cursor=first.page_info.next_cursor),
+    )
+
+    assert len(first.nodes) == 1
+    assert len(first.relationships) == 1
+    assert first.page_info.truncated is True
+    assert first.page_info.next_cursor is not None
+    assert len(second.nodes) == 1
+    assert first.nodes[0].id != second.nodes[0].id
+
+
+async def test_invalid_traversal_is_rejected_by_service(service: GraphService) -> None:
+    with pytest.raises(InvalidTraversalError, match="max_depth"):
+        await service.expand_graph("wine:demo", TraversalOptions(max_depth=2))
+
+    with pytest.raises(InvalidTraversalError, match="Invalid graph cursor"):
+        await service.expand_graph("wine:demo", TraversalOptions(cursor="invalid"))
