@@ -6,6 +6,7 @@ contained behind the service and retrieval boundaries.
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import TypedDict
 
 import strawberry
@@ -13,8 +14,15 @@ from graphql import GraphQLError
 from strawberry.schema.config import StrawberryConfig
 from strawberry.types import Info
 
-from domain.models import EntityKind, GraphEntity, GraphRelationship as DomainGraphRelationship
-from services.exceptions import EntityNotFoundError, GraphServiceError
+from domain.models import (
+    EntityKind,
+    GraphEntity,
+    GraphExpansion as DomainGraphExpansion,
+    GraphRelationship as DomainGraphRelationship,
+    TraversalDirection,
+    TraversalOptions,
+)
+from services.exceptions import EntityNotFoundError, GraphServiceError, InvalidTraversalError
 from services.graph_service import GraphService
 
 
@@ -67,6 +75,40 @@ class GraphRelationship:
     relation: str
 
 
+@strawberry.enum(name="TraversalDirection")
+class TraversalDirectionValue(Enum):
+    OUTGOING = "OUTGOING"
+    INCOMING = "INCOMING"
+    BOTH = "BOTH"
+
+
+@strawberry.input
+class TraversalInput:
+    """Client-requested traversal values subject to stricter server limits."""
+
+    direction: TraversalDirectionValue = TraversalDirectionValue.BOTH
+    relations: list[str] | None = None
+    max_depth: int = 1
+    node_limit: int = 200
+    edge_limit: int = 400
+    cursor: str | None = None
+    include_inferred: bool = True
+
+
+@strawberry.type
+class GraphPageInfo:
+    truncated: bool
+    next_cursor: str | None
+
+
+@strawberry.type
+class GraphExpansion:
+    center: Entity
+    nodes: list[Entity]
+    relationships: list[GraphRelationship]
+    page_info: GraphPageInfo
+
+
 def _to_api_entity(entity: GraphEntity) -> Entity:
     """Convert database-neutral domain objects into stable public GraphQL types."""
     common = {
@@ -92,6 +134,35 @@ def _to_api_relationship(relationship: DomainGraphRelationship) -> GraphRelation
         source=_to_api_entity(relationship.source),
         target=_to_api_entity(relationship.target),
         relation=relationship.relation,
+    )
+
+
+def _to_api_expansion(expansion: DomainGraphExpansion) -> GraphExpansion:
+    return GraphExpansion(
+        center=_to_api_entity(expansion.center),
+        nodes=[_to_api_entity(entity) for entity in expansion.nodes],
+        relationships=[
+            _to_api_relationship(relationship)
+            for relationship in expansion.relationships
+        ],
+        page_info=GraphPageInfo(
+            truncated=expansion.page_info.truncated,
+            next_cursor=expansion.page_info.next_cursor,
+        ),
+    )
+
+
+def _to_domain_traversal(options: TraversalInput | None) -> TraversalOptions:
+    if options is None:
+        return TraversalOptions()
+    return TraversalOptions(
+        direction=TraversalDirection(options.direction.value),
+        relations=tuple(options.relations or ()),
+        max_depth=options.max_depth,
+        node_limit=options.node_limit,
+        edge_limit=options.edge_limit,
+        cursor=options.cursor,
+        include_inferred=options.include_inferred,
     )
 
 
@@ -186,6 +257,32 @@ class Query:
         return [_to_api_relationship(relationship) for relationship in relationships]
 
     @strawberry.field
+    async def expand_graph(
+        self,
+        info: Info[GraphQLContext, None],
+        id: strawberry.ID,
+        options: TraversalInput | None = None,
+    ) -> GraphExpansion:
+        try:
+            expansion = await _graph_service(info).expand_graph(
+                str(id),
+                _to_domain_traversal(options),
+            )
+        except EntityNotFoundError as error:
+            raise GraphQLError(str(error), extensions={"code": "NOT_FOUND"}) from error
+        except InvalidTraversalError as error:
+            raise GraphQLError(
+                str(error),
+                extensions={"code": "INVALID_ARGUMENT"},
+            ) from error
+        except GraphServiceError as error:
+            raise GraphQLError(
+                "The graph service is unavailable",
+                extensions={"code": "GRAPH_BACKEND_ERROR"},
+            ) from error
+        return _to_api_expansion(expansion)
+
+    @strawberry.field
     async def expand(
         self,
         info: Info[GraphQLContext, None],
@@ -206,6 +303,14 @@ class Query:
 
 schema = strawberry.Schema(
     query=Query,
-    types=[Wine, Winery, Region, Grape, GenericEntity, GraphRelationship],
+    types=[
+        Wine,
+        Winery,
+        Region,
+        Grape,
+        GenericEntity,
+        GraphRelationship,
+        GraphExpansion,
+    ],
     config=StrawberryConfig(auto_camel_case=False),
 )
