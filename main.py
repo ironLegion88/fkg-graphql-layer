@@ -12,16 +12,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from strawberry.fastapi import GraphQLRouter
 
 from api.graphql_schema import GraphQLContext, schema
-from services.graph_retrieval import GraphDBSettings, GraphRetrievalService
 from services.graph_service import GraphService
+from services.repository_factory import create_graph_repository
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Create one HTTP client for the application and release it at shutdown."""
-    settings = GraphDBSettings.from_environment()
-    client = httpx.AsyncClient(timeout=settings.timeout_seconds)
-    app.state.graph_service = GraphService(GraphRetrievalService(settings, client))
+    timeout_seconds = float(os.getenv("GRAPH_HTTP_TIMEOUT_SECONDS", "15"))
+    client = httpx.AsyncClient(timeout=timeout_seconds)
+    app.state.graph_service = GraphService(create_graph_repository(client))
     try:
         yield
     finally:
