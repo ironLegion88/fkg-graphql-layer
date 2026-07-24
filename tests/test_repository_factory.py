@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
+from adapters.oxigraph import OxigraphGraphRepository
+from ingestion.build_store import build_store
 from services.exceptions import GraphBackendError
 from services.graph_retrieval import GraphRetrievalService
 from services.repository_factory import create_graph_repository
@@ -20,3 +24,31 @@ def test_factory_rejects_unknown_backend(monkeypatch: pytest.MonkeyPatch) -> Non
 
     with pytest.raises(GraphBackendError, match="Unsupported graph backend"):
         create_graph_repository()
+
+
+def test_factory_selects_promoted_oxigraph_store(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root = tmp_path
+    (root / "source.ttl").write_text(
+        '<https://example.org/item> <https://example.org/name> "Item" .\n',
+        encoding="utf-8",
+    )
+    (root / "sources.yaml").write_text(
+        """
+        version: 1
+        sources:
+          - path: source.ttl
+            format: turtle
+            graph: urn:test:asserted
+        reasoning_profile: none
+        """,
+        encoding="utf-8",
+    )
+    store_root = root / "output"
+    build_store(root / "sources.yaml", store_root)
+    monkeypatch.setenv("GRAPH_BACKEND", "oxigraph")
+    monkeypatch.setenv("RDF_STORE_PATH", str(store_root))
+
+    assert isinstance(create_graph_repository(), OxigraphGraphRepository)

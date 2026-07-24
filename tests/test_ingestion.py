@@ -12,7 +12,11 @@ from pyoxigraph import Store
 from ingestion.build_store import build_store
 
 
-def _write_manifest(directory: Path, source_name: str = "source.ttl") -> Path:
+def _write_manifest(
+    directory: Path,
+    source_name: str = "source.ttl",
+    reasoning_profile: str = "none",
+) -> Path:
     manifest = {
         "version": 1,
         "sources": [
@@ -23,7 +27,7 @@ def _write_manifest(directory: Path, source_name: str = "source.ttl") -> Path:
             }
         ],
         "imports": {"mode": "disabled", "allowlist": []},
-        "reasoning_profile": "none",
+        "reasoning_profile": reasoning_profile,
     }
     path = directory / "sources.yaml"
     path.write_text(yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8")
@@ -101,3 +105,28 @@ def test_missing_source_is_rejected_before_output_creation(tmp_path: Path) -> No
         build_store(manifest_path, tmp_path / "output")
 
     assert not (tmp_path / "output").exists()
+
+
+def test_build_applies_configured_semantic_profile(tmp_path: Path) -> None:
+    (tmp_path / "source.ttl").write_text(
+        """
+        @prefix ex: <https://example.org/> .
+        @prefix owl: <http://www.w3.org/2002/07/owl#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+        ex:Wine a owl:Class .
+        ex:Chardonnay a owl:Class ; rdfs:subClassOf ex:Wine .
+        ex:bottle a ex:Chardonnay .
+        """,
+        encoding="utf-8",
+    )
+    result = build_store(
+        _write_manifest(tmp_path, reasoning_profile="rdfs-wine-parity"),
+        tmp_path / "output",
+    )
+
+    assert result.inferred_triple_count >= 1
+    metadata = json.loads(
+        (Path(result.build_path) / "store-manifest.json").read_text(encoding="utf-8")
+    )
+    assert metadata["reasoning_profile"] == "rdfs-wine-parity"
+    assert metadata["inferred_triple_count"] == result.inferred_triple_count
