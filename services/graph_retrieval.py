@@ -14,7 +14,13 @@ from typing import Any
 
 import httpx
 
-from domain.models import EntityKind, GraphEntity, GraphRelationship
+from domain.models import (
+    EntityKind,
+    GraphEntity,
+    GraphRelationship,
+    TraversalDirection,
+    TraversalOptions,
+)
 from services.exceptions import GraphBackendError
 
 
@@ -144,14 +150,16 @@ class GraphRetrievalService:
                 return entity
         return None
 
-    async def search_entities(self, query: str) -> list[GraphEntity]:
+    async def search_entities(self, query: str, limit: int = 250) -> list[GraphEntity]:
+        if limit <= 0:
+            return []
         data = await self._execute_query(self._SEARCH_QUERY, {})
         normalized_query = query.casefold()
         return [
             entity
             for entity in self._collect_typed_entities(data)
             if normalized_query in entity.label.casefold() or normalized_query in entity.id.casefold()
-        ]
+        ][:limit]
 
     async def get_neighbors(self, entity_id: str) -> list[GraphEntity]:
         relationships = await self.get_relationships(entity_id)
@@ -163,14 +171,20 @@ class GraphRetrievalService:
         ]
         return self._deduplicate(neighbors)
 
-    async def get_relationships(self, entity_id: str) -> list[GraphRelationship]:
+    async def get_relationships(
+        self,
+        entity_id: str,
+        options: TraversalOptions | None = None,
+    ) -> list[GraphRelationship]:
         """Return labelled edges touching an entity, including inferred inverse edges."""
+        traversal = options or TraversalOptions()
         data = await self._execute_query(self._ENTITY_BY_ID_QUERY, {})
-        return [
+        relationships = [
             relationship
             for relationship in self._relationships_from_data(data)
-            if relationship.source.id == entity_id or relationship.target.id == entity_id
+            if self._relationship_matches(relationship, entity_id, traversal)
         ]
+        return relationships[: traversal.edge_limit]
 
     async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]:
         """Expand one supported W3C Wine ontology relation from any core node type."""
@@ -315,6 +329,20 @@ class GraphRetrievalService:
             )
         }
         return [wine for wine in wines if wine.id in matching_wine_ids]
+
+    @staticmethod
+    def _relationship_matches(
+        relationship: GraphRelationship,
+        entity_id: str,
+        options: TraversalOptions,
+    ) -> bool:
+        if options.relations and relationship.relation not in options.relations:
+            return False
+        if options.direction is TraversalDirection.OUTGOING:
+            return relationship.source.id == entity_id
+        if options.direction is TraversalDirection.INCOMING:
+            return relationship.target.id == entity_id
+        return relationship.source.id == entity_id or relationship.target.id == entity_id
 
     def _entities_from_value(self, value: Any, kind: EntityKind) -> list[GraphEntity]:
         if not isinstance(value, Sequence) or isinstance(value, str):
