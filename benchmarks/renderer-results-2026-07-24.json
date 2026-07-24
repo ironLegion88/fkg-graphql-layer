@@ -1,0 +1,91 @@
+{
+  "generated_at": "2026-07-24",
+  "fixture": {
+    "layout": "deterministic grid positions",
+    "edges_per_node": 2,
+    "labels": false,
+    "simulation": false
+  },
+  "environment": {
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.129.1 Chrome/148.0.7778.280 Electron/42.6.0 Safari/537.36",
+    "hardware_concurrency": 12,
+    "device_memory_gb": 16,
+    "js_heap_size_limit_bytes": 4294967296,
+    "webgl_vendor": "Google Inc. (Intel)",
+    "webgl_renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x000046A8) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+  },
+  "results": [
+    {
+      "renderer": "cytoscape",
+      "node_count": 1000,
+      "edge_count": 2000,
+      "generation_ms": 0.4,
+      "initialization_ms": 216.9,
+      "interaction_ms": 39.4,
+      "heap_used_bytes": 95905038
+    },
+    {
+      "renderer": "cosmos",
+      "node_count": 1000,
+      "edge_count": 2000,
+      "generation_ms": 0.2,
+      "initialization_ms": 91.1,
+      "interaction_ms": 33.2,
+      "heap_used_bytes": 90584940
+    },
+    {
+      "renderer": "cytoscape",
+      "node_count": 10000,
+      "edge_count": 20000,
+      "generation_ms": 1.1,
+      "initialization_ms": 1066.6,
+      "interaction_ms": 52.5,
+      "heap_used_bytes": 237898307
+    },
+    {
+      "renderer": "cosmos",
+      "node_count": 10000,
+      "edge_count": 20000,
+      "generation_ms": 2.6,
+      "initialization_ms": 57.3,
+      "interaction_ms": 34.2,
+      "heap_used_bytes": 192575548
+    },
+    {
+      "renderer": "cytoscape",
+      "node_count": 50000,
+      "edge_count": 100000,
+      "generation_ms": 4.6,
+      "initialization_ms": 4769.4,
+      "interaction_ms": 1266.7,
+      "heap_used_bytes": 960879744
+    },
+    {
+      "renderer": "cosmos",
+      "node_count": 50000,
+      "edge_count": 100000,
+      "generation_ms": 4.2,
+      "initialization_ms": 62.0,
+      "interaction_ms": 33.6,
+      "heap_used_bytes": 652376141
+    },
+    {
+      "renderer": "cytoscape",
+      "node_count": 100000,
+      "edge_count": 200000,
+      "generation_ms": 4.4,
+      "initialization_ms": 10288.0,
+      "interaction_ms": 580.9,
+      "heap_used_bytes": 1548666192
+    },
+    {
+      "renderer": "cosmos",
+      "node_count": 100000,
+      "edge_count": 200000,
+      "generation_ms": 6.1,
+      "initialization_ms": 80.3,
+      "interaction_ms": 33.5,
+      "heap_used_bytes": 1035999172
+    }
+  ]
+}
