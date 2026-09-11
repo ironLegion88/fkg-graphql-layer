@@ -5,7 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Literal, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ingestion.imports import ResolvedImport
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
@@ -39,6 +42,9 @@ class ImportPolicy(BaseModel):
 
     mode: Literal["disabled", "vendored"] = "disabled"
     allowlist: tuple[str, ...] = ()
+    vendor_dir: str = "vendor"
+    local_mappings: dict[str, str] = Field(default_factory=dict)
+    checksums: dict[str, str] = Field(default_factory=dict)
 
 
 class RDFSourceManifest(BaseModel):
@@ -96,6 +102,7 @@ def resolve_sources(
 def calculate_build_id(
     manifest: RDFSourceManifest,
     sources: tuple[ResolvedRDFSource, ...],
+    resolved_imports: tuple[ResolvedImport, ...] = (),
 ) -> str:
     """Create a stable build ID from semantic configuration and source bytes."""
     payload = {
@@ -110,6 +117,14 @@ def calculate_build_id(
                 "sha256": source.sha256,
             }
             for source in sources
+        ],
+        "resolved_imports": [
+            {
+                "import_iri": imp.import_iri,
+                "checksum": imp.checksum,
+                "target_graph": imp.target_graph,
+            }
+            for imp in resolved_imports
         ],
     }
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
