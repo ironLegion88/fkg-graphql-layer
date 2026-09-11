@@ -15,7 +15,6 @@ from strawberry.schema.config import StrawberryConfig
 from strawberry.types import Info
 
 from domain.models import (
-    EntityKind,
     GraphEntity,
     GraphExpansion as DomainGraphExpansion,
     GraphRelationship as DomainGraphRelationship,
@@ -41,29 +40,92 @@ class Entity:
     description: str | None
 
 
-@strawberry.type
+@strawberry.type(description="Deprecated: Use OntologyEntity instead")
 class Wine(Entity):
     pass
 
 
-@strawberry.type
+@strawberry.type(description="Deprecated: Use OntologyEntity instead")
 class Winery(Entity):
     pass
 
 
-@strawberry.type
+@strawberry.type(description="Deprecated: Use OntologyEntity instead")
 class Region(Entity):
     pass
 
 
-@strawberry.type
+@strawberry.type(description="Deprecated: Use OntologyEntity instead")
 class Grape(Entity):
     pass
 
 
-@strawberry.type
+@strawberry.type(description="Deprecated: Use OntologyEntity instead")
 class GenericEntity(Entity):
     """A node whose backend ontology type is outside the Wine facade's core types."""
+
+
+@strawberry.type
+class OntologyEntity(Entity):
+    """A generic profile-driven ontology entity."""
+    kind: str
+
+
+@strawberry.type
+class OntologyProfileMetadata:
+    package_id: str
+    version: str
+    title: str
+    description: str
+    ontology_iris: list[str]
+
+
+@strawberry.type
+class PrefixEntry:
+    prefix: str
+    iri: str
+
+
+@strawberry.type
+class SemanticCategory:
+    name: str
+    class_iris: list[str]
+    color: str | None
+    icon: str | None
+    label: str | None
+
+
+@strawberry.type
+class PredicateInfo:
+    name: str
+    iri: str | None
+    label: str | None
+    traversable: bool
+    hidden: bool
+
+
+@strawberry.type
+class ProfileLimits:
+    max_depth: int
+    max_nodes: int
+    max_edges: int
+
+
+@strawberry.type
+class LanguageInfo:
+    preferred_languages: list[str]
+
+
+@strawberry.type
+class ActiveProfile:
+    metadata: OntologyProfileMetadata
+    prefixes: list[PrefixEntry]
+    categories: list[SemanticCategory]
+    predicates: list[PredicateInfo]
+    limits: ProfileLimits
+    languages: LanguageInfo
+    reasoning_profile: str
+    build_id: str | None
 
 
 @strawberry.type
@@ -117,16 +179,18 @@ def _to_api_entity(entity: GraphEntity) -> Entity:
         "description": entity.description,
     }
     match entity.kind:
-        case EntityKind.WINE:
+        case "Wine":
             return Wine(**common)
-        case EntityKind.WINERY:
+        case "Winery":
             return Winery(**common)
-        case EntityKind.REGION:
+        case "Region":
             return Region(**common)
-        case EntityKind.GRAPE:
+        case "Grape":
             return Grape(**common)
-        case EntityKind.UNKNOWN:
+        case "Unknown":
             return GenericEntity(**common)
+        case _:
+            return OntologyEntity(kind=entity.kind, **common)
 
 
 def _to_api_relationship(relationship: DomainGraphRelationship) -> GraphRelationship:
@@ -298,7 +362,47 @@ class Query:
                 "The graph service is unavailable",
                 extensions={"code": "GRAPH_BACKEND_ERROR"},
             ) from error
-        return [_to_api_entity(entity) for entity in entities]
+    @strawberry.field
+    async def get_active_profile(self, info: Info[GraphQLContext, None]) -> ActiveProfile:
+        profile = _graph_service(info).get_active_profile()
+        return ActiveProfile(
+            metadata=OntologyProfileMetadata(
+                package_id=profile.package_id,
+                version=profile.version,
+                title=profile.title,
+                description=profile.description,
+                ontology_iris=list(profile.ontology_iris),
+            ),
+            prefixes=[PrefixEntry(prefix=p, iri=i) for p, i in profile.prefixes.prefixes.items()],
+            categories=[
+                SemanticCategory(
+                    name=name,
+                    class_iris=list(cat.class_iris),
+                    color=cat.color,
+                    icon=cat.icon,
+                    label=cat.label,
+                ) for name, cat in profile.categories.items()
+            ],
+            predicates=[
+                PredicateInfo(
+                    name=p,
+                    iri=None,
+                    label=None,
+                    traversable=True,
+                    hidden=False,
+                ) for p in profile.predicates.traversable_predicates
+            ],
+            limits=ProfileLimits(
+                max_depth=profile.limits.max_depth,
+                max_nodes=profile.limits.max_nodes,
+                max_edges=profile.limits.max_edges,
+            ),
+            languages=LanguageInfo(
+                preferred_languages=list(profile.languages.preferred_languages)
+            ),
+            reasoning_profile=profile.reasoning.profile_name,
+            build_id=None,
+        )
 
 
 schema = strawberry.Schema(
@@ -309,6 +413,7 @@ schema = strawberry.Schema(
         Region,
         Grape,
         GenericEntity,
+        OntologyEntity,
         GraphRelationship,
         GraphExpansion,
     ],

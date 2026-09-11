@@ -1,12 +1,33 @@
 import { GraphQLClient } from 'graphql-request'
 
-export type EntityKind = 'WINE' | 'WINERY' | 'REGION' | 'GRAPE' | 'UNKNOWN'
+export interface SemanticCategory {
+  name: string
+  class_iris: string[]
+  color: string | null
+  icon: string | null
+  label: string | null
+}
+
+export interface PredicateInfo {
+  name: string
+  iri: string | null
+  label: string | null
+  traversable: boolean
+  hidden: boolean
+}
+
+export interface ActiveProfile {
+  metadata: { title: string; description: string }
+  categories: SemanticCategory[]
+  predicates: PredicateInfo[]
+}
 
 export interface GraphEntity {
   __typename: string
   id: string
   label: string
   description: string | null
+  kind?: string
 }
 
 export interface GraphRelationship {
@@ -39,6 +60,16 @@ const client = new GraphQLClient(
   import.meta.env.VITE_GRAPHQL_URL ?? 'http://localhost:8000/graphql',
 )
 
+const activeProfileQuery = `
+  query GetActiveProfile {
+    get_active_profile {
+      metadata { title description }
+      categories { name class_iris color icon label }
+      predicates { name iri label traversable hidden }
+    }
+  }
+`
+
 const searchEntitiesQuery = `
   query SearchEntities($query: String!) {
     search_entities(query: $query) {
@@ -46,6 +77,7 @@ const searchEntitiesQuery = `
       id
       label
       description
+      ... on OntologyEntity { kind }
     }
   }
 `
@@ -69,31 +101,30 @@ const expansionQuery = `
         include_inferred: $includeInferred
       }
     ) {
-      center { __typename id label description }
-      nodes { __typename id label description }
+      center { __typename id label description ... on OntologyEntity { kind } }
+      nodes { __typename id label description ... on OntologyEntity { kind } }
       relationships {
         relation
-        source { __typename id label description }
-        target { __typename id label description }
+        source { __typename id label description ... on OntologyEntity { kind } }
+        target { __typename id label description ... on OntologyEntity { kind } }
       }
       page_info { truncated next_cursor }
     }
   }
 `
 
-export function entityKind(entity: GraphEntity): EntityKind {
-  switch (entity.__typename) {
-    case 'Wine':
-      return 'WINE'
-    case 'Winery':
-      return 'WINERY'
-    case 'Region':
-      return 'REGION'
-    case 'Grape':
-      return 'GRAPE'
-    default:
-      return 'UNKNOWN'
+export function entityKind(entity: GraphEntity): string {
+  if (entity.kind) {
+    return entity.kind
   }
+  // Fallback to typename for concrete types
+  if (entity.__typename === 'GenericEntity') return 'Unknown'
+  return entity.__typename
+}
+
+export async function fetchProfile(): Promise<ActiveProfile> {
+  const response = await client.request<{ get_active_profile: ActiveProfile }>(activeProfileQuery)
+  return response.get_active_profile
 }
 
 export async function searchEntities(query: string): Promise<GraphEntity[]> {

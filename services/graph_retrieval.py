@@ -15,15 +15,26 @@ from typing import Any
 import httpx
 
 from domain.models import (
-    EntityKind,
     GraphEntity,
     GraphExpansion,
     GraphRelationship,
+    SemanticResourceKind,
+    UNKNOWN_KIND,
     TraversalDirection,
     TraversalOptions,
 )
 from domain.traversal import paginate_relationships
 from services.exceptions import GraphBackendError
+
+RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+WINE_NAMESPACE = "http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#"
+
+TYPE_BY_KIND = {
+    "Wine": f"<{WINE_NAMESPACE}Wine>",
+    "Winery": f"<{WINE_NAMESPACE}Winery>",
+    "Region": f"<{WINE_NAMESPACE}Region>",
+    "Grape": f"<{WINE_NAMESPACE}WineGrape>",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -262,12 +273,12 @@ class GraphRetrievalService:
         return data
 
     @staticmethod
-    def _kind_by_collection() -> dict[str, EntityKind]:
+    def _kind_by_collection() -> dict[str, str]:
         return {
-            "wines": EntityKind.WINE,
-            "wineries": EntityKind.WINERY,
-            "regions": EntityKind.REGION,
-            "grapes": EntityKind.GRAPE,
+            "wines": "Wine",
+            "wineries": "Winery",
+            "regions": "Region",
+            "grapes": "Grape",
         }
 
     def _collect_typed_entities(self, data: Mapping[str, Any]) -> list[GraphEntity]:
@@ -291,14 +302,14 @@ class GraphRetrievalService:
     def _relationships_from_data(self, data: Mapping[str, Any]) -> list[GraphRelationship]:
         """Map GraphDB relations to canonical directed edges for the public graph."""
         relation_kinds = {
-            "hasMaker": EntityKind.WINERY,
-            "locatedIn": EntityKind.REGION,
-            "madeFromGrape": EntityKind.GRAPE,
-            "adjacentRegion": EntityKind.REGION,
+            "hasMaker": "Winery",
+            "locatedIn": "Region",
+            "madeFromGrape": "Grape",
+            "adjacentRegion": "Region",
         }
         collection_kinds = {
-            "wines": EntityKind.WINE,
-            "regions": EntityKind.REGION,
+            "wines": "Wine",
+            "regions": "Region",
         }
         relationships: list[GraphRelationship] = []
         for collection, source_kind in collection_kinds.items():
@@ -336,7 +347,7 @@ class GraphRetrievalService:
         relation: str,
         related_entity_id: str,
     ) -> list[GraphEntity]:
-        wines = self._entities_from_value(data.get("wines"), EntityKind.WINE)
+        wines = self._entities_from_value(data.get("wines"), "Wine")
         matching_wine_ids = {
             item.get("id")
             for item in data.get("wines", [])
@@ -362,13 +373,13 @@ class GraphRetrievalService:
             return relationship.target.id == entity_id
         return relationship.source.id == entity_id or relationship.target.id == entity_id
 
-    def _entities_from_value(self, value: Any, kind: EntityKind) -> list[GraphEntity]:
+    def _entities_from_value(self, value: Any, kind: str) -> list[GraphEntity]:
         if not isinstance(value, Sequence) or isinstance(value, str):
             return []
         return [self._to_entity(item, kind) for item in value if isinstance(item, Mapping)]
 
     @staticmethod
-    def _to_entity(value: Mapping[str, Any], kind: EntityKind = EntityKind.UNKNOWN) -> GraphEntity:
+    def _to_entity(value: Mapping[str, Any], kind: str = UNKNOWN_KIND) -> GraphEntity:
         identifier = value.get("id")
         if not isinstance(identifier, str):
             raise GraphBackendError("GraphDB returned an entity without a string id")
@@ -397,9 +408,9 @@ class GraphRetrievalService:
         )
 
     @staticmethod
-    def _kind_from_value(value: Mapping[str, Any]) -> EntityKind | None:
-        type_name = str(value.get("__typename") or value.get("type") or "").upper()
-        return EntityKind.__members__.get(type_name)
+    def _kind_from_value(value: Mapping[str, Any]) -> str | None:
+        type_name = str(value.get("__typename") or value.get("type") or "")
+        return type_name if type_name else None
 
     @staticmethod
     def _deduplicate(entities: Sequence[GraphEntity]) -> list[GraphEntity]:

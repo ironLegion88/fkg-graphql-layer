@@ -11,35 +11,23 @@ from pathlib import Path
 from pyoxigraph import Literal, NamedNode, Store, Variable
 
 from domain.models import (
-    EntityKind,
     GraphEntity,
     GraphExpansion,
     GraphRelationship,
+    SemanticResourceKind,
+    UNKNOWN_KIND,
     TraversalDirection,
     TraversalOptions,
 )
+from domain.ontology_profile import OntologyPackage
 from domain.traversal import paginate_relationships
 from services.exceptions import GraphBackendError
 
 
-WINE_NAMESPACE = "http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#"
 RDF_TYPE = NamedNode("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
 RDFS_LABEL = NamedNode("http://www.w3.org/2000/01/rdf-schema#label")
 RDFS_COMMENT = NamedNode("http://www.w3.org/2000/01/rdf-schema#comment")
 INFERRED_GRAPH = NamedNode("urn:fkg:graph:inferred")
-
-TYPE_BY_KIND = {
-    EntityKind.WINE: NamedNode(f"{WINE_NAMESPACE}Wine"),
-    EntityKind.WINERY: NamedNode(f"{WINE_NAMESPACE}Winery"),
-    EntityKind.REGION: NamedNode(f"{WINE_NAMESPACE}Region"),
-    EntityKind.GRAPE: NamedNode(f"{WINE_NAMESPACE}WineGrape"),
-}
-RELATION_BY_NAME = {
-    "hasMaker": NamedNode(f"{WINE_NAMESPACE}hasMaker"),
-    "locatedIn": NamedNode(f"{WINE_NAMESPACE}locatedIn"),
-    "madeFromGrape": NamedNode(f"{WINE_NAMESPACE}madeFromGrape"),
-    "adjacentRegion": NamedNode(f"{WINE_NAMESPACE}adjacentRegion"),
-}
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,15 +66,28 @@ class OxigraphGraphRepository:
 
     def __init__(
         self,
+        profile: OntologyPackage,
         settings: OxigraphSettings | None = None,
         store: Store | None = None,
     ) -> None:
+        self._profile = profile
         self._settings = settings or OxigraphSettings.from_environment()
         self._store = (
             store
             if store is not None
             else Store.read_only(str(self._settings.active_store_path()))
         )
+
+    def _resolve_iri(self, term: str) -> str:
+        """Resolve a compact IRI or local name to a full IRI."""
+        if ":" in term and not term.startswith("http"):
+            prefix, local = term.split(":", 1)
+            if prefix in self._profile.prefixes.prefixes:
+                return self._profile.prefixes.prefixes[prefix] + local
+        # If no prefix and not http, assume base_iri
+        if not term.startswith("http"):
+            return self._profile.prefixes.base_iri + term
+        return term
 
     async def get_entity(self, entity_id: str) -> GraphEntity | None:
         return await asyncio.to_thread(self._get_entity, entity_id)
@@ -127,8 +128,9 @@ class OxigraphGraphRepository:
         return await asyncio.to_thread(self._expand_graph, entity_id, options)
 
     async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]:
-        if relation not in RELATION_BY_NAME:
-            allowed = ", ".join(sorted(RELATION_BY_NAME))
+        traversable = self._profile.predicates.traversable_predicates
+        if relation not in traversable:
+            allowed = ", ".join(sorted(traversable))
             raise GraphBackendError(
                 f"Unsupported graph relation '{relation}'. Allowed: {allowed}"
             )
@@ -143,30 +145,6 @@ class OxigraphGraphRepository:
             for relationship in relationships
         ]
 
-    async def get_wines_by_region(self, region_id: str) -> list[GraphEntity]:
-        return await self._related_wines("locatedIn", region_id)
-
-    async def get_wines_by_grape(self, grape_id: str) -> list[GraphEntity]:
-        return await self._related_wines("madeFromGrape", grape_id)
-
-    async def _related_wines(
-        self,
-        relation: str,
-        target_id: str,
-    ) -> list[GraphEntity]:
-        relationships = await self.get_relationships(
-            target_id,
-            TraversalOptions(
-                direction=TraversalDirection.INCOMING,
-                relations=(relation,),
-            ),
-        )
-        return [
-            relationship.source
-            for relationship in relationships
-            if relationship.source.kind is EntityKind.WINE
-        ]
-
     def _get_entity(self, entity_id: str) -> GraphEntity | None:
         entity_node = NamedNode(entity_id)
         if not any(self._store.quads_for_pattern(entity_node, None, None, None)):
@@ -179,7 +157,15 @@ class OxigraphGraphRepository:
         )
 
     def _search_entities(self, query: str, limit: int) -> list[GraphEntity]:
-        type_values = " ".join(f"<{type_node.value}>" for type_node in TYPE_BY_KIND.values())
+        searchable_types = []
+        for term in self._profile.search.searchable_classes:
+            iri = self._resolve_iri(term)
+            searchable_types.append(f"<{iri}>")
+
+        if not searchable_types:
+            return []
+
+        type_values = " ".join(searchable_types)
         sparql = f"""
             SELECT DISTINCT ?entity ?needle
             WHERE {{
@@ -203,7 +189,7 @@ class OxigraphGraphRepository:
             entity_node = solution["entity"]
             if isinstance(entity_node, NamedNode):
                 entity = self._get_entity(entity_node.value)
-                if entity is not None and entity.kind is not EntityKind.UNKNOWN:
+                if entity is not None and entity.kind != UNKNOWN_KIND:
                     results.append(entity)
         return results
 
@@ -215,7 +201,7 @@ class OxigraphGraphRepository:
         apply_limit: bool = True,
     ) -> list[GraphRelationship]:
         entity_node = NamedNode(entity_id)
-        relation_names = options.relations or tuple(RELATION_BY_NAME)
+        relation_names = options.relations or self._profile.predicates.traversable_predicates
         entity_cache: dict[str, GraphEntity | None] = {}
         relationships: dict[tuple[str, str, str], GraphRelationship] = {}
 
@@ -225,9 +211,8 @@ class OxigraphGraphRepository:
             return entity_cache[iri]
 
         for relation_name in relation_names:
-            predicate = RELATION_BY_NAME.get(relation_name)
-            if predicate is None:
-                continue
+            predicate_iri = self._resolve_iri(relation_name)
+            predicate = NamedNode(predicate_iri)
             if options.direction in (TraversalDirection.OUTGOING, TraversalDirection.BOTH):
                 for quad in self._store.quads_for_pattern(entity_node, predicate, None, None):
                     if not options.include_inferred and quad.graph_name == INFERRED_GRAPH:
@@ -274,11 +259,14 @@ class OxigraphGraphRepository:
         )
         return paginate_relationships(center, relationships, options)
 
-    def _kind_for(self, entity: NamedNode) -> EntityKind:
-        for kind, type_node in TYPE_BY_KIND.items():
-            if any(self._store.quads_for_pattern(entity, RDF_TYPE, type_node, None)):
-                return kind
-        return EntityKind.UNKNOWN
+    def _kind_for(self, entity: NamedNode) -> SemanticResourceKind:
+        for cat_name, cat_config in self._profile.categories.items():
+            for class_term in cat_config.class_iris:
+                class_iri = self._resolve_iri(class_term)
+                type_node = NamedNode(class_iri)
+                if any(self._store.quads_for_pattern(entity, RDF_TYPE, type_node, None)):
+                    return cat_name
+        return UNKNOWN_KIND
 
     def _label_for(self, entity: NamedNode) -> str:
         labels = [

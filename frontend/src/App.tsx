@@ -20,6 +20,7 @@ import {
   entityKind,
   expandGraph,
   searchEntities,
+  fetchProfile,
 } from './api/graph'
 import CytoscapeGraph, { type GraphRendererHandle } from './graph/CytoscapeGraph'
 import {
@@ -33,12 +34,6 @@ import {
   type ExplorerGraph,
 } from './graph/state'
 
-const RELATION_OPTIONS = [
-  'hasMaker',
-  'locatedIn',
-  'madeFromGrape',
-  'adjacentRegion',
-]
 
 function typeLabel(entity: GraphEntity): string {
   return entityKind(entity).toLowerCase().replace(/^./, (letter) => letter.toUpperCase())
@@ -57,10 +52,18 @@ function App() {
   const deferredSearch = useDeferredValue(searchInput.trim())
   const rendererRef = useRef<GraphRendererHandle | null>(null)
 
+  const profileQuery = useQuery({
+    queryKey: ['active-profile'],
+    queryFn: () => fetchProfile(),
+  })
+
+  const profile = profileQuery.data
+  const RELATION_OPTIONS = profile?.predicates.filter(p => !p.hidden && p.traversable).map(p => p.name) || []
+
   const searchQuery = useQuery({
     queryKey: ['entity-search', deferredSearch],
     queryFn: () => searchEntities(deferredSearch),
-    enabled: deferredSearch.length >= 2,
+    enabled: deferredSearch.length >= 2 && !!profile,
   })
 
   const relationshipsMutation = useMutation({
@@ -200,12 +203,17 @@ function App() {
 
   return (
     <main className="explorer-shell">
+      {profile && (
+        <style>
+          {profile.categories.map(cat => cat.color ? `.${cat.name.toLowerCase()} { background: ${cat.color} !important; }` : '').join('\n')}
+        </style>
+      )}
       <header className="app-header">
         <div className="brand-lockup">
           <div className="brand-mark" aria-hidden="true"><Network size={22} /></div>
           <div>
-            <p className="eyebrow">Sample Wines Knowledge Graph</p>
-            <h1>Wine Graph Explorer</h1>
+            <p className="eyebrow">{profile?.metadata.description ?? 'Loading profile...'}</p>
+            <h1>{profile?.metadata.title ?? 'Graph Explorer'}</h1>
           </div>
         </div>
         <div className="graph-stats" aria-label="Current graph size">
@@ -303,10 +311,9 @@ function App() {
             />
           </div>
           <div className="legend" aria-label="Node legend">
-            <span><i className="wine" /> Wine</span>
-            <span><i className="winery" /> Winery</span>
-            <span><i className="region" /> Region</span>
-            <span><i className="grape" /> Grape</span>
+            {profile?.categories.map((cat) => (
+              <span key={cat.name}><i className={cat.name.toLowerCase()} /> {cat.label || cat.name}</span>
+            ))}
           </div>
         </section>
 

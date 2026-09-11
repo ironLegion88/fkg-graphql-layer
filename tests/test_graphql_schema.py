@@ -7,6 +7,11 @@ from services.graph_service import GraphService
 from tests.fakes import FakeGraphRepository, wine_graph_fixture
 
 
+from domain.ontology_profile import load_ontology_profile
+
+def get_profile():
+    return load_ontology_profile()
+
 def test_schema_preserves_public_graph_fields() -> None:
     schema_text = schema.as_str()
 
@@ -24,7 +29,7 @@ def test_schema_preserves_public_graph_fields() -> None:
 
 async def test_search_and_relationship_resolvers_use_database_neutral_service() -> None:
     entities, relationships, _ = wine_graph_fixture()
-    service = GraphService(FakeGraphRepository(entities, relationships))
+    service = GraphService(FakeGraphRepository(entities, relationships), get_profile())
     result = await schema.execute(
         """
         query PrototypeBaseline($query: String!, $id: ID!) {
@@ -58,7 +63,7 @@ async def test_search_and_relationship_resolvers_use_database_neutral_service() 
 
 async def test_bounded_expansion_resolver_returns_page_metadata() -> None:
     entities, relationships, _ = wine_graph_fixture()
-    service = GraphService(FakeGraphRepository(entities, relationships))
+    service = GraphService(FakeGraphRepository(entities, relationships), get_profile())
     result = await schema.execute(
         """
         query BoundedExpansion($id: ID!) {
@@ -86,7 +91,7 @@ async def test_bounded_expansion_resolver_returns_page_metadata() -> None:
 
 async def test_invalid_expansion_returns_stable_error_code() -> None:
     entities, relationships, _ = wine_graph_fixture()
-    service = GraphService(FakeGraphRepository(entities, relationships))
+    service = GraphService(FakeGraphRepository(entities, relationships), get_profile())
     result = await schema.execute(
         """
         query InvalidExpansion($id: ID!) {

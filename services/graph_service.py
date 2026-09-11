@@ -2,18 +2,20 @@
 
 from __future__ import annotations
 
+import warnings
 from collections import deque
 from dataclasses import dataclass, replace
 
 from domain.models import (
-    EntityKind,
     GraphEntity,
     GraphExpansion,
     GraphPath,
     GraphRelationship,
     TraversalOptions,
+    TraversalDirection,
 )
 from domain.ports import GraphRepository
+from domain.ontology_profile import OntologyPackage
 from services.exceptions import EntityNotFoundError, InvalidTraversalError
 
 
@@ -25,6 +27,14 @@ class GraphServiceLimits:
     max_nodes: int = 2_000
     max_edges: int = 4_000
 
+    @classmethod
+    def from_profile(cls, profile: OntologyPackage) -> GraphServiceLimits:
+        return cls(
+            max_depth=profile.limits.max_depth,
+            max_nodes=profile.limits.max_nodes,
+            max_edges=profile.limits.max_edges,
+        )
+
 
 class GraphService:
     """Apply domain rules while delegating all persistence to the retrieval service."""
@@ -32,10 +42,15 @@ class GraphService:
     def __init__(
         self,
         repository: GraphRepository,
-        limits: GraphServiceLimits | None = None,
+        profile: OntologyPackage,
     ) -> None:
         self._repository = repository
-        self._limits = limits or GraphServiceLimits()
+        self._profile = profile
+        self._limits = GraphServiceLimits.from_profile(profile)
+
+    def get_active_profile(self) -> OntologyPackage:
+        """Expose the active ontology profile metadata."""
+        return self._profile
 
     async def get_entity(self, entity_id: str) -> GraphEntity:
         entity = await self._repository.get_entity(entity_id)
@@ -45,8 +60,9 @@ class GraphService:
 
     async def get_wine(self, entity_id: str) -> GraphEntity:
         """Return a Wine only, preserving the public API's concrete type contract."""
+        warnings.warn("get_wine() is deprecated", DeprecationWarning, stacklevel=2)
         entity = await self.get_entity(entity_id)
-        if entity.kind is not EntityKind.WINE:
+        if entity.kind != "Wine":
             raise EntityNotFoundError(f"No wine exists with id '{entity_id}'")
         return entity
 
@@ -128,10 +144,20 @@ class GraphService:
         return None
 
     async def get_wines_by_region(self, region_id: str) -> list[GraphEntity]:
-        return await self._repository.get_wines_by_region(region_id)
+        warnings.warn("get_wines_by_region is deprecated", DeprecationWarning, stacklevel=2)
+        options = TraversalOptions(direction=TraversalDirection.INCOMING, relations=("locatedIn",), node_limit=1000, edge_limit=1000)
+        rels = await self._repository.get_relationships(region_id, options)
+        wines: list[GraphEntity] = []
+        wines.extend(r.source for r in rels if r.source.kind == "Wine")
+        return wines
 
     async def get_wines_by_grape(self, grape_id: str) -> list[GraphEntity]:
-        return await self._repository.get_wines_by_grape(grape_id)
+        warnings.warn("get_wines_by_grape is deprecated", DeprecationWarning, stacklevel=2)
+        options = TraversalOptions(direction=TraversalDirection.INCOMING, relations=("madeFromGrape",), node_limit=1000, edge_limit=1000)
+        rels = await self._repository.get_relationships(grape_id, options)
+        wines: list[GraphEntity] = []
+        wines.extend(r.source for r in rels if r.source.kind == "Wine")
+        return wines
 
     def _normalize_traversal(self, options: TraversalOptions) -> TraversalOptions:
         if options.max_depth <= 0 or options.max_depth > self._limits.max_depth:
@@ -140,9 +166,15 @@ class GraphService:
             )
         if options.node_limit <= 0 or options.edge_limit <= 0:
             raise InvalidTraversalError("node_limit and edge_limit must be positive")
-        relations = tuple(
-            dict.fromkeys(relation.strip() for relation in options.relations if relation.strip())
-        )
+
+        # Validate requested relations against profile's traversable predicates
+        requested = [r.strip() for r in options.relations if r.strip()]
+        traversable = self._profile.predicates.traversable_predicates
+        for req in requested:
+            if req not in traversable:
+                raise InvalidTraversalError(f"Relation '{req}' is not a traversable predicate in the active profile")
+
+        relations = tuple(dict.fromkeys(requested))
         return replace(
             options,
             relations=relations,

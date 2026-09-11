@@ -6,14 +6,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 
-class EntityKind(str, Enum):
-    """Kinds exposed by the public graph facade."""
-
-    WINE = "WINE"
-    WINERY = "WINERY"
-    REGION = "REGION"
-    GRAPE = "GRAPE"
-    UNKNOWN = "UNKNOWN"
+SemanticResourceKind = str
+UNKNOWN_KIND: SemanticResourceKind = "Unknown"
 
 
 class TraversalDirection(str, Enum):
@@ -30,7 +24,7 @@ class GraphEntity:
 
     id: str
     label: str
-    kind: EntityKind
+    kind: SemanticResourceKind
     description: str | None = None
     properties: dict[str, str] = field(default_factory=dict)
 

@@ -6,11 +6,17 @@ import pytest
 
 from dataclasses import replace
 
-from domain.models import EntityKind, TraversalOptions
+from domain.models import TraversalOptions, UNKNOWN_KIND
 from services.exceptions import EntityNotFoundError, InvalidTraversalError
 from services.graph_service import GraphService, GraphServiceLimits
 from tests.fakes import FakeGraphRepository, wine_graph_fixture
 
+
+from domain.ontology_profile import load_ontology_profile
+
+@pytest.fixture
+def profile():
+    return load_ontology_profile()
 
 @pytest.fixture
 def repository() -> FakeGraphRepository:
@@ -19,15 +25,15 @@ def repository() -> FakeGraphRepository:
 
 
 @pytest.fixture
-def service(repository: FakeGraphRepository) -> GraphService:
-    return GraphService(repository)
+def service(repository: FakeGraphRepository, profile) -> GraphService:
+    return GraphService(repository, profile)
 
 
 async def test_get_entity_and_wine_preserve_domain_type(service: GraphService) -> None:
     entity = await service.get_entity("wine:demo")
 
     assert entity.label == "Demo Wine"
-    assert entity.kind is EntityKind.WINE
+    assert entity.kind == "Wine"
     assert await service.get_wine("wine:demo") == entity
 
 
@@ -99,11 +105,10 @@ async def test_domain_helpers_delegate_to_relationship_data(service: GraphServic
 
 async def test_bounded_expansion_clamps_limits_and_continues_with_cursor(
     repository: FakeGraphRepository,
+    profile,
 ) -> None:
-    service = GraphService(
-        repository,
-        GraphServiceLimits(max_nodes=1, max_edges=2),
-    )
+    service = GraphService(repository, profile)
+    service._limits = GraphServiceLimits(max_nodes=1, max_edges=2)
     requested = TraversalOptions(node_limit=100, edge_limit=100)
 
     first = await service.expand_graph("wine:demo", requested)

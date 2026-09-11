@@ -12,7 +12,10 @@ from services.exceptions import GraphBackendError
 from services.graph_retrieval import GraphDBSettings, GraphRetrievalService
 
 
+from domain.ontology_profile import OntologyPackage
+
 def create_graph_repository(
+    profile: OntologyPackage,
     client: httpx.AsyncClient | None = None,
 ) -> GraphRepository:
     """Create the configured storage adapter behind the neutral repository port."""
@@ -20,5 +23,5 @@ def create_graph_repository(
     if backend == "graphdb":
         return GraphRetrievalService(GraphDBSettings.from_environment(), client)
     if backend == "oxigraph":
-        return OxigraphGraphRepository()
+        return OxigraphGraphRepository(profile=profile)
     raise GraphBackendError(f"Unsupported graph backend '{backend}'")

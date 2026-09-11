@@ -6,16 +6,16 @@ from dataclasses import replace
 
 import pytest
 
-from domain.models import EntityKind, GraphEntity, GraphRelationship, TraversalOptions
+from domain.models import GraphEntity, GraphRelationship, TraversalOptions
 from domain.traversal import paginate_relationships
 
 
 def _star_graph() -> tuple[GraphEntity, list[GraphRelationship]]:
-    center = GraphEntity("wine:center", "Center", EntityKind.WINE)
+    center = GraphEntity("wine:center", "Center", "Wine")
     relationships = [
         GraphRelationship(
             center,
-            GraphEntity(f"grape:{index}", f"Grape {index}", EntityKind.GRAPE),
+            GraphEntity(f"grape:{index}", f"Grape {index}", "Grape"),
             "madeFromGrape",
         )
         for index in range(5)
@@ -70,7 +70,7 @@ def test_cursor_is_bound_to_entity_and_filters() -> None:
 
     with pytest.raises(ValueError, match="does not match"):
         paginate_relationships(
-            GraphEntity("wine:other", "Other", EntityKind.WINE),
+            GraphEntity("wine:other", "Other", "Wine"),
             relationships,
             replace(options, cursor=first.page_info.next_cursor),
         )

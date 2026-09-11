@@ -16,12 +16,18 @@ from services.graph_service import GraphService
 from services.repository_factory import create_graph_repository
 
 
+from domain.ontology_profile import load_ontology_profile
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Create one HTTP client for the application and release it at shutdown."""
     timeout_seconds = float(os.getenv("GRAPH_HTTP_TIMEOUT_SECONDS", "15"))
     client = httpx.AsyncClient(timeout=timeout_seconds)
-    app.state.graph_service = GraphService(create_graph_repository(client))
+    profile = load_ontology_profile()
+    app.state.graph_service = GraphService(
+        create_graph_repository(profile, client),
+        profile
+    )
     try:
         yield
     finally:
@@ -34,8 +40,8 @@ async def get_graphql_context(request: Request) -> GraphQLContext:
 
 
 app = FastAPI(
-    title="Wine Graph API",
-    description="A database-agnostic GraphQL facade for the Sample Wines knowledge graph.",
+    title="Ontology Graph API",
+    description="A database-agnostic GraphQL facade for exploring ontology-driven knowledge graphs.",
     lifespan=lifespan,
 )
 app.add_middleware(

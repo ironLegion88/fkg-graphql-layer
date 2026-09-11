@@ -1,0 +1,78 @@
+package_id: fkg-pizza
+version: 1.0.0
+title: Pizza Graph Explorer
+description: Manchester Pizza ontology demonstration package.
+ontology_iris:
+  - https://raw.githubusercontent.com/owlcs/pizza-ontology/refs/heads/master/pizza.owl
+
+sources:
+  - path: ../pizza.owl
+    format: rdf-xml
+    graph: urn:fkg:graph:asserted
+
+imports:
+  mode: disabled
+
+prefixes:
+  base_iri: https://raw.githubusercontent.com/owlcs/pizza-ontology/refs/heads/master/pizza.owl#
+  prefixes:
+    pizza: https://raw.githubusercontent.com/owlcs/pizza-ontology/refs/heads/master/pizza.owl#
+    owl: http://www.w3.org/2002/07/owl#
+    rdfs: http://www.w3.org/2000/01/rdf-schema#
+    rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+
+languages:
+  preferred_languages:
+    - en
+    - ANY
+
+labels:
+  label_predicates:
+    - rdfs:label
+  description_predicates:
+    - rdfs:comment
+
+search:
+  searchable_classes:
+    - pizza:Pizza
+    - pizza:PizzaTopping
+    - pizza:PizzaBase
+    - pizza:Country
+
+predicates:
+  traversable_predicates:
+    - hasTopping
+    - hasBase
+    - hasCountryOfOrigin
+    - isIngredientOf
+    - isToppingOf
+
+categories:
+  Pizza:
+    class_iris:
+      - pizza:Pizza
+    label: Pizza
+    color: "#ff5a5f"
+  PizzaTopping:
+    class_iris:
+      - pizza:PizzaTopping
+    label: PizzaTopping
+    color: "#00a699"
+  PizzaBase:
+    class_iris:
+      - pizza:PizzaBase
+    label: PizzaBase
+    color: "#fc642d"
+  Country:
+    class_iris:
+      - pizza:Country
+    label: Country
+    color: "#484848"
+
+reasoning:
+  profile_name: none
+
+limits:
+  max_depth: 1
+  max_nodes: 2000
+  max_edges: 4000

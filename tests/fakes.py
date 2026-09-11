@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from domain.models import (
-    EntityKind,
     GraphEntity,
     GraphExpansion,
     GraphRelationship,
+    SemanticResourceKind,
+    UNKNOWN_KIND,
     TraversalDirection,
     TraversalOptions,
 )
@@ -111,31 +112,16 @@ class FakeGraphRepository:
             for relationship in relationships
         ]
 
-    async def get_wines_by_region(self, region_id: str) -> list[GraphEntity]:
-        return self._wines_related_to("locatedIn", region_id)
-
-    async def get_wines_by_grape(self, grape_id: str) -> list[GraphEntity]:
-        return self._wines_related_to("madeFromGrape", grape_id)
-
-    def _wines_related_to(self, relation: str, target_id: str) -> list[GraphEntity]:
-        return [
-            relationship.source
-            for relationship in self.relationships
-            if relationship.relation == relation
-            and relationship.target.id == target_id
-            and relationship.source.kind is EntityKind.WINE
-        ]
-
 
 def wine_graph_fixture() -> tuple[
     list[GraphEntity],
     list[GraphRelationship],
     dict[str, GraphEntity],
 ]:
-    wine = GraphEntity("wine:demo", "Demo Wine", EntityKind.WINE)
-    winery = GraphEntity("winery:demo", "Demo Winery", EntityKind.WINERY)
-    grape = GraphEntity("grape:demo", "Demo Grape", EntityKind.GRAPE)
-    region = GraphEntity("region:demo", "Demo Region", EntityKind.REGION)
+    wine = GraphEntity("wine:demo", "Demo Wine", "Wine")
+    winery = GraphEntity("winery:demo", "Demo Winery", "Winery")
+    grape = GraphEntity("grape:demo", "Demo Grape", "Grape")
+    region = GraphEntity("region:demo", "Demo Region", "Region")
     entities = {entity.id: entity for entity in (wine, winery, grape, region)}
     relationships = [
         GraphRelationship(wine, winery, "hasMaker"),

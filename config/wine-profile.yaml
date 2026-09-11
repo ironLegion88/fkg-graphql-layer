@@ -1,0 +1,83 @@
+package_id: fkg-wine
+version: 1.0.0
+title: Wine Graph Explorer
+description: W3C Wine ontology demonstration package.
+ontology_iris:
+  - http://www.w3.org/TR/2003/CR-owl-guide-20030818/wine
+
+sources:
+  - path: ../wine.rdf
+    format: rdf-xml
+    graph: urn:fkg:graph:asserted
+  - path: ../wine-labels.ttl
+    format: turtle
+    graph: urn:fkg:graph:labels
+
+imports:
+  mode: disabled
+  allowlist:
+    - http://www.w3.org/TR/2003/PR-owl-guide-20031209/food
+
+prefixes:
+  base_iri: http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#
+  prefixes:
+    vin: http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#
+    food: http://www.w3.org/TR/2003/PR-owl-guide-20031209/food#
+    owl: http://www.w3.org/2002/07/owl#
+    rdfs: http://www.w3.org/2000/01/rdf-schema#
+    rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+
+languages:
+  preferred_languages:
+    - en
+    - ANY
+
+labels:
+  label_predicates:
+    - rdfs:label
+  description_predicates:
+    - rdfs:comment
+
+search:
+  searchable_classes:
+    - vin:Wine
+    - vin:Winery
+    - vin:Region
+    - vin:WineGrape
+
+predicates:
+  traversable_predicates:
+    - hasMaker
+    - locatedIn
+    - madeFromGrape
+    - adjacentRegion
+
+categories:
+  Wine:
+    class_iris:
+      - vin:Wine
+    label: Wine
+    color: "#b83c50"
+  Winery:
+    class_iris:
+      - vin:Winery
+    label: Winery
+    color: "#d7972f"
+  Region:
+    class_iris:
+      - vin:Region
+    label: Region
+    color: "#287b73"
+  Grape:
+    class_iris:
+      - vin:WineGrape
+    label: Grape
+    color: "#6c5ca4"
+
+reasoning:
+  profile_name: rdfs-wine-parity
+
+limits:
+  max_depth: 1
+  max_nodes: 2000
+  max_edges: 4000
