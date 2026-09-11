@@ -117,8 +117,14 @@ def build_store(
         _promote(output_root, build_id, metadata["triple_count"])
     except Exception as e:
         shutil.rmtree(temporary_directory, ignore_errors=True)
-        # Log diagnostic info without exposing full paths in API, but let it propagate
-        raise RuntimeError(f"Build failed: {e.__class__.__name__}") from e
+        # Retain error class and message, but ensure we don't leak the absolute temp/repo paths.
+        # We assume custom exceptions like ParserSecurityError/ImportResolutionError have safe messages.
+        # For general exceptions, we just print the class.
+        if isinstance(e, (ImportError, ValueError, RuntimeError)) or e.__class__.__name__ in ("ParserSecurityError", "ImportResolutionError", "PathTraversalError", "FileSizeLimitError"):
+            safe_msg = str(e)
+        else:
+            safe_msg = "Internal error during build"
+        raise RuntimeError(f"Build failed: {e.__class__.__name__} - {safe_msg}") from e
 
     return StoreBuildResult(
         build_id,
