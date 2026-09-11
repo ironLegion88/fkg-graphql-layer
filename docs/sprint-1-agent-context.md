@@ -3,7 +3,8 @@
 - **Document type:** Supplementary implementation context for LLM agent delegation
 - **Status:** Active
 - **Created:** 2026-09-10
-- **Branch baseline:** `feat/owl-store-migration` at commit `2e543f4`
+- **Last updated:** 2026-09-11 (post Batch 1A)
+- **Branch baseline:** `sprint-1/core-platform` (Batch 1A merged from `feat/ontology-neutral-profiles`)
 - **Prerequisite reading:** Before beginning any batch, read these documents in order:
   1. [Project Status](project-status-2026-09-10.md) — what exists now
   2. [Ontology Graph Explorer Requirements](ontology-graph-explorer-requirements.md) — what to build
@@ -398,13 +399,81 @@ FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 
 ## 8. Sprint 1 Batch Sequencing
 
-| Batch | Name | Depends On | Focus |
-|-------|------|-----------|-------|
-| **1A** | Ontology-Neutral Profiles | — | Profile schema, remove Wine hardcoding, profile metadata API |
-| **1B** | Semantic Domain & Repository | 1A | Generic domain types, enriched repository, class/property models |
-| **1C** | Secure Imports & Parsing | 1A | Vendor Food import, parser hardening, serialization tests |
-| **1D** | Full OWL 2 DL Reasoning | 1A, 1C | Reasoner ADR, ReasoningProvider port, isolated reasoning |
-| **1E** | Paths, Comparison, Errors | 1A, 1B | Repository-native paths, comparison, stable error codes |
-| **1F** | GraphQL Safety | 1A, 1E | Complexity limits, timeouts, auth boundary |
-| **1G** | Store Operations | 1A, 1D | Lifecycle commands, readiness, telemetry |
-| **1H** | Frontend Contracts & CI | 1A, 1B | Shared packages, renderer contracts, CI gates |
+| Batch | Name | Depends On | Status | Focus |
+|-------|------|-----------|--------|-------|
+| **1A** | Ontology-Neutral Profiles | — | ✅ DONE | Profile schema, remove Wine hardcoding, profile metadata API |
+| **1B** | Semantic Domain & Repository | 1A | 🔜 NEXT | Generic domain types, enriched repository, class/property models |
+| **1C** | Secure Imports & Parsing | 1A | ⬜ | Vendor Food import, parser hardening, serialization tests |
+| **1D** | Full OWL 2 DL Reasoning | 1A, 1C | ⬜ | Reasoner ADR, ReasoningProvider port, isolated reasoning |
+| **1E** | Paths, Comparison, Errors | 1A, 1B | ⬜ | Repository-native paths, comparison, stable error codes |
+| **1F** | GraphQL Safety | 1A, 1E | ⬜ | Complexity limits, timeouts, auth boundary |
+| **1G** | Store Operations | 1A, 1D | ⬜ | Lifecycle commands, readiness, telemetry |
+| **1H** | Frontend Contracts & CI | 1A, 1B | ⬜ | Shared packages, renderer contracts, CI gates |
+
+---
+
+## 9. Batch 1A Completion Summary
+
+Batch 1A was implemented in commit `08c8776` on branch `feat/ontology-neutral-profiles`.
+All 50 backend tests pass. All 6 frontend tests pass. Frontend builds cleanly.
+
+### 9.1 What Batch 1A Changed
+
+#### New Files
+- `domain/ontology_profile.py` — Pydantic ontology package schema and loader
+- `config/wine-profile.yaml` — Wine ontology profile
+- `config/pizza-profile.yaml` — Pizza ontology profile  
+- `tests/test_ontology_profile.py` — 4 profile schema tests
+
+#### Key Modifications
+- `domain/models.py` — `EntityKind` enum replaced with `SemanticResourceKind = str` + `UNKNOWN_KIND`
+- `domain/ports.py` — `get_wines_by_region()`, `get_wines_by_grape()` removed from `GraphRepository` protocol
+- `services/graph_service.py` — Takes `OntologyPackage` profile, validates relations against profile, Wine methods deprecated with `warnings.warn()`
+- `adapters/oxigraph/repository.py` — Takes `OntologyPackage` profile, all kind/predicate/search logic is profile-driven. Wine constants removed.
+- `api/graphql_schema.py` — Added `OntologyEntity`, `ActiveProfile` types, `get_active_profile` query. Wine types marked deprecated.
+- `services/repository_factory.py` — Passes profile to adapters
+- `main.py` — Loads profile, generic title
+- `frontend/src/api/graph.ts` — Added `fetchProfile()`, `ActiveProfile` types, `OntologyEntity` support
+- `frontend/src/App.tsx` — Dynamic title, categories, predicates from profile
+- All test files updated for string-based kinds and profile injection
+
+### 9.2 Outstanding Defects (Must-Fix in Batch 1B)
+
+| ID | Severity | Description | File | Lines |
+|----|----------|-------------|------|-------|
+| DEF-1 | **HIGH** | `Query.expand` resolver missing `return` statement — returns `None` instead of entities | `api/graphql_schema.py` | 349–364 |
+| DEF-2 | **MEDIUM** | Cytoscape canvas stylesheet has hardcoded Wine color selectors (`node.wine`, etc.) — non-Wine profiles render gray nodes | `frontend/src/graph/CytoscapeGraph.tsx` | 107–110 |
+| DEF-3 | **LOW** | `_label_for()` and `_literal_value()` hardcode `RDFS_LABEL`/`RDFS_COMMENT` instead of reading profile's label/description predicates | `adapters/oxigraph/repository.py` | 271–289 |
+| DEF-4 | **LOW** | No GraphQL test for `get_active_profile` query | `tests/test_graphql_schema.py` | — |
+| DEF-5 | **LOW** | No GraphQL test for `expand(id, relation)` resolver (which would have caught DEF-1) | `tests/test_graphql_schema.py` | — |
+
+### 9.3 Current Architecture After Batch 1A
+
+```text
+OntologyPackage (profile YAML)
+        │
+        ├──→ OxigraphGraphRepository (profile-driven kind/search/predicates)
+        │
+        ├──→ GraphService (profile-driven limits + traversal validation)
+        │         │
+        │         └──→ get_active_profile() → OntologyPackage
+        │
+        └──→ GraphQL schema (get_active_profile query → ActiveProfile type)
+                  │
+                  └──→ Frontend (fetchProfile() → dynamic categories/predicates)
+```
+
+### 9.4 Key Interfaces After Batch 1A
+
+| Interface | Location | Notes |
+|-----------|----------|-------|
+| `SemanticResourceKind = str` | `domain/models.py` | Replaces old `EntityKind` enum |
+| `UNKNOWN_KIND = "Unknown"` | `domain/models.py` | Default for unclassified entities |
+| `OntologyPackage` | `domain/ontology_profile.py` | Top-level profile schema |
+| `load_ontology_profile(path?)` | `domain/ontology_profile.py` | Reads YAML, validates, returns profile |
+| `GraphService(repo, profile)` | `services/graph_service.py` | Constructor now requires profile |
+| `OxigraphGraphRepository(profile, ...)` | `adapters/oxigraph/repository.py` | Constructor now requires profile |
+| `create_graph_repository(profile, client?)` | `services/repository_factory.py` | Factory now requires profile |
+| `OntologyEntity(Entity)` | `api/graphql_schema.py` | Generic GQL type with `kind: str` |
+| `ActiveProfile` | `api/graphql_schema.py` | Profile metadata GQL type |
+| `fetchProfile()` | `frontend/src/api/graph.ts` | Frontend profile fetcher |
