@@ -4,7 +4,16 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from domain.models import GraphEntity, GraphExpansion, GraphRelationship, TraversalOptions
+from domain.models import (
+    GraphEntity,
+    GraphExpansion,
+    GraphRelationship,
+    TraversalOptions,
+    SearchOptions,
+    SearchResult,
+    ExpansionPreview,
+)
+from domain.semantic_models import ResourceMetadata, ClassInfo, PropertyInfo
 
 
 class GraphRepository(Protocol):
@@ -12,13 +21,13 @@ class GraphRepository(Protocol):
 
     async def get_entity(self, entity_id: str) -> GraphEntity | None: ...
 
-    async def search_entities(
-        self,
-        query: str,
-        limit: int = 250,
-    ) -> list[GraphEntity]: ...
+    async def search_entities(self, query: str, limit: int = 250) -> list[GraphEntity]: ...
+
+    async def search(self, options: SearchOptions) -> SearchResult: ...
 
     async def get_neighbors(self, entity_id: str) -> list[GraphEntity]: ...
+
+    async def get_expansion_preview(self, entity_id: str) -> ExpansionPreview: ...
 
     async def get_relationships(
         self,
@@ -32,4 +41,13 @@ class GraphRepository(Protocol):
         options: TraversalOptions,
     ) -> GraphExpansion: ...
 
-    async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]: ...
+    async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]:
+        """Expand a single generic relation. Deprecated: use expand_graph instead."""
+
+
+class SemanticRepository(Protocol):
+    async def get_resource_metadata(self, iri: str) -> ResourceMetadata | None: ...
+    async def get_class_info(self, class_iri: str) -> ClassInfo | None: ...
+    async def get_property_info(self, property_iri: str) -> PropertyInfo | None: ...
+    async def list_classes(self, limit: int = 100, offset: int = 0) -> list[ClassInfo]: ...
+    async def list_properties(self, limit: int = 100, offset: int = 0) -> list[PropertyInfo]: ...
