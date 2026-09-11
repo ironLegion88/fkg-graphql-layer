@@ -187,3 +187,35 @@ def test_import_resolution_cyclic(setup_files):
     assert len(resolved) == 2
     iris = {r.import_iri for r in resolved}
     assert iris == {"http://example.org/a", "http://example.org/b"}
+
+def test_import_resolution_iri_mismatch(setup_files):
+    base_dir, vendor_dir, source_rdf, food_rdf, changed_rdf = setup_files
+    
+    source_rdf.write_text('''
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:owl="http://www.w3.org/2002/07/owl#">
+        <owl:Ontology rdf:about="http://example.org/source">
+            <owl:imports rdf:resource="http://example.org/food"/>
+        </owl:Ontology>
+    </rdf:RDF>
+    ''')
+    
+    # Write a file that defines a DIFFERENT ontology IRI
+    food_rdf.write_text('''
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:owl="http://www.w3.org/2002/07/owl#">
+        <owl:Ontology rdf:about="http://example.org/not_food"/>
+    </rdf:RDF>
+    ''')
+    
+    resolver = ImportResolver(ImportPolicy(mode="vendored"), base_dir)
+    checksum = resolver._compute_sha256(food_rdf)
+    
+    policy = ImportPolicy(
+        mode="vendored",
+        allowlist=("http://example.org/food",),
+        local_mappings={"http://example.org/food": "vendor/food.rdf"},
+        checksums={"http://example.org/food": checksum}
+    )
+    resolver = ImportResolver(policy, base_dir)
+    
+    with pytest.raises(ImportResolutionError, match="Ontology IRI mismatch"):
+        resolver.resolve_imports([source_rdf])

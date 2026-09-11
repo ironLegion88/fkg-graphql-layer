@@ -102,6 +102,10 @@ class ImportResolver:
             # Discover nested imports
             nested_ontology_iri, nested_imports = self._extract_imports_and_iri(local_path)
             if nested_ontology_iri:
+                if nested_ontology_iri != import_iri:
+                    raise ImportResolutionError(
+                        f"Ontology IRI mismatch: expected {import_iri}, got {nested_ontology_iri}"
+                    )
                 visited_iris.add(nested_ontology_iri)
                 
             for nested_imp in nested_imports:
