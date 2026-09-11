@@ -7,8 +7,12 @@ sources:
     format: turtle
     graph: urn:fkg:graph:labels
 imports:
-  # Import resolution and vendoring are implemented in the next semantic phase.
-  mode: disabled
+  mode: vendored
+  vendor_dir: ../vendor
+  local_mappings:
+    "http://www.w3.org/TR/2003/PR-owl-guide-20031209/food": "../vendor/food.rdf"
+  checksums:
+    "http://www.w3.org/TR/2003/PR-owl-guide-20031209/food": "64af31d99ee62f58b7daa18977bbb27973c67a717d5d6317f42400bd53504184"
   allowlist:
-    - http://www.w3.org/TR/2003/PR-owl-guide-20031209/food
+    - "http://www.w3.org/TR/2003/PR-owl-guide-20031209/food"
 reasoning_profile: rdfs-wine-parity

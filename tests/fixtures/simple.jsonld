@@ -1,0 +1,10 @@
+{
+  "@context": {
+    "ex": "http://example.org/"
+  },
+  "@id": "http://example.org/Subject1",
+  "ex:predicate1": {
+    "@id": "http://example.org/Object1"
+  },
+  "ex:predicate2": "Literal Value"
+}

@@ -91,7 +91,7 @@ def test_invalid_source_does_not_replace_active_build(tmp_path: Path) -> None:
     valid = build_store(manifest_path, output_root)
 
     source.write_text("this is not valid turtle", encoding="utf-8")
-    with pytest.raises(SyntaxError):
+    with pytest.raises((SyntaxError, RuntimeError)):
         build_store(manifest_path, output_root)
 
     active = json.loads((output_root / "current.json").read_text(encoding="utf-8"))

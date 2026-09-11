@@ -1,0 +1,2 @@
+<http://example.org/Subject1> <http://example.org/predicate1> <http://example.org/Object1> <urn:fkg:graph:test> .
+<http://example.org/Subject1> <http://example.org/predicate2> "Literal Value" <urn:fkg:graph:test> .

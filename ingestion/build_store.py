@@ -22,7 +22,14 @@ from ingestion.manifest import (
     resolve_sources,
 )
 from ingestion.reasoning import materialize_semantics
-
+from ingestion.imports import ImportResolver, ResolvedImport
+from ingestion.security import (
+    validate_source_path,
+    validate_file_size,
+    safe_parse_rdf,
+    PathTraversalError,
+    ParserSecurityError,
+)
 
 FORMAT_BY_NAME: dict[RDFFormatName, RdfFormat] = {
     "json-ld": RdfFormat.JSON_LD,
@@ -57,9 +64,16 @@ def build_store(
     """Build a content-addressed Oxigraph store and promote it atomically."""
     manifest_path = manifest_path.resolve()
     output_root = output_root.resolve()
+    manifest_dir = manifest_path.parent
     manifest = load_source_manifest(manifest_path)
     sources = resolve_sources(manifest_path, manifest)
-    build_id = calculate_build_id(manifest, sources)
+    
+    # Import resolution
+    import_resolver = ImportResolver(manifest.imports, manifest_dir)
+    initial_source_paths = [s.path for s in sources]
+    resolved_imports = import_resolver.resolve_imports(initial_source_paths)
+
+    build_id = calculate_build_id(manifest, sources, tuple(resolved_imports))
     final_directory = output_root / "builds" / build_id
 
     if dry_run:
@@ -85,7 +99,9 @@ def build_store(
     try:
         triple_count, inferred_triple_count = _load_store(
             temporary_directory,
+            manifest_dir,
             sources,
+            resolved_imports,
             manifest.reasoning_profile,
         )
         metadata = _write_build_metadata(
@@ -93,14 +109,22 @@ def build_store(
             manifest_path,
             manifest.reasoning_profile,
             sources,
+            resolved_imports,
             triple_count,
             inferred_triple_count,
         )
         _replace_build_directory(temporary_directory, final_directory)
         _promote(output_root, build_id, metadata["triple_count"])
-    except Exception:
+    except Exception as e:
         shutil.rmtree(temporary_directory, ignore_errors=True)
-        raise
+        # Retain error class and message, but ensure we don't leak the absolute temp/repo paths.
+        # We assume custom exceptions like ParserSecurityError/ImportResolutionError have safe messages.
+        # For general exceptions, we just print the class.
+        if isinstance(e, (ImportError, ValueError, RuntimeError)) or e.__class__.__name__ in ("ParserSecurityError", "ImportResolutionError", "PathTraversalError", "FileSizeLimitError"):
+            safe_msg = str(e)
+        else:
+            safe_msg = "Internal error during build"
+        raise RuntimeError(f"Build failed: {e.__class__.__name__} - {safe_msg}") from e
 
     return StoreBuildResult(
         build_id,
@@ -114,17 +138,47 @@ def build_store(
 
 def _load_store(
     build_directory: Path,
+    manifest_dir: Path,
     sources: tuple[ResolvedRDFSource, ...],
+    resolved_imports: list[ResolvedImport],
     reasoning_profile: str,
 ) -> tuple[int, int]:
     store_directory = build_directory / "store"
     store = Store(store_directory)
+    
+    # Load primary sources
     for source in sources:
-        store.bulk_load(
-            path=source.path,
-            format=FORMAT_BY_NAME[source.format],
-            to_graph=NamedNode(source.graph),
+        safe_path = validate_source_path(source.path, [manifest_dir, manifest_dir.parent])
+        safe_parse_rdf(
+            safe_path, 
+            FORMAT_BY_NAME[source.format], 
+            store, 
+            NamedNode(source.graph)
         )
+        
+    # Load imports
+    for imp in resolved_imports:
+        safe_path = validate_source_path(imp.local_path, [manifest_dir, manifest_dir.parent])
+        # Auto-detect format for imports based on file extension
+        ext = safe_path.suffix.lower()
+        if ext in (".ttl", ".turtle"):
+            fmt = RdfFormat.TURTLE
+        elif ext in (".nt",):
+            fmt = RdfFormat.N_TRIPLES
+        elif ext in (".nq",):
+            fmt = RdfFormat.N_QUADS
+        elif ext in (".trig",):
+            fmt = RdfFormat.TRIG
+        else:
+            fmt = RdfFormat.RDF_XML
+        
+        safe_parse_rdf(
+            safe_path,
+            fmt,
+            store,
+            NamedNode(imp.target_graph)
+        )
+
     inferred_triple_count = materialize_semantics(store, reasoning_profile)
     store.optimize()
     store.flush()
@@ -139,6 +193,7 @@ def _write_build_metadata(
     manifest_path: Path,
     reasoning_profile: str,
     sources: tuple[ResolvedRDFSource, ...],
+    resolved_imports: list[ResolvedImport],
     triple_count: int,
     inferred_triple_count: int,
 ) -> dict[str, object]:
@@ -156,6 +211,14 @@ def _write_build_metadata(
                 "sha256": source.sha256,
             }
             for source in sources
+        ],
+        "resolved_imports": [
+            {
+                "import_iri": imp.import_iri,
+                "checksum": imp.checksum,
+                "target_graph": imp.target_graph,
+            }
+            for imp in resolved_imports
         ],
     }
     _write_json_atomic(build_directory / "store-manifest.json", metadata)
