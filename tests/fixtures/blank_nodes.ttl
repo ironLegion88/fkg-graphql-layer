@@ -1,0 +1,8 @@
+@prefix ex: <http://example.org/> .
+
+[ ex:name "Blank Node Subject" ;
+  ex:relatedTo ex:Resource ] .
+
+ex:Resource ex:hasBlankNode [
+    ex:name "Blank Node Object"
+] .

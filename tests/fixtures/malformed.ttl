@@ -1,0 +1,4 @@
+@prefix ex: <http://example.org/> .
+
+ex:Subject ex:predicate "Value"
+# Missing period

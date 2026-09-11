@@ -1,0 +1,8 @@
+@prefix ex: <http://example.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:Subject ex:hasInteger 42 ;
+           ex:hasDecimal 3.14 ;
+           ex:hasBoolean true ;
+           ex:hasDateTime "2023-01-01T00:00:00Z"^^xsd:dateTime ;
+           ex:hasString "Hello World"^^xsd:string .

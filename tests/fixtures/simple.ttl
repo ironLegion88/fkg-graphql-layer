@@ -1,0 +1,4 @@
+@prefix ex: <http://example.org/> .
+
+ex:Subject1 ex:predicate1 ex:Object1 ;
+            ex:predicate2 "Literal Value" .
