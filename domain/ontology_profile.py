@@ -20,7 +20,8 @@ class SourceConfig(RDFSource):
 
 class ImportConfig(ImportPolicy):
     """Configuration for ontology imports."""
-    pass
+    
+    local_mappings: dict[str, str] = Field(default_factory=dict)
 
 
 class PrefixConfig(BaseModel):
