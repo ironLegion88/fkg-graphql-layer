@@ -11,8 +11,12 @@ from domain.models import (
     GraphExpansion,
     GraphPath,
     GraphRelationship,
+    PageInfo,
     TraversalOptions,
     TraversalDirection,
+    SearchOptions,
+    SearchResult,
+    ExpansionPreview,
 )
 from domain.ports import GraphRepository
 from domain.ontology_profile import OntologyPackage
@@ -72,9 +76,31 @@ class GraphService:
             return []
         return await self._repository.search_entities(normalized_query)
 
+    async def search(self, options: SearchOptions) -> SearchResult:
+        normalized_query = options.query.strip()
+        if not normalized_query:
+            return SearchResult(entities=(), total_matches=0)
+        
+        # apply limits bounds
+        bounded_limit = min(max(options.limit, 1), self._profile.limits.max_nodes)
+        bounded_offset = max(options.offset, 0)
+        
+        bounded_options = SearchOptions(
+            query=normalized_query,
+            limit=bounded_limit,
+            offset=bounded_offset,
+            kinds=options.kinds,
+            require_description=options.require_description
+        )
+        return await self._repository.search(bounded_options)
+
     async def get_neighbors(self, entity_id: str) -> list[GraphEntity]:
         await self.get_entity(entity_id)
         return await self._repository.get_neighbors(entity_id)
+
+    async def get_expansion_preview(self, entity_id: str) -> ExpansionPreview:
+        await self.get_entity(entity_id)
+        return await self._repository.get_expansion_preview(entity_id)
 
     async def get_relationships(self, entity_id: str) -> list[GraphRelationship]:
         """Return labelled edges touching an entity in either graph direction."""
