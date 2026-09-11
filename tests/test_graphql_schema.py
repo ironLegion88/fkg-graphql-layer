@@ -106,3 +106,46 @@ async def test_invalid_expansion_returns_stable_error_code() -> None:
 
     assert result.errors is not None
     assert result.errors[0].extensions == {"code": "INVALID_ARGUMENT"}
+
+async def test_expand_query_returns_entities() -> None:
+    entities, relationships, _ = wine_graph_fixture()
+    service = GraphService(FakeGraphRepository(entities, relationships), get_profile())
+    result = await schema.execute(
+        """
+        query ExpandQuery($id: ID!, $relation: String!) {
+          expand(id: $id, relation: $relation) {
+            id
+            label
+          }
+        }
+        """,
+        variable_values={"id": "wine:demo", "relation": "hasMaker"},
+        context_value={"graph_service": service},
+    )
+
+    assert result.errors is None
+    assert result.data is not None
+    assert len(result.data["expand"]) > 0
+    assert result.data["expand"][0]["id"] == "winery:demo"
+
+
+async def test_get_active_profile_query() -> None:
+    entities, relationships, _ = wine_graph_fixture()
+    service = GraphService(FakeGraphRepository(entities, relationships), get_profile())
+    result = await schema.execute(
+        """
+        query GetProfile {
+          get_active_profile {
+            metadata {
+              package_id
+              title
+            }
+          }
+        }
+        """,
+        context_value={"graph_service": service},
+    )
+
+    assert result.errors is None
+    assert result.data is not None
+    assert result.data["get_active_profile"]["metadata"]["package_id"] is not None

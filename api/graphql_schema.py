@@ -362,6 +362,8 @@ class Query:
                 "The graph service is unavailable",
                 extensions={"code": "GRAPH_BACKEND_ERROR"},
             ) from error
+        return [_to_api_entity(entity) for entity in entities]
+
     @strawberry.field
     async def get_active_profile(self, info: Info[GraphQLContext, None]) -> ActiveProfile:
         profile = _graph_service(info).get_active_profile()
