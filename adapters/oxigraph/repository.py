@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 from dataclasses import dataclass
@@ -18,6 +19,10 @@ from domain.models import (
     UNKNOWN_KIND,
     TraversalDirection,
     TraversalOptions,
+    SearchOptions,
+    SearchResult,
+    ExpansionPreview,
+    PreviewGroup,
 )
 from domain.ontology_profile import OntologyPackage
 from domain.traversal import paginate_relationships
@@ -97,6 +102,11 @@ class OxigraphGraphRepository:
             return []
         return await asyncio.to_thread(self._search_entities, query, limit)
 
+    async def search(self, options: SearchOptions) -> SearchResult:
+        if options.limit <= 0:
+            return SearchResult(entities=(), total_matches=0)
+        return await asyncio.to_thread(self._search, options)
+
     async def get_neighbors(self, entity_id: str) -> list[GraphEntity]:
         relationships = await self.get_relationships(entity_id)
         unique: dict[str, GraphEntity] = {}
@@ -108,6 +118,9 @@ class OxigraphGraphRepository:
             )
             unique.setdefault(neighbor.id, neighbor)
         return list(unique.values())
+
+    async def get_expansion_preview(self, entity_id: str) -> ExpansionPreview:
+        return await asyncio.to_thread(self._get_expansion_preview, entity_id)
 
     async def get_relationships(
         self,
@@ -153,7 +166,7 @@ class OxigraphGraphRepository:
             id=entity_id,
             label=self._label_for(entity_node),
             kind=self._kind_for(entity_node),
-            description=self._literal_value(entity_node, RDFS_COMMENT),
+            description=self._description_for(entity_node),
         )
 
     def _search_entities(self, query: str, limit: int) -> list[GraphEntity]:
@@ -193,6 +206,100 @@ class OxigraphGraphRepository:
                     results.append(entity)
         return results
 
+    def _search(self, options: SearchOptions) -> SearchResult:
+        searchable_types = []
+        if options.kinds:
+            for kind in options.kinds:
+                # Assuming kind matches the category name (e.g. "Wine")
+                # Need to match case insensitively since kind could be capitalized differently
+                for cat_name, cat_config in self._profile.categories.items():
+                    if cat_name.lower() == kind.lower():
+                        for class_term in cat_config.class_iris:
+                            iri = self._resolve_iri(class_term)
+                            searchable_types.append(f"<{iri}>")
+        else:
+            for term in self._profile.search.searchable_classes:
+                iri = self._resolve_iri(term)
+                searchable_types.append(f"<{iri}>")
+
+        if not searchable_types:
+            return SearchResult(entities=(), total_matches=0)
+
+        type_values = " ".join(searchable_types)
+        
+        desc_filter = ""
+        if options.require_description:
+            desc_predicates = self._profile.labels.description_predicates or ["http://www.w3.org/2000/01/rdf-schema#comment"]
+            desc_iris = " ".join(f"<{self._resolve_iri(p)}>" for p in desc_predicates)
+            desc_filter = f"""
+              VALUES ?descPredicate {{ {desc_iris} }}
+              ?entity ?descPredicate ?desc .
+            """
+
+        sparql = f"""
+            SELECT DISTINCT ?entity
+            WHERE {{
+              VALUES ?entityType {{ {type_values} }}
+              ?entity a ?entityType .
+              {desc_filter}
+              OPTIONAL {{ ?entity <{RDFS_LABEL.value}> ?label . }}
+              FILTER(
+                CONTAINS(LCASE(STR(?entity)), LCASE(STR(?needle))) ||
+                (BOUND(?label) && CONTAINS(LCASE(STR(?label)), LCASE(STR(?needle))))
+              )
+            }}
+            ORDER BY LCASE(STR(?entity))
+        """
+        all_results = []
+        for solution in self._store.query(
+            sparql,
+            use_default_graph_as_union=True,
+            substitutions={Variable("needle"): Literal(options.query)},
+        ):
+            entity_node = solution["entity"]
+            if isinstance(entity_node, NamedNode):
+                entity = self._get_entity(entity_node.value)
+                if entity is not None and entity.kind != UNKNOWN_KIND:
+                    all_results.append(entity)
+                    
+        total_matches = len(all_results)
+        page = all_results[options.offset : options.offset + options.limit]
+        return SearchResult(entities=tuple(page), total_matches=total_matches)
+
+    def _get_expansion_preview(self, entity_id: str) -> ExpansionPreview:
+        entity_node = NamedNode(entity_id)
+        from collections import defaultdict
+        
+        counts = defaultdict(int)
+        
+        # Outgoing
+        for quad in self._store.quads_for_pattern(entity_node, None, None, None):
+            if isinstance(quad.object, NamedNode) and isinstance(quad.predicate, NamedNode):
+                # only count traversable predicates
+                pred_name = _iri_local_name(quad.predicate.value)
+                counts[(pred_name, TraversalDirection.OUTGOING)] += 1
+                
+        # Incoming
+        for quad in self._store.quads_for_pattern(None, None, entity_node, None):
+            if isinstance(quad.subject, NamedNode) and isinstance(quad.predicate, NamedNode):
+                pred_name = _iri_local_name(quad.predicate.value)
+                counts[(pred_name, TraversalDirection.INCOMING)] += 1
+                
+        groups = []
+        total = 0
+        traversable_set = set(self._profile.predicates.traversable_predicates)
+        
+        for (rel, dir_), count in counts.items():
+            if rel in traversable_set:
+                groups.append(PreviewGroup(relation=rel, direction=dir_, count=count))
+                total += count
+                
+        return ExpansionPreview(
+            entity_id=entity_id,
+            total_count=total,
+            groups=tuple(groups)
+        )
+
     def _get_relationships(
         self,
         entity_id: str,
@@ -210,6 +317,38 @@ class OxigraphGraphRepository:
                 entity_cache[iri] = self._get_entity(iri)
             return entity_cache[iri]
 
+        def create_relationship(source, target, relation_name, predicate_iri, quad):
+            graph_name = quad.graph_name.value if hasattr(quad.graph_name, "value") else "default"
+            is_inferred = quad.graph_name == INFERRED_GRAPH
+            
+            hasher = hashlib.sha256()
+            hasher.update(source.id.encode("utf-8"))
+            hasher.update(predicate_iri.encode("utf-8"))
+            hasher.update(target.id.encode("utf-8"))
+            hasher.update(graph_name.encode("utf-8"))
+            rel_id = hasher.hexdigest()[:16]
+            
+            compact = None
+            for prefix, uri in self._profile.prefixes.prefixes.items():
+                if predicate_iri.startswith(uri):
+                    compact = f"{prefix}:{predicate_iri[len(uri):]}"
+                    break
+            if not compact and predicate_iri.startswith(self._profile.prefixes.base_iri):
+                compact = predicate_iri[len(self._profile.prefixes.base_iri):]
+
+            return GraphRelationship(
+                source=source,
+                target=target,
+                relation=relation_name,
+                relationship_id=rel_id,
+                predicate_iri=predicate_iri,
+                predicate_compact_iri=compact,
+                predicate_label=self._label_for(NamedNode(predicate_iri)),
+                is_inferred=is_inferred,
+                source_graph=graph_name,
+                explanation_handle=None
+            )
+
         for relation_name in relation_names:
             predicate_iri = self._resolve_iri(relation_name)
             predicate = NamedNode(predicate_iri)
@@ -222,9 +361,9 @@ class OxigraphGraphRepository:
                     source = entity(entity_id)
                     target = entity(quad.object.value)
                     if source is not None and target is not None:
-                        relationship = GraphRelationship(source, target, relation_name)
+                        relationship = create_relationship(source, target, relation_name, predicate_iri, quad)
                         relationships.setdefault(
-                            (source.id, target.id, relation_name), relationship
+                            (source.id, target.id, relation_name, relationship.source_graph), relationship
                         )
             if options.direction in (TraversalDirection.INCOMING, TraversalDirection.BOTH):
                 for quad in self._store.quads_for_pattern(None, predicate, entity_node, None):
@@ -235,9 +374,9 @@ class OxigraphGraphRepository:
                     source = entity(quad.subject.value)
                     target = entity(entity_id)
                     if source is not None and target is not None:
-                        relationship = GraphRelationship(source, target, relation_name)
+                        relationship = create_relationship(source, target, relation_name, predicate_iri, quad)
                         relationships.setdefault(
-                            (source.id, target.id, relation_name), relationship
+                            (source.id, target.id, relation_name, relationship.source_graph), relationship
                         )
             if apply_limit and len(relationships) >= options.edge_limit:
                 break
@@ -269,11 +408,17 @@ class OxigraphGraphRepository:
         return UNKNOWN_KIND
 
     def _label_for(self, entity: NamedNode) -> str:
-        labels = [
-            quad.object
-            for quad in self._store.quads_for_pattern(entity, RDFS_LABEL, None, None)
-            if isinstance(quad.object, Literal)
-        ]
+        label_predicates = self._profile.labels.label_predicates
+        predicate_nodes = [
+            NamedNode(self._resolve_iri(p)) for p in label_predicates
+        ] if label_predicates else [RDFS_LABEL]
+
+        labels = []
+        for predicate in predicate_nodes:
+            for quad in self._store.quads_for_pattern(entity, predicate, None, None):
+                if isinstance(quad.object, Literal):
+                    labels.append(quad.object)
+
         for preferred_language in self._settings.label_languages:
             for label in labels:
                 if preferred_language == "ANY" or label.language == preferred_language:
@@ -282,10 +427,16 @@ class OxigraphGraphRepository:
             return labels[0].value
         return _iri_local_name(entity.value)
 
-    def _literal_value(self, entity: NamedNode, predicate: NamedNode) -> str | None:
-        for quad in self._store.quads_for_pattern(entity, predicate, None, None):
-            if isinstance(quad.object, Literal):
-                return quad.object.value
+    def _description_for(self, entity: NamedNode) -> str | None:
+        desc_predicates = self._profile.labels.description_predicates
+        predicate_nodes = [
+            NamedNode(self._resolve_iri(p)) for p in desc_predicates
+        ] if desc_predicates else [RDFS_COMMENT]
+
+        for predicate in predicate_nodes:
+            for quad in self._store.quads_for_pattern(entity, predicate, None, None):
+                if isinstance(quad.object, Literal):
+                    return quad.object.value
         return None
 
 

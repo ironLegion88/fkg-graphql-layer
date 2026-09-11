@@ -108,6 +108,7 @@ async def test_relationships_support_direction_relation_and_limits(
     )
     assert len(filtered) == 1
     assert filtered[0].relation in ("locatedIn", "hasMaker")
+    assert filtered[0].is_inferred is False
 
 
 async def test_symmetric_inference_can_be_included_or_excluded(
@@ -125,6 +126,8 @@ async def test_symmetric_inference_can_be_included_or_excluded(
     )
     assert len(with_inference) == 1
     assert with_inference[0].target.id == region_id
+    assert with_inference[0].is_inferred is True
+    assert with_inference[0].source_graph == "urn:fkg:graph:inferred"
 
     without_inference = await repository.get_relationships(
         other_region_id,

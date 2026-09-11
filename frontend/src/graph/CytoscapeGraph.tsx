@@ -18,11 +18,19 @@ export interface GraphRendererHandle {
 interface CytoscapeGraphProps {
   graph: ExplorerGraph
   selectedId: string | null
+  categoryColors?: Record<string, string>
   onSelectEntity(id: string): void
 }
 
+const defaultCategoryColors: Record<string, string> = {
+  wine: '#b83c50',
+  winery: '#d7972f',
+  region: '#287b73',
+  grape: '#6c5ca4',
+}
+
 const CytoscapeGraph = forwardRef<GraphRendererHandle, CytoscapeGraphProps>(
-  function CytoscapeGraph({ graph, selectedId, onSelectEntity }, ref) {
+  function CytoscapeGraph({ graph, selectedId, categoryColors, onSelectEntity }, ref) {
     const cyRef = useRef<Core | null>(null)
     const nodeCount = Object.keys(graph.entities).length
     const edgeCount = Object.keys(graph.relationships).length
@@ -104,10 +112,12 @@ const CytoscapeGraph = forwardRef<GraphRendererHandle, CytoscapeGraphProps>(
               'overlay-opacity': 0,
             },
           },
-          { selector: 'node.wine', style: { 'background-color': '#b83c50' } },
-          { selector: 'node.winery', style: { 'background-color': '#d7972f' } },
-          { selector: 'node.region', style: { 'background-color': '#287b73' } },
-          { selector: 'node.grape', style: { 'background-color': '#6c5ca4' } },
+          ...Object.entries(categoryColors || defaultCategoryColors).map(
+            ([category, color]) => ({
+              selector: `node.${category.toLowerCase()}`,
+              style: { 'background-color': color },
+            })
+          ),
           {
             selector: 'edge',
             style: {

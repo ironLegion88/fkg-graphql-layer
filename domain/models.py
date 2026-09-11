@@ -36,6 +36,13 @@ class GraphRelationship:
     source: GraphEntity
     target: GraphEntity
     relation: str
+    relationship_id: str = ""
+    predicate_iri: str = ""
+    predicate_compact_iri: str | None = None
+    predicate_label: str | None = None
+    is_inferred: bool = False
+    source_graph: str | None = None
+    explanation_handle: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,6 +57,21 @@ class TraversalOptions:
     cursor: str | None = None
     include_inferred: bool = True
 
+
+@dataclass(frozen=True, slots=True)
+class SearchOptions:
+    """Options for searching entities."""
+    query: str
+    limit: int = 100
+    offset: int = 0
+    kinds: tuple[SemanticResourceKind, ...] = ()
+    require_description: bool = False
+
+@dataclass(frozen=True, slots=True)
+class SearchResult:
+    """A paginated set of search results."""
+    entities: tuple[GraphEntity, ...]
+    total_matches: int
 
 @dataclass(frozen=True, slots=True)
 class PathOptions:
@@ -79,6 +101,17 @@ class GraphExpansion:
     relationships: tuple[GraphRelationship, ...]
     page_info: PageInfo = field(default_factory=PageInfo)
 
+@dataclass(frozen=True, slots=True)
+class PreviewGroup:
+    relation: str
+    direction: TraversalDirection
+    count: int
+
+@dataclass(frozen=True, slots=True)
+class ExpansionPreview:
+    entity_id: str
+    total_count: int
+    groups: tuple[PreviewGroup, ...]
 
 @dataclass(frozen=True, slots=True)
 class GraphPath:

@@ -59,6 +59,13 @@ function App() {
 
   const profile = profileQuery.data
   const RELATION_OPTIONS = profile?.predicates.filter(p => !p.hidden && p.traversable).map(p => p.name) || []
+  
+  const categoryColors = profile?.categories.reduce((acc, cat) => {
+    if (cat.color) {
+      acc[cat.name.toLowerCase()] = cat.color
+    }
+    return acc
+  }, {} as Record<string, string>)
 
   const searchQuery = useQuery({
     queryKey: ['entity-search', deferredSearch],
@@ -307,6 +314,7 @@ function App() {
               ref={rendererRef}
               graph={graph}
               selectedId={selectedId}
+              categoryColors={categoryColors}
               onSelectEntity={setSelectedId}
             />
           </div>
