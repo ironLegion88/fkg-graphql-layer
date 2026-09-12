@@ -12,6 +12,9 @@ from domain.models import (
     SearchOptions,
     SearchResult,
     ExpansionPreview,
+    PathResult,
+    ComparisonResult,
+    PathOptions,
 )
 from domain.semantic_models import ResourceMetadata, ClassInfo, PropertyInfo
 
@@ -43,6 +46,19 @@ class GraphRepository(Protocol):
 
     async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]:
         """Expand a single generic relation. Deprecated: use expand_graph instead."""
+
+    async def find_shortest_path(
+        self,
+        source_id: str,
+        target_id: str,
+        options: PathOptions,
+    ) -> PathResult: ...
+
+    async def compare_entities(
+        self,
+        id_a: str,
+        id_b: str,
+    ) -> ComparisonResult: ...
 
 
 class SemanticRepository(Protocol):
