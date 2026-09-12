@@ -22,7 +22,9 @@ from domain.models import (
     TraversalOptions,
     PathOptions,
 )
+from typing import TypedDict, NotRequired
 from services.exceptions import EntityNotFoundError, GraphServiceError, InvalidTraversalError, GraphQLErrorCode
+from api.security import GraphQLSafetyExtension
 from services.graph_service import GraphService
 
 
@@ -30,6 +32,8 @@ class GraphQLContext(TypedDict):
     """Request dependencies available to Strawberry resolvers."""
 
     graph_service: GraphService
+    deadline: NotRequired[float]
+    role: NotRequired[str]
 
 
 @strawberry.interface
@@ -254,7 +258,10 @@ def _to_domain_traversal(options: TraversalInput | None) -> TraversalOptions:
 
 
 def _graph_service(info: Info[GraphQLContext, None]) -> GraphService:
-    return info.context["graph_service"]
+    ctx = info.context
+    if ctx.get("role") not in ("operator", "anonymous"):
+        raise GraphQLError("Unauthorized access", extensions={"code": "UNAUTHORIZED"})
+    return ctx["graph_service"]
 
 
 async def _resolve_entity(operation: object) -> Entity:
@@ -340,6 +347,7 @@ class Query:
             expansion = await _graph_service(info).expand_graph(
                 str(id),
                 _to_domain_traversal(options),
+                info.context.get("deadline")
             )
         except EntityNotFoundError as error:
             raise GraphQLError(str(error), extensions={"code": "NOT_FOUND"}) from error
@@ -361,7 +369,7 @@ class Query:
         relation: str,
     ) -> list[Entity]:
         try:
-            entities = await _graph_service(info).expand(str(id), relation)
+            entities = await _graph_service(info).expand(str(id), relation, info.context.get("deadline"))
         except GraphServiceError as error:
             msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
             raise GraphQLError(msg, extensions={"code": error.code.value}) from None
@@ -375,7 +383,7 @@ class Query:
         target_id: strawberry.ID,
     ) -> PathResult:
         try:
-            result = await _graph_service(info).find_path(str(source_id), str(target_id))
+            result = await _graph_service(info).find_path(str(source_id), str(target_id), deadline=info.context.get("deadline"))
         except GraphServiceError as error:
             msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
             raise GraphQLError(msg, extensions={"code": error.code.value}) from None
@@ -401,7 +409,7 @@ class Query:
         id_b: strawberry.ID,
     ) -> ComparisonResult:
         try:
-            result = await _graph_service(info).compare_entities(str(id_a), str(id_b))
+            result = await _graph_service(info).compare_entities(str(id_a), str(id_b), info.context.get("deadline"))
         except GraphServiceError as error:
             msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
             raise GraphQLError(msg, extensions={"code": error.code.value}) from None
@@ -475,5 +483,6 @@ schema = strawberry.Schema(
         ComparisonResult,
     ],
 
+    extensions=[GraphQLSafetyExtension],
     config=StrawberryConfig(auto_camel_case=False),
 )
