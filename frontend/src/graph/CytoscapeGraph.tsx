@@ -8,19 +8,17 @@ import CytoscapeComponent from 'react-cytoscapejs'
 import type { Core, ElementDefinition } from 'cytoscape'
 
 import { entityKind } from '../api/graph'
-import type { ExplorerGraph } from './state'
+
 import { relationshipKey } from './state'
+
+import type { DetailGraphRenderer } from '../interfaces/renderers'
 
 export interface GraphRendererHandle {
   fit(): void
 }
 
-interface CytoscapeGraphProps {
-  graph: ExplorerGraph
-  selectedId: string | null
-  categoryColors?: Record<string, string>
-  onSelectEntity(id: string): void
-}
+interface CytoscapeGraphProps extends DetailGraphRenderer {}
+
 
 const defaultCategoryColors: Record<string, string> = {
   wine: '#b83c50',

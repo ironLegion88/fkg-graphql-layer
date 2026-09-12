@@ -2,7 +2,7 @@ import type {
   GraphEntity,
   GraphExpansion,
   GraphRelationship,
-} from '../api/graph'
+} from '../interfaces/models'
 
 export interface ExplorerGraph {
   entities: Record<string, GraphEntity>
