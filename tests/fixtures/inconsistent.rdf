@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://test.org/onto.owl#"
+     xml:base="http://test.org/onto.owl"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
+    <owl:Ontology rdf:about="http://test.org/onto.owl"/>
+    <owl:Class rdf:about="http://test.org/onto.owl#A">
+        <owl:disjointWith rdf:resource="http://test.org/onto.owl#B"/>
+    </owl:Class>
+    <owl:Class rdf:about="http://test.org/onto.owl#B"/>
+    <owl:NamedIndividual rdf:about="http://test.org/onto.owl#x">
+        <rdf:type rdf:resource="http://test.org/onto.owl#A"/>
+        <rdf:type rdf:resource="http://test.org/onto.owl#B"/>
+    </owl:NamedIndividual>
+</rdf:RDF>

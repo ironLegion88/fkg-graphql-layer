@@ -4,8 +4,8 @@ from ingestion.reasoners.hermit_provider import HermitProvider
 from ingestion.reasoners.provider import ReasoningResult
 
 @pytest.fixture
-def inconsistent_ontology():
-    return Path(__file__).parent / "fixtures" / "inconsistent.nt"
+def inconsistent_ontology() -> Path:
+    return Path(__file__).parent / "fixtures" / "inconsistent.rdf"
 
 @pytest.fixture
 def consistent_ontology(tmp_path):

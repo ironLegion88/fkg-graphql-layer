@@ -23,8 +23,10 @@ def main():
         sys.exit(1)
 
     try:
-        # Load the ontology explicitly as ntriples
-        onto = get_ontology(f"file://{args.ontology}").load(format="ntriples")
+        # Auto-detect format based on extension
+        ext = args.ontology.split(".")[-1].lower()
+        fmt = "ntriples" if ext == "nt" else "rdfxml"
+        onto = get_ontology(f"file://{args.ontology}").load(format=fmt)
         
         # Run HermiT
         sync_reasoner([onto], infer_property_values=True)
