@@ -81,18 +81,21 @@ async def test_expand_filters_by_relation(service: GraphService) -> None:
     assert await service.expand("wine:demo", "  ") == []
 
 
-async def test_path_uses_real_predicates_and_honors_depth(service: GraphService) -> None:
-    path = await service.find_path("grape:demo", "winery:demo", max_depth=2)
+from domain.models import PathOptions
 
-    assert path is not None
-    assert [entity.id for entity in path.entities] == [
+async def test_path_uses_real_predicates_and_honors_depth(service: GraphService) -> None:
+    result = await service.find_path("grape:demo", "winery:demo", PathOptions(max_depth=2))
+
+    assert result.path is not None
+    assert [entity.id for entity in result.path.entities] == [
         "grape:demo",
         "wine:demo",
         "winery:demo",
     ]
-    assert path.relations == ("madeFromGrape", "hasMaker")
-    assert await service.find_path("grape:demo", "winery:demo", max_depth=1) is None
-
+    assert result.path.relations == ("madeFromGrape", "hasMaker")
+    
+    result2 = await service.find_path("grape:demo", "winery:demo", PathOptions(max_depth=1))
+    assert result2.path is None
 
 async def test_domain_helpers_delegate_to_relationship_data(service: GraphService) -> None:
     assert [entity.id for entity in await service.get_wines_by_region("region:demo")] == [
