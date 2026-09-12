@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://example.org/unsupported#"
+     xml:base="http://example.org/unsupported"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
+    <owl:Ontology rdf:about="http://example.org/unsupported"/>
+    
+    <owl:DatatypeProperty rdf:about="#hasCustomData"/>
+    <owl:NamedIndividual rdf:about="#ind1">
+        <hasCustomData rdf:datatype="http://example.org/customType">Some bizarre data</hasCustomData>
+    </owl:NamedIndividual>
+</rdf:RDF>
