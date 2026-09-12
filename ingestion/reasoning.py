@@ -30,6 +30,10 @@ def materialize_semantics(
     """Materialize a supported semantic profile into a provenance graph."""
     if profile == "none":
         return 0
+    
+    if profile == "hermit":
+        return _run_hermit_provider(store, inferred_graph)
+        
     if profile != "rdfs-wine-parity":
         raise ValueError(f"Unsupported reasoning profile '{profile}'")
 
@@ -167,3 +171,56 @@ def _all_ancestors(
         ancestors.add(parent)
         pending.extend(parents.get(parent, set()))
     return ancestors
+
+def _run_hermit_provider(store: Store, inferred_graph: NamedNode) -> int:
+    import tempfile
+    import os
+    from pathlib import Path
+    from pyoxigraph import RdfFormat
+    from ingestion.reasoners.hermit_provider import HermitProvider
+    
+    provider = HermitProvider()
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir_path = Path(temp_dir)
+        ontology_path = temp_dir_path / "ontology.nt"
+        output_path = temp_dir_path / "inferred.nt"
+        
+        # store.dump will write all quads. We only want asserted ones, but currently 
+        # the store only has asserted ones. owlready2 might expect N-Triples or RDF/XML. 
+        # Manually write N-Triples since PyOxigraph store.dump requires N-Quads for datasets.
+        with open(ontology_path, "wb") as f:
+            for quad in store:
+                if quad.graph_name != inferred_graph:
+                    # Write as N-Triples format: <s><p><o>.
+                    s = quad.subject
+                    p = quad.predicate
+                    o = quad.object
+                    line = f"{s} {p} {o} .\n".encode("utf-8")
+                    f.write(line)
+            
+        # Run HermiT provider
+        result = provider.classify_and_materialize(ontology_path, output_path)
+        
+        if not result.is_consistent:
+            msg = "Ontology is inconsistent."
+            if result.unsatisfiable_classes:
+                msg += f" Unsatisfiable classes: {', '.join(result.unsatisfiable_classes)}"
+            if result.diagnostics:
+                msg += f" Diagnostics: {result.diagnostics}"
+            raise ValueError(msg)
+            
+        if not output_path.exists():
+            return 0
+            
+        # Load inferred triples into the store under inferred_graph
+        # Store.load expects bytes, we can use safe_parse_rdf or directly load
+        # Since this is internally generated, we can directly use store.load
+        initial_count = len(store)
+        store.load(
+            str(output_path),
+            mime_type="application/n-triples",
+            base_iri=None,
+            to_graph=inferred_graph
+        )
+        return len(store) - initial_count
