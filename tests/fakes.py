@@ -10,6 +10,15 @@ from domain.models import (
     UNKNOWN_KIND,
     TraversalDirection,
     TraversalOptions,
+    PathOptions,
+    PathResult,
+    PathStatus,
+    GraphPath,
+    ComparisonResult,
+    SearchOptions,
+    SearchResult,
+    ExpansionPreview,
+    PreviewGroup,
 )
 from domain.traversal import paginate_relationships
 
@@ -100,7 +109,49 @@ class FakeGraphRepository:
             matches.append(relationship)
         return matches
 
+    async def search(self, options: SearchOptions) -> SearchResult:
+        # Dummy implementation
+        return SearchResult(entities=tuple(), total_matches=0)
+
+    async def get_expansion_preview(self, entity_id: str) -> ExpansionPreview:
+        return ExpansionPreview(entity_id=entity_id, total_count=0, groups=tuple())
+
+    async def find_shortest_path(self, source_id: str, target_id: str, options: PathOptions) -> PathResult:
+        if source_id == target_id:
+            return PathResult(status=PathStatus.SUCCESS, path=GraphPath(entities=(self.entities[source_id],), relations=()), visited_nodes=1)
+        queue = [(source_id, [source_id], [])]
+        visited = {source_id}
+        while queue:
+            current, path_ids, path_rels = queue.pop(0)
+            if len(path_ids) - 1 >= options.max_depth:
+                continue
+            for rel in self.relationships:
+                if rel.source.id == current and rel.target.id not in visited:
+                    next_id = rel.target.id
+                    rel_name = rel.relation
+                    if next_id == target_id:
+                        entities = [self.entities[i] for i in path_ids + [next_id]]
+                        path = GraphPath(entities=tuple(entities), relations=tuple(path_rels + [rel_name]))
+                        return PathResult(status=PathStatus.SUCCESS, path=path, visited_nodes=len(visited)+1)
+                    visited.add(next_id)
+                    queue.append((next_id, path_ids + [next_id], path_rels + [rel_name]))
+                elif rel.target.id == current and rel.source.id not in visited:
+                    next_id = rel.source.id
+                    rel_name = rel.relation
+                    if next_id == target_id:
+                        entities = [self.entities[i] for i in path_ids + [next_id]]
+                        path = GraphPath(entities=tuple(entities), relations=tuple(path_rels + [rel_name]))
+                        return PathResult(status=PathStatus.SUCCESS, path=path, visited_nodes=len(visited)+1)
+                    visited.add(next_id)
+                    queue.append((next_id, path_ids + [next_id], path_rels + [rel_name]))
+        return PathResult(status=PathStatus.NO_PATH)
+
+
+    async def compare_entities(self, id_a: str, id_b: str) -> ComparisonResult:
+        return ComparisonResult(tuple(), tuple(), tuple(), tuple(), tuple(), tuple(), tuple())
+
     async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]:
+
         relationships = await self.get_relationships(
             entity_id,
             TraversalOptions(relations=(relation,)),

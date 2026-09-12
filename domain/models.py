@@ -119,3 +119,35 @@ class GraphPath:
 
     entities: tuple[GraphEntity, ...]
     relations: tuple[str, ...]
+
+
+class PathStatus(str, Enum):
+    SUCCESS = "SUCCESS"
+    NO_PATH = "NO_PATH"
+    TIMEOUT = "TIMEOUT"
+    BUDGET_EXHAUSTED = "BUDGET_EXHAUSTED"
+
+
+@dataclass(frozen=True, slots=True)
+class PathRequest:
+    source_id: str
+    target_id: str
+    options: PathOptions = field(default_factory=PathOptions)
+
+
+@dataclass(frozen=True, slots=True)
+class PathResult:
+    status: PathStatus
+    path: GraphPath | None = None
+    visited_nodes: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class ComparisonResult:
+    common_types: tuple[str, ...]
+    unique_types_a: tuple[str, ...]
+    unique_types_b: tuple[str, ...]
+    common_properties: tuple[str, ...]
+    unique_properties_a: tuple[str, ...]
+    unique_properties_b: tuple[str, ...]
+    shared_neighbors: tuple[GraphEntity, ...]

@@ -1,6 +1,7 @@
 """Database-neutral graph retrieval backed by an embedded PyOxigraph store."""
 
 from __future__ import annotations
+import time
 
 import asyncio
 import hashlib
@@ -23,6 +24,11 @@ from domain.models import (
     SearchResult,
     ExpansionPreview,
     PreviewGroup,
+    PathOptions,
+    PathResult,
+    PathStatus,
+    GraphPath,
+    ComparisonResult,
 )
 from domain.ontology_profile import OntologyPackage
 from domain.traversal import paginate_relationships
@@ -158,7 +164,14 @@ class OxigraphGraphRepository:
             for relationship in relationships
         ]
 
-    def _get_entity(self, entity_id: str) -> GraphEntity | None:
+    async def find_shortest_path(self, source_id: str, target_id: str, options: PathOptions) -> PathResult:
+        return await asyncio.to_thread(self._find_shortest_path, source_id, target_id, options)
+
+    async def compare_entities(self, id_a: str, id_b: str) -> ComparisonResult:
+        return await asyncio.to_thread(self._compare_entities, id_a, id_b)
+
+    def _get_entity(
+self, entity_id: str) -> GraphEntity | None:
         entity_node = NamedNode(entity_id)
         if not any(self._store.quads_for_pattern(entity_node, None, None, None)):
             return None
@@ -397,6 +410,133 @@ class OxigraphGraphRepository:
             apply_limit=False,
         )
         return paginate_relationships(center, relationships, options)
+
+
+    def _find_shortest_path(self, source_id: str, target_id: str, options: PathOptions) -> PathResult:
+        if source_id == target_id:
+            entity = self._get_entity(source_id)
+            if entity is None:
+                return PathResult(status=PathStatus.NO_PATH)
+            return PathResult(status=PathStatus.SUCCESS, path=GraphPath(entities=(entity,), relations=()), visited_nodes=1)
+
+        source_node = NamedNode(source_id)
+        target_node = NamedNode(target_id)
+        
+        if not any(self._store.quads_for_pattern(source_node, None, None, None)):
+            return PathResult(status=PathStatus.NO_PATH)
+        if not any(self._store.quads_for_pattern(target_node, None, None, None)):
+            return PathResult(status=PathStatus.NO_PATH)
+
+        relation_names = options.relations or self._profile.predicates.traversable_predicates
+        allowed_predicates = {self._resolve_iri(r): r for r in relation_names}
+        
+        queue = [(source_id, [source_id], [])]
+        visited = {source_id}
+        start_time = time.monotonic()
+        
+        while queue:
+            if time.monotonic() - start_time > options.timeout_ms / 1000.0:
+                return PathResult(status=PathStatus.TIMEOUT, visited_nodes=len(visited))
+
+            current_id, path_ids, path_relations = queue.pop(0)
+
+            
+            if len(path_ids) - 1 >= options.max_depth:
+                continue
+                
+            if len(visited) >= options.visited_node_limit:
+                return PathResult(status=PathStatus.BUDGET_EXHAUSTED, visited_nodes=len(visited))
+                
+            current_node = NamedNode(current_id)
+            neighbors = []
+            
+            if options.direction in (TraversalDirection.OUTGOING, TraversalDirection.BOTH):
+                for quad in self._store.quads_for_pattern(current_node, None, None, None):
+                    if not options.include_inferred and getattr(quad.graph_name, "value", None) == INFERRED_GRAPH.value:
+                        continue
+                    if isinstance(quad.object, NamedNode) and isinstance(quad.predicate, NamedNode):
+                        pred_iri = quad.predicate.value
+                        if pred_iri in allowed_predicates:
+                            neighbors.append((quad.object.value, allowed_predicates[pred_iri]))
+                            
+            if options.direction in (TraversalDirection.INCOMING, TraversalDirection.BOTH):
+                for quad in self._store.quads_for_pattern(None, None, current_node, None):
+                    if not options.include_inferred and getattr(quad.graph_name, "value", None) == INFERRED_GRAPH.value:
+                        continue
+                    if isinstance(quad.subject, NamedNode) and isinstance(quad.predicate, NamedNode):
+                        pred_iri = quad.predicate.value
+                        if pred_iri in allowed_predicates:
+                            neighbors.append((quad.subject.value, allowed_predicates[pred_iri]))
+                            
+            for next_id, rel_name in neighbors:
+                if next_id == target_id:
+                    final_path_ids = path_ids + [next_id]
+                    final_relations = tuple(path_relations + [rel_name])
+                    entities = []
+                    for eid in final_path_ids:
+                        entities.append(self._get_entity(eid))
+                    path = GraphPath(entities=tuple(entities), relations=final_relations)
+                    return PathResult(status=PathStatus.SUCCESS, path=path, visited_nodes=len(visited) + 1)
+                    
+                if next_id not in visited:
+                    visited.add(next_id)
+                    queue.append((next_id, path_ids + [next_id], path_relations + [rel_name]))
+                    
+        return PathResult(status=PathStatus.NO_PATH, visited_nodes=len(visited))
+
+    def _compare_entities(self, id_a: str, id_b: str) -> ComparisonResult:
+        node_a = NamedNode(id_a)
+        node_b = NamedNode(id_b)
+        
+        def get_types(node):
+            types = set()
+            for quad in self._store.quads_for_pattern(node, RDF_TYPE, None, None):
+                if isinstance(quad.object, NamedNode):
+                    types.add(quad.object.value)
+            return types
+            
+        def get_properties(node):
+            props = set()
+            for quad in self._store.quads_for_pattern(node, None, None, None):
+                if isinstance(quad.predicate, NamedNode):
+                    props.add(quad.predicate.value)
+            return props
+            
+        def get_neighbors(node):
+            neighbors = set()
+            for quad in self._store.quads_for_pattern(node, None, None, None):
+                if isinstance(quad.object, NamedNode):
+                    neighbors.add(quad.object.value)
+            for quad in self._store.quads_for_pattern(None, None, node, None):
+                if isinstance(quad.subject, NamedNode):
+                    neighbors.add(quad.subject.value)
+            return neighbors
+            
+        types_a = get_types(node_a)
+        types_b = get_types(node_b)
+        
+        props_a = get_properties(node_a)
+        props_b = get_properties(node_b)
+        
+        neighbors_a = get_neighbors(node_a)
+        neighbors_b = get_neighbors(node_b)
+        
+        shared_neighbor_ids = neighbors_a.intersection(neighbors_b)
+        shared_neighbors = []
+        for n_id in shared_neighbor_ids:
+            ent = self._get_entity(n_id)
+            if ent:
+                shared_neighbors.append(ent)
+                
+        return ComparisonResult(
+            common_types=tuple(types_a.intersection(types_b)),
+            unique_types_a=tuple(types_a - types_b),
+            unique_types_b=tuple(types_b - types_a),
+            common_properties=tuple(props_a.intersection(props_b)),
+            unique_properties_a=tuple(props_a - props_b),
+            unique_properties_b=tuple(props_b - props_a),
+            shared_neighbors=tuple(shared_neighbors)
+        )
 
     def _kind_for(self, entity: NamedNode) -> SemanticResourceKind:
         for cat_name, cat_config in self._profile.categories.items():

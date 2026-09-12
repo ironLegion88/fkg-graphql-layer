@@ -20,8 +20,9 @@ from domain.models import (
     GraphRelationship as DomainGraphRelationship,
     TraversalDirection,
     TraversalOptions,
+    PathOptions,
 )
-from services.exceptions import EntityNotFoundError, GraphServiceError, InvalidTraversalError
+from services.exceptions import EntityNotFoundError, GraphServiceError, InvalidTraversalError, GraphQLErrorCode
 from services.graph_service import GraphService
 
 
@@ -171,7 +172,29 @@ class GraphExpansion:
     page_info: GraphPageInfo
 
 
-def _to_api_entity(entity: GraphEntity) -> Entity:
+@strawberry.type
+class GraphPath:
+    entities: list[Entity]
+    relations: list[str]
+
+@strawberry.type
+class PathResult:
+    status: str
+    path: GraphPath | None
+    visited_nodes: int
+
+@strawberry.type
+class ComparisonResult:
+    common_types: list[str]
+    unique_types_a: list[str]
+    unique_types_b: list[str]
+    common_properties: list[str]
+    unique_properties_a: list[str]
+    unique_properties_b: list[str]
+    shared_neighbors: list[Entity]
+
+def _to_api_entity(
+entity: GraphEntity) -> Entity:
     """Convert database-neutral domain objects into stable public GraphQL types."""
     common = {
         "id": strawberry.ID(entity.id),
@@ -238,13 +261,9 @@ async def _resolve_entity(operation: object) -> Entity:
     """Translate service errors into intentionally database-agnostic GraphQL errors."""
     try:
         entity = await operation  # type: ignore[union-attr]
-    except EntityNotFoundError as error:
-        raise GraphQLError(str(error), extensions={"code": "NOT_FOUND"}) from error
     except GraphServiceError as error:
-        raise GraphQLError(
-            "The graph service is unavailable",
-            extensions={"code": "GRAPH_BACKEND_ERROR"},
-        ) from error
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
     return _to_api_entity(entity)  # type: ignore[arg-type]
 
 
@@ -280,10 +299,8 @@ class Query:
         try:
             entities = await _graph_service(info).search_entities(query)
         except GraphServiceError as error:
-            raise GraphQLError(
-                "The graph service is unavailable",
-                extensions={"code": "GRAPH_BACKEND_ERROR"},
-            ) from error
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
         return [_to_api_entity(entity) for entity in entities]
 
     @strawberry.field
@@ -294,13 +311,9 @@ class Query:
     ) -> list[Entity]:
         try:
             entities = await _graph_service(info).get_neighbors(str(id))
-        except EntityNotFoundError as error:
-            raise GraphQLError(str(error), extensions={"code": "NOT_FOUND"}) from error
         except GraphServiceError as error:
-            raise GraphQLError(
-                "The graph service is unavailable",
-                extensions={"code": "GRAPH_BACKEND_ERROR"},
-            ) from error
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
         return [_to_api_entity(entity) for entity in entities]
 
     @strawberry.field
@@ -311,13 +324,9 @@ class Query:
     ) -> list[GraphRelationship]:
         try:
             relationships = await _graph_service(info).get_relationships(str(id))
-        except EntityNotFoundError as error:
-            raise GraphQLError(str(error), extensions={"code": "NOT_FOUND"}) from error
         except GraphServiceError as error:
-            raise GraphQLError(
-                "The graph service is unavailable",
-                extensions={"code": "GRAPH_BACKEND_ERROR"},
-            ) from error
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
         return [_to_api_relationship(relationship) for relationship in relationships]
 
     @strawberry.field
@@ -340,10 +349,8 @@ class Query:
                 extensions={"code": "INVALID_ARGUMENT"},
             ) from error
         except GraphServiceError as error:
-            raise GraphQLError(
-                "The graph service is unavailable",
-                extensions={"code": "GRAPH_BACKEND_ERROR"},
-            ) from error
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
         return _to_api_expansion(expansion)
 
     @strawberry.field
@@ -355,14 +362,59 @@ class Query:
     ) -> list[Entity]:
         try:
             entities = await _graph_service(info).expand(str(id), relation)
-        except EntityNotFoundError as error:
-            raise GraphQLError(str(error), extensions={"code": "NOT_FOUND"}) from error
         except GraphServiceError as error:
-            raise GraphQLError(
-                "The graph service is unavailable",
-                extensions={"code": "GRAPH_BACKEND_ERROR"},
-            ) from error
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
         return [_to_api_entity(entity) for entity in entities]
+
+    @strawberry.field
+    async def find_path(
+        self,
+        info: Info[GraphQLContext, None],
+        source_id: strawberry.ID,
+        target_id: strawberry.ID,
+    ) -> PathResult:
+        try:
+            result = await _graph_service(info).find_path(str(source_id), str(target_id))
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+            
+        path = None
+        if result.path:
+            path = GraphPath(
+                entities=[_to_api_entity(e) for e in result.path.entities],
+                relations=list(result.path.relations)
+            )
+            
+        return PathResult(
+            status=result.status.value,
+            path=path,
+            visited_nodes=result.visited_nodes
+        )
+
+    @strawberry.field
+    async def compare(
+        self,
+        info: Info[GraphQLContext, None],
+        id_a: strawberry.ID,
+        id_b: strawberry.ID,
+    ) -> ComparisonResult:
+        try:
+            result = await _graph_service(info).compare_entities(str(id_a), str(id_b))
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+            
+        return ComparisonResult(
+            common_types=list(result.common_types),
+            unique_types_a=list(result.unique_types_a),
+            unique_types_b=list(result.unique_types_b),
+            common_properties=list(result.common_properties),
+            unique_properties_a=list(result.unique_properties_a),
+            unique_properties_b=list(result.unique_properties_b),
+            shared_neighbors=[_to_api_entity(e) for e in result.shared_neighbors]
+        )
 
     @strawberry.field
     async def get_active_profile(self, info: Info[GraphQLContext, None]) -> ActiveProfile:
@@ -418,6 +470,10 @@ schema = strawberry.Schema(
         OntologyEntity,
         GraphRelationship,
         GraphExpansion,
+        GraphPath,
+        PathResult,
+        ComparisonResult,
     ],
+
     config=StrawberryConfig(auto_camel_case=False),
 )

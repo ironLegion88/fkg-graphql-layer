@@ -17,6 +17,9 @@ from domain.models import (
     SearchOptions,
     SearchResult,
     ExpansionPreview,
+    PathOptions,
+    PathResult,
+    ComparisonResult,
 )
 from domain.ports import GraphRepository
 from domain.ontology_profile import OntologyPackage
@@ -130,46 +133,25 @@ class GraphService:
         self,
         entity_a: str,
         entity_b: str,
-        max_depth: int = 4,
-    ) -> GraphPath | None:
-        """Find a bounded shortest node path using the backend-agnostic neighbor API.
+        options: PathOptions | None = None,
+    ) -> PathResult:
+        await self.get_entity(entity_a)
+        await self.get_entity(entity_b)
+        if options is None:
+            options = PathOptions()
+        return await self._repository.find_shortest_path(entity_a, entity_b, options)
 
-        A production graph backend can replace this with native path traversal while
-        preserving this method's return type and public contract.
-        """
-        start = await self.get_entity(entity_a)
-        target = await self.get_entity(entity_b)
-        if start.id == target.id:
-            return GraphPath(entities=(start,), relations=())
+    async def compare_entities(
+        self,
+        id_a: str,
+        id_b: str,
+    ) -> ComparisonResult:
+        await self.get_entity(id_a)
+        await self.get_entity(id_b)
+        return await self._repository.compare_entities(id_a, id_b)
 
-        pending: deque[tuple[GraphEntity, tuple[GraphEntity, ...], tuple[str, ...]]] = deque(
-            [(start, (start,), ())]
-        )
-        visited = {start.id}
-        while pending:
-            current, path, relations = pending.popleft()
-            if len(relations) >= max_depth:
-                continue
-            for relationship in await self.get_relationships(current.id):
-                neighbor = (
-                    relationship.target
-                    if relationship.source.id == current.id
-                    else relationship.source
-                )
-                if neighbor.id in visited:
-                    continue
-                next_path = (*path, neighbor)
-                next_relations = (*relations, relationship.relation)
-                if neighbor.id == target.id:
-                    return GraphPath(
-                        entities=next_path,
-                        relations=next_relations,
-                    )
-                visited.add(neighbor.id)
-                pending.append((neighbor, next_path, next_relations))
-        return None
-
-    async def get_wines_by_region(self, region_id: str) -> list[GraphEntity]:
+    async def get_wines_by_region(
+self, region_id: str) -> list[GraphEntity]:
         warnings.warn("get_wines_by_region is deprecated", DeprecationWarning, stacklevel=2)
         options = TraversalOptions(direction=TraversalDirection.INCOMING, relations=("locatedIn",), node_limit=1000, edge_limit=1000)
         rels = await self._repository.get_relationships(region_id, options)
