@@ -501,3 +501,23 @@ OntologyPackage (profile YAML)
 | `find_shortest_path` | `domain/ports.py` | Bounded property-path traversal |
 | `compare_entities` | `domain/ports.py` | Bounded type and neighbor intersection |
 | `GraphQLErrorCode` | `services/exceptions.py` | Stable client-facing error codes |
+
+---
+
+## 15. Final Sprint 1 Parallelization Rules (Batches 1F, 1G, 1H)
+
+To safely execute the final three batches of Sprint 1 concurrently, agents MUST adhere to the following strict file ownership boundaries:
+
+### Batch 1F (GraphQL Safety)
+- **Owns:** `api/` (schema, security, extensions), `services/graph_service.py` (timeout propagation).
+- **Must Not Touch:** `main.py`, `frontend/`, `ingestion/`.
+- **Note:** All query complexity, timeouts, and auth checks must be implemented as Strawberry GraphQL extensions or context injections, NOT as FastAPI middleware in `main.py`.
+
+### Batch 1G (Store Operations)
+- **Owns:** `main.py` (adding readiness endpoint & telemetry middleware), `ingestion/lifecycle.py` (or similar for backups/restores), `core/telemetry.py`.
+- **Must Not Touch:** `api/graphql_schema.py`, `frontend/`.
+- **Note:** Owns all modifications to the FastAPI application entrypoint.
+
+### Batch 1H (Frontend Contracts & CI)
+- **Owns:** `frontend/` (monorepo extraction, interfaces), `.github/workflows/`, and `scripts/`.
+- **Must Not Touch:** Any backend `.py` files.
