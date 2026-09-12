@@ -56,6 +56,7 @@ class TraversalOptions:
     edge_limit: int = 400
     cursor: str | None = None
     include_inferred: bool = True
+    timeout_ms: int = 15000
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,6 +83,7 @@ class PathOptions:
     max_depth: int = 4
     visited_node_limit: int = 2_000
     include_inferred: bool = True
+    timeout_ms: int = 15000
 
 
 @dataclass(frozen=True, slots=True)

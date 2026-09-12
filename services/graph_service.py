@@ -114,41 +114,44 @@ class GraphService:
         self,
         entity_id: str,
         options: TraversalOptions | None = None,
+        deadline: float | None = None,
     ) -> GraphExpansion:
         """Return one server-bounded graph page around an existing entity."""
         await self.get_entity(entity_id)
         traversal = self._normalize_traversal(options or TraversalOptions())
         try:
-            return await self._repository.expand_graph(entity_id, traversal)
+            return await self._repository.expand_graph(entity_id, traversal, deadline)
         except ValueError as error:
             raise InvalidTraversalError(str(error)) from error
 
-    async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]:
+    async def expand(self, entity_id: str, relation: str, deadline: float | None = None) -> list[GraphEntity]:
         if not relation.strip():
             return []
         await self.get_entity(entity_id)
-        return await self._repository.expand(entity_id, relation.strip())
+        return await self._repository.expand(entity_id, relation.strip(), deadline)
 
     async def find_path(
         self,
         entity_a: str,
         entity_b: str,
         options: PathOptions | None = None,
+        deadline: float | None = None,
     ) -> PathResult:
         await self.get_entity(entity_a)
         await self.get_entity(entity_b)
         if options is None:
             options = PathOptions()
-        return await self._repository.find_shortest_path(entity_a, entity_b, options)
+        return await self._repository.find_shortest_path(entity_a, entity_b, options, deadline)
 
     async def compare_entities(
         self,
         id_a: str,
         id_b: str,
+        deadline: float | None = None,
     ) -> ComparisonResult:
         await self.get_entity(id_a)
         await self.get_entity(id_b)
-        return await self._repository.compare_entities(id_a, id_b)
+        return await self._repository.compare_entities(id_a, id_b, deadline)
 
     async def get_wines_by_region(
 self, region_id: str) -> list[GraphEntity]:

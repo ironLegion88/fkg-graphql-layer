@@ -143,10 +143,11 @@ class OxigraphGraphRepository:
         self,
         entity_id: str,
         options: TraversalOptions,
+        deadline: float | None = None,
     ) -> GraphExpansion:
-        return await asyncio.to_thread(self._expand_graph, entity_id, options)
+        return await asyncio.to_thread(self._expand_graph, entity_id, options, deadline)
 
-    async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]:
+    async def expand(self, entity_id: str, relation: str, deadline: float | None = None) -> list[GraphEntity]:
         traversable = self._profile.predicates.traversable_predicates
         if relation not in traversable:
             allowed = ", ".join(sorted(traversable))
@@ -164,10 +165,10 @@ class OxigraphGraphRepository:
             for relationship in relationships
         ]
 
-    async def find_shortest_path(self, source_id: str, target_id: str, options: PathOptions) -> PathResult:
+    async def find_shortest_path(self, source_id: str, target_id: str, options: PathOptions, deadline: float | None = None) -> PathResult:
         return await asyncio.to_thread(self._find_shortest_path, source_id, target_id, options)
 
-    async def compare_entities(self, id_a: str, id_b: str) -> ComparisonResult:
+    async def compare_entities(self, id_a: str, id_b: str, deadline: float | None = None) -> ComparisonResult:
         return await asyncio.to_thread(self._compare_entities, id_a, id_b)
 
     def _get_entity(
@@ -319,6 +320,7 @@ self, entity_id: str) -> GraphEntity | None:
         options: TraversalOptions,
         *,
         apply_limit: bool = True,
+        deadline: float | None = None,
     ) -> list[GraphRelationship]:
         entity_node = NamedNode(entity_id)
         relation_names = options.relations or self._profile.predicates.traversable_predicates
@@ -367,6 +369,8 @@ self, entity_id: str) -> GraphEntity | None:
             predicate = NamedNode(predicate_iri)
             if options.direction in (TraversalDirection.OUTGOING, TraversalDirection.BOTH):
                 for quad in self._store.quads_for_pattern(entity_node, predicate, None, None):
+                    if deadline is not None and time.monotonic() > deadline:
+                        raise TimeoutError("Traversal timed out")
                     if not options.include_inferred and quad.graph_name == INFERRED_GRAPH:
                         continue
                     if not isinstance(quad.object, NamedNode):
@@ -380,6 +384,8 @@ self, entity_id: str) -> GraphEntity | None:
                         )
             if options.direction in (TraversalDirection.INCOMING, TraversalDirection.BOTH):
                 for quad in self._store.quads_for_pattern(None, predicate, entity_node, None):
+                    if deadline is not None and time.monotonic() > deadline:
+                        raise TimeoutError("Traversal timed out")
                     if not options.include_inferred and quad.graph_name == INFERRED_GRAPH:
                         continue
                     if not isinstance(quad.subject, NamedNode):
@@ -400,6 +406,7 @@ self, entity_id: str) -> GraphEntity | None:
         self,
         entity_id: str,
         options: TraversalOptions,
+        deadline: float | None = None,
     ) -> GraphExpansion:
         center = self._get_entity(entity_id)
         if center is None:
@@ -408,11 +415,12 @@ self, entity_id: str) -> GraphEntity | None:
             entity_id,
             options,
             apply_limit=False,
+            deadline=deadline,
         )
         return paginate_relationships(center, relationships, options)
 
 
-    def _find_shortest_path(self, source_id: str, target_id: str, options: PathOptions) -> PathResult:
+    def _find_shortest_path(self, source_id: str, target_id: str, options: PathOptions, deadline: float | None = None) -> PathResult:
         if source_id == target_id:
             entity = self._get_entity(source_id)
             if entity is None:
@@ -432,10 +440,9 @@ self, entity_id: str) -> GraphEntity | None:
         
         queue = [(source_id, [source_id], [])]
         visited = {source_id}
-        start_time = time.monotonic()
         
         while queue:
-            if time.monotonic() - start_time > options.timeout_ms / 1000.0:
+            if deadline is not None and time.monotonic() > deadline:
                 return PathResult(status=PathStatus.TIMEOUT, visited_nodes=len(visited))
 
             current_id, path_ids, path_relations = queue.pop(0)
@@ -484,13 +491,18 @@ self, entity_id: str) -> GraphEntity | None:
                     
         return PathResult(status=PathStatus.NO_PATH, visited_nodes=len(visited))
 
-    def _compare_entities(self, id_a: str, id_b: str) -> ComparisonResult:
+    def _compare_entities(self, id_a: str, id_b: str, deadline: float | None = None) -> ComparisonResult:
         node_a = NamedNode(id_a)
         node_b = NamedNode(id_b)
+        
+        def check_deadline():
+            if deadline is not None and time.monotonic() > deadline:
+                raise TimeoutError("Compare timed out")
         
         def get_types(node):
             types = set()
             for quad in self._store.quads_for_pattern(node, RDF_TYPE, None, None):
+                check_deadline()
                 if isinstance(quad.object, NamedNode):
                     types.add(quad.object.value)
             return types
@@ -498,6 +510,7 @@ self, entity_id: str) -> GraphEntity | None:
         def get_properties(node):
             props = set()
             for quad in self._store.quads_for_pattern(node, None, None, None):
+                check_deadline()
                 if isinstance(quad.predicate, NamedNode):
                     props.add(quad.predicate.value)
             return props
@@ -505,9 +518,11 @@ self, entity_id: str) -> GraphEntity | None:
         def get_neighbors(node):
             neighbors = set()
             for quad in self._store.quads_for_pattern(node, None, None, None):
+                check_deadline()
                 if isinstance(quad.object, NamedNode):
                     neighbors.add(quad.object.value)
             for quad in self._store.quads_for_pattern(None, None, node, None):
+                check_deadline()
                 if isinstance(quad.subject, NamedNode):
                     neighbors.add(quad.subject.value)
             return neighbors
