@@ -13,6 +13,7 @@ dependencies = [
     "pydantic>=2.0,<3.0",
     "pyoxigraph>=0.5.9,<0.6",
     "pyyaml>=6.0,<7.0",
+    "owlready2>=0.46,<1.0",
     "strawberry-graphql[fastapi]>=0.270,<1.0",
     "uvicorn[standard]>=0.30,<1.0",
 ]

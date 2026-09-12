@@ -91,6 +91,8 @@ class ReasoningConfig(BaseModel):
     profile_name: str = "none"
     provider_name: str | None = None
     provider_version: str | None = None
+    timeout_seconds: int = 600
+    memory_mb: int = 2048
 
 
 class LimitsConfig(BaseModel):
