@@ -3,8 +3,9 @@
 - **Document type:** Supplementary implementation context for LLM agent delegation
 - **Status:** Active
 - **Created:** 2026-09-10
-- **Last updated:** 2026-09-11 (post Batch 1A)
-- **Branch baseline:** `sprint-1/core-platform` (Batch 1A merged from `feat/ontology-neutral-profiles`)
+- **Current Sprint:** Sprint 1 (Core Platform)
+- **Target Branch:** `sprint-1/core-platform`
+- **Current Baseline:** Batch 1A, 1B, and 1C are complete and merged into `sprint-1/core-platform`.
 - **Prerequisite reading:** Before beginning any batch, read these documents in order:
   1. [Project Status](project-status-2026-09-10.md) — what exists now
   2. [Ontology Graph Explorer Requirements](ontology-graph-explorer-requirements.md) — what to build
@@ -402,10 +403,10 @@ FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 | Batch | Name | Depends On | Status | Focus |
 |-------|------|-----------|--------|-------|
 | **1A** | Ontology-Neutral Profiles | — | ✅ DONE | Profile schema, remove Wine hardcoding, profile metadata API |
-| **1B** | Semantic Domain & Repository | 1A | 🔜 NEXT | Generic domain types, enriched repository, class/property models |
-| **1C** | Secure Imports & Parsing | 1A | ⬜ | Vendor Food import, parser hardening, serialization tests |
-| **1D** | Full OWL 2 DL Reasoning | 1A, 1C | ⬜ | Reasoner ADR, ReasoningProvider port, isolated reasoning |
-| **1E** | Paths, Comparison, Errors | 1A, 1B | ⬜ | Repository-native paths, comparison, stable error codes |
+| **1B** | Semantic Domain & Repository | 1A | ✅ DONE | Generic domain types, enriched repository, class/property models |
+| **1C** | Secure Imports & Parsing | 1A | ✅ DONE | Vendor Food import, parser hardening, serialization tests |
+| **1D** | Full OWL 2 DL Reasoning | 1A, 1C | 🔜 NEXT | Reasoner ADR, ReasoningProvider port, isolated reasoning |
+| **1E** | Paths, Comparison, Errors | 1A, 1B | 🔜 NEXT | Repository-native paths, comparison, stable error codes |
 | **1F** | GraphQL Safety | 1A, 1E | ⬜ | Complexity limits, timeouts, auth boundary |
 | **1G** | Store Operations | 1A, 1D | ⬜ | Lifecycle commands, readiness, telemetry |
 | **1H** | Frontend Contracts & CI | 1A, 1B | ⬜ | Shared packages, renderer contracts, CI gates |
@@ -413,67 +414,63 @@ FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ---
 
 ## 9. Batch 1A Completion Summary
+*(Implemented in `feat/ontology-neutral-profiles`)*
+- Created `OntologyPackage` schema (`domain/ontology_profile.py`).
+- Removed Wine hardcoding from `GraphService`, `OxigraphGraphRepository`, and `GraphQL` layer.
+- **Defects identified:** 5 defects (missing `expand` return, hardcoded Cytoscape colors, etc.) were identified to be fixed in Batch 1B.
 
-Batch 1A was implemented in commit `08c8776` on branch `feat/ontology-neutral-profiles`.
-All 50 backend tests pass. All 6 frontend tests pass. Frontend builds cleanly.
+---
 
-### 9.1 What Batch 1A Changed
+## 10. Batch 1B Completion Summary
+*(Implemented in `feat/semantic-domain-repository`)*
+All 58 backend tests and 6 frontend tests pass.
 
-#### New Files
-- `domain/ontology_profile.py` — Pydantic ontology package schema and loader
-- `config/wine-profile.yaml` — Wine ontology profile
-- `config/pizza-profile.yaml` — Pizza ontology profile  
-- `tests/test_ontology_profile.py` — 4 profile schema tests
+### 10.1 What Batch 1B Changed
+- **Defect Fixes:** Fixed all 5 defects from Batch 1A (restored `expand` return, dynamic Cytoscape colors, dynamic label predicates, and added GraphQL tests).
+- **New Semantic Models:** Added `SemanticKind`, `CompactIRI`, `ClassInfo`, `PropertyInfo`, etc. to `domain/semantic_models.py`.
+- **Semantic Repository:** Added `SemanticRepository` port and implemented `get_class_info`, `get_property_info` in the Oxigraph adapter.
+- **Relationship Provenance:** Enriched `GraphRelationship` with `relationship_id`, `predicate_iri`, `is_inferred`, etc.
+- **Search & Preview:** Implemented cursor-paginated `search` and `expansion_preview` in the Oxigraph adapter and exposed via GraphQL.
 
-#### Key Modifications
-- `domain/models.py` — `EntityKind` enum replaced with `SemanticResourceKind = str` + `UNKNOWN_KIND`
-- `domain/ports.py` — `get_wines_by_region()`, `get_wines_by_grape()` removed from `GraphRepository` protocol
-- `services/graph_service.py` — Takes `OntologyPackage` profile, validates relations against profile, Wine methods deprecated with `warnings.warn()`
-- `adapters/oxigraph/repository.py` — Takes `OntologyPackage` profile, all kind/predicate/search logic is profile-driven. Wine constants removed.
-- `api/graphql_schema.py` — Added `OntologyEntity`, `ActiveProfile` types, `get_active_profile` query. Wine types marked deprecated.
-- `services/repository_factory.py` — Passes profile to adapters
-- `main.py` — Loads profile, generic title
-- `frontend/src/api/graph.ts` — Added `fetchProfile()`, `ActiveProfile` types, `OntologyEntity` support
-- `frontend/src/App.tsx` — Dynamic title, categories, predicates from profile
-- All test files updated for string-based kinds and profile injection
+---
 
-### 9.2 Outstanding Defects (Must-Fix in Batch 1B)
+## 11. Batch 1C Completion Summary
+*(Implemented in `feat/secure-imports-parsing`)*
+All 74 backend tests (including parsing security tests) pass.
 
-| ID | Severity | Description | File | Lines |
-|----|----------|-------------|------|-------|
-| DEF-1 | **HIGH** | `Query.expand` resolver missing `return` statement — returns `None` instead of entities | `api/graphql_schema.py` | 349–364 |
-| DEF-2 | **MEDIUM** | Cytoscape canvas stylesheet has hardcoded Wine color selectors (`node.wine`, etc.) — non-Wine profiles render gray nodes | `frontend/src/graph/CytoscapeGraph.tsx` | 107–110 |
-| DEF-3 | **LOW** | `_label_for()` and `_literal_value()` hardcode `RDFS_LABEL`/`RDFS_COMMENT` instead of reading profile's label/description predicates | `adapters/oxigraph/repository.py` | 271–289 |
-| DEF-4 | **LOW** | No GraphQL test for `get_active_profile` query | `tests/test_graphql_schema.py` | — |
-| DEF-5 | **LOW** | No GraphQL test for `expand(id, relation)` resolver (which would have caught DEF-1) | `tests/test_graphql_schema.py` | — |
+### 11.1 What Batch 1C Changed
+- **Import Resolution:** Added `ingestion/imports.py`. Vendored the W3C Food ontology. Imports are resolved locally, checksum-verified, and cycle-checked.
+- **Parser Security:** Added `ingestion/security.py` with `validate_source_path`, `validate_file_size`, and `safe_parse_rdf`. Prevents XXE, path traversal, and billion-laughs attacks.
+- **Serialization Formats:** Added comprehensive test fixtures (`tests/fixtures/`) and parsing coverage for Turtle, JSON-LD, N-Triples, N-Quads, TriG, plus multilingual and malformed edge cases.
 
-### 9.3 Current Architecture After Batch 1A
+---
+
+## 12. Current Architecture After Batch 1B/1C
 
 ```text
 OntologyPackage (profile YAML)
         │
-        ├──→ OxigraphGraphRepository (profile-driven kind/search/predicates)
+        ├──→ Ingestion Pipeline (Secure parsing, vendored imports, cycle detection)
         │
-        ├──→ GraphService (profile-driven limits + traversal validation)
+        ├──→ OxigraphGraphRepository (Profile-driven, search, expansion preview, provenance)
+        │         │
+        │         └──→ SemanticRepository (Class/Property introspection)
+        │
+        ├──→ GraphService (Limits + traversal validation)
         │         │
         │         └──→ get_active_profile() → OntologyPackage
         │
-        └──→ GraphQL schema (get_active_profile query → ActiveProfile type)
+        └──→ GraphQL Schema
                   │
-                  └──→ Frontend (fetchProfile() → dynamic categories/predicates)
+                  └──→ Frontend (fetchProfile(), dynamic categories, search UI)
 ```
 
-### 9.4 Key Interfaces After Batch 1A
+### 12.1 Key Interfaces After Batch 1B/1C
 
 | Interface | Location | Notes |
 |-----------|----------|-------|
-| `SemanticResourceKind = str` | `domain/models.py` | Replaces old `EntityKind` enum |
-| `UNKNOWN_KIND = "Unknown"` | `domain/models.py` | Default for unclassified entities |
-| `OntologyPackage` | `domain/ontology_profile.py` | Top-level profile schema |
-| `load_ontology_profile(path?)` | `domain/ontology_profile.py` | Reads YAML, validates, returns profile |
-| `GraphService(repo, profile)` | `services/graph_service.py` | Constructor now requires profile |
-| `OxigraphGraphRepository(profile, ...)` | `adapters/oxigraph/repository.py` | Constructor now requires profile |
-| `create_graph_repository(profile, client?)` | `services/repository_factory.py` | Factory now requires profile |
-| `OntologyEntity(Entity)` | `api/graphql_schema.py` | Generic GQL type with `kind: str` |
-| `ActiveProfile` | `api/graphql_schema.py` | Profile metadata GQL type |
-| `fetchProfile()` | `frontend/src/api/graph.ts` | Frontend profile fetcher |
+| `SemanticKind`, `CompactIRI` | `domain/semantic_models.py` | Granular ontology-aware types |
+| `SemanticRepository` | `domain/ports.py` | Port for `get_class_info`, `get_property_info` |
+| `ImportResolver` | `ingestion/imports.py` | Handles `owl:imports` via allowlist/checksums |
+| `validate_source_path` | `ingestion/security.py` | Anti-path-traversal bounds checking |
+| `safe_parse_rdf` | `ingestion/security.py` | Anti-XXE XML parsing wrapper |
