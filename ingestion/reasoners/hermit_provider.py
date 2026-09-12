@@ -46,7 +46,8 @@ class HermitProvider(ReasoningProvider):
             sys.executable,
             str(worker_script),
             "--ontology", str(ontology_path.resolve()),
-            "--mode", mode
+            "--mode", mode,
+            "--memory-mb", str(self.memory_mb)
         ]
         
         if output_path:

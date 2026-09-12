@@ -8,11 +8,16 @@ def main():
     parser.add_argument("--ontology", required=True)
     parser.add_argument("--mode", choices=["consistency", "materialize"], required=True)
     parser.add_argument("--output", required=False)
+    parser.add_argument("--memory-mb", type=int, required=False, default=2048)
     
     args = parser.parse_args()
     
     try:
+        import owlready2
         from owlready2 import get_ontology, sync_reasoner, OwlReadyInconsistentOntologyError, default_world
+        
+        # Enforce memory limit
+        owlready2.reasoning.JAVA_MEMORY = args.memory_mb
     except ImportError:
         print(json.dumps({"error": "owlready2 not installed"}))
         sys.exit(1)
