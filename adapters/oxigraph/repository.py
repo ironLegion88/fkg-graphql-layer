@@ -1,6 +1,7 @@
 """Database-neutral graph retrieval backed by an embedded PyOxigraph store."""
 
 from __future__ import annotations
+import time
 
 import asyncio
 import hashlib
@@ -431,9 +432,14 @@ self, entity_id: str) -> GraphEntity | None:
         
         queue = [(source_id, [source_id], [])]
         visited = {source_id}
+        start_time = time.monotonic()
         
         while queue:
+            if time.monotonic() - start_time > options.timeout_ms / 1000.0:
+                return PathResult(status=PathStatus.TIMEOUT, visited_nodes=len(visited))
+
             current_id, path_ids, path_relations = queue.pop(0)
+
             
             if len(path_ids) - 1 >= options.max_depth:
                 continue
