@@ -5,7 +5,7 @@
 - **Created:** 2026-09-10
 - **Current Sprint:** Sprint 1 (Core Platform)
 - **Target Branch:** `sprint-1/core-platform`
-- **Current Baseline:** Batch 1A, 1B, and 1C are complete and merged into `sprint-1/core-platform`.
+- **Current Baseline:** Batch 1A, 1B, 1C, 1D, and 1E are complete and merged into `sprint-1/core-platform`.
 - **Prerequisite reading:** Before beginning any batch, read these documents in order:
   1. [Project Status](project-status-2026-09-10.md) — what exists now
   2. [Ontology Graph Explorer Requirements](ontology-graph-explorer-requirements.md) — what to build
@@ -405,11 +405,11 @@ FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 | **1A** | Ontology-Neutral Profiles | — | ✅ DONE | Profile schema, remove Wine hardcoding, profile metadata API |
 | **1B** | Semantic Domain & Repository | 1A | ✅ DONE | Generic domain types, enriched repository, class/property models |
 | **1C** | Secure Imports & Parsing | 1A | ✅ DONE | Vendor Food import, parser hardening, serialization tests |
-| **1D** | Full OWL 2 DL Reasoning | 1A, 1C | 🔜 NEXT | Reasoner ADR, ReasoningProvider port, isolated reasoning |
-| **1E** | Paths, Comparison, Errors | 1A, 1B | 🔜 NEXT | Repository-native paths, comparison, stable error codes |
-| **1F** | GraphQL Safety | 1A, 1E | ⬜ | Complexity limits, timeouts, auth boundary |
-| **1G** | Store Operations | 1A, 1D | ⬜ | Lifecycle commands, readiness, telemetry |
-| **1H** | Frontend Contracts & CI | 1A, 1B | ⬜ | Shared packages, renderer contracts, CI gates |
+| **1D** | Full OWL 2 DL Reasoning | 1A, 1C | ✅ DONE | Reasoner ADR, ReasoningProvider port, isolated reasoning |
+| **1E** | Paths, Comparison, Errors | 1A, 1B | ✅ DONE | Repository-native paths, comparison, stable error codes |
+| **1F** | GraphQL Safety | 1A, 1E | 🔜 NEXT | Complexity limits, timeouts, auth boundary |
+| **1G** | Store Operations | 1A, 1D | 🔜 NEXT | Lifecycle commands, readiness, telemetry |
+| **1H** | Frontend Contracts & CI | 1A, 1B | 🔜 NEXT | Shared packages, renderer contracts, CI gates |
 
 ---
 
@@ -445,14 +445,38 @@ All 74 backend tests (including parsing security tests) pass.
 
 ---
 
-## 12. Current Architecture After Batch 1B/1C
+## 12. Batch 1D Completion Summary
+*(Implemented in `feat/full-owl-reasoning`)*
+All backend tests pass, including the new HermiT provider tests.
+
+### 12.1 What Batch 1D Changed
+- **Isolated Reasoning:** Integrated the HermiT reasoner using `owlready2` within a constrained subprocess (`_hermit_worker.py`) to prevent JVM memory leaks and enforce timeouts.
+- **Provider Protocol:** Defined `ReasoningProvider` interface for abstracting reasoners.
+- **Build Integration:** `ingestion/build_store.py` now routes parsed ontologies through the reasoner and pushes inferences into a distinct named graph.
+
+---
+
+## 13. Batch 1E Completion Summary
+*(Implemented in `feat/paths-comparison-errors`)*
+All backend tests pass.
+
+### 13.1 What Batch 1E Changed
+- **Native Pathfinding:** Implemented BFS-based shortest-path traversal (`find_path`) with hard depth and visit bounds inside the Oxigraph repository.
+- **Entity Comparison:** Implemented bounding comparison logic (`compare`) that computes intersection and differences of properties and neighbors between two entities.
+- **Standardized Errors:** Centralized GraphQL error handling using stable enums (e.g., `NOT_FOUND`, `BUDGET_EXHAUSTED`). Replaced internal leaking exception texts with safe client-facing messages.
+
+---
+
+## 14. Current Architecture After Batch 1D/1E
 
 ```text
 OntologyPackage (profile YAML)
         │
         ├──→ Ingestion Pipeline (Secure parsing, vendored imports, cycle detection)
+        │         │
+        │         └──→ ReasoningProvider (HermiT via Subprocess, Inferred Graph)
         │
-        ├──→ OxigraphGraphRepository (Profile-driven, search, expansion preview, provenance)
+        ├──→ OxigraphGraphRepository (Profile-driven, search, paths, comparison, provenance)
         │         │
         │         └──→ SemanticRepository (Class/Property introspection)
         │
@@ -460,12 +484,12 @@ OntologyPackage (profile YAML)
         │         │
         │         └──→ get_active_profile() → OntologyPackage
         │
-        └──→ GraphQL Schema
+        └──→ GraphQL Schema (Stable Error Codes)
                   │
                   └──→ Frontend (fetchProfile(), dynamic categories, search UI)
 ```
 
-### 12.1 Key Interfaces After Batch 1B/1C
+### 14.1 Key Interfaces After Batch 1D/1E
 
 | Interface | Location | Notes |
 |-----------|----------|-------|
@@ -473,4 +497,7 @@ OntologyPackage (profile YAML)
 | `SemanticRepository` | `domain/ports.py` | Port for `get_class_info`, `get_property_info` |
 | `ImportResolver` | `ingestion/imports.py` | Handles `owl:imports` via allowlist/checksums |
 | `validate_source_path` | `ingestion/security.py` | Anti-path-traversal bounds checking |
-| `safe_parse_rdf` | `ingestion/security.py` | Anti-XXE XML parsing wrapper |
+| `ReasoningProvider` | `ingestion/reasoners/provider.py` | Standardized reasoner execution |
+| `find_shortest_path` | `domain/ports.py` | Bounded property-path traversal |
+| `compare_entities` | `domain/ports.py` | Bounded type and neighbor intersection |
+| `GraphQLErrorCode` | `services/exceptions.py` | Stable client-facing error codes |
