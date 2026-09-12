@@ -71,6 +71,7 @@ class FakeGraphRepository:
         self,
         entity_id: str,
         options: TraversalOptions,
+        deadline: float | None = None,
     ) -> GraphExpansion:
         center = self.entities.get(entity_id)
         if center is None:
@@ -116,7 +117,7 @@ class FakeGraphRepository:
     async def get_expansion_preview(self, entity_id: str) -> ExpansionPreview:
         return ExpansionPreview(entity_id=entity_id, total_count=0, groups=tuple())
 
-    async def find_shortest_path(self, source_id: str, target_id: str, options: PathOptions) -> PathResult:
+    async def find_shortest_path(self, source_id: str, target_id: str, options: PathOptions, deadline: float | None = None) -> PathResult:
         if source_id == target_id:
             return PathResult(status=PathStatus.SUCCESS, path=GraphPath(entities=(self.entities[source_id],), relations=()), visited_nodes=1)
         queue = [(source_id, [source_id], [])]
@@ -147,10 +148,10 @@ class FakeGraphRepository:
         return PathResult(status=PathStatus.NO_PATH)
 
 
-    async def compare_entities(self, id_a: str, id_b: str) -> ComparisonResult:
+    async def compare_entities(self, id_a: str, id_b: str, deadline: float | None = None) -> ComparisonResult:
         return ComparisonResult(tuple(), tuple(), tuple(), tuple(), tuple(), tuple(), tuple())
 
-    async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]:
+    async def expand(self, entity_id: str, relation: str, deadline: float | None = None) -> list[GraphEntity]:
 
         relationships = await self.get_relationships(
             entity_id,

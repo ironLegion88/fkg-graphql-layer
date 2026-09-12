@@ -46,7 +46,7 @@ async def test_search_and_relationship_resolvers_use_database_neutral_service() 
         }
         """,
         variable_values={"query": "wine:demo", "id": "wine:demo"},
-        context_value={"graph_service": service},
+        context_value={"graph_service": service, "role": "operator"},
     )
 
     assert result.errors is None
@@ -76,7 +76,7 @@ async def test_bounded_expansion_resolver_returns_page_metadata() -> None:
         }
         """,
         variable_values={"id": "wine:demo"},
-        context_value={"graph_service": service},
+        context_value={"graph_service": service, "role": "operator"},
     )
 
     assert result.errors is None
@@ -101,7 +101,7 @@ async def test_invalid_expansion_returns_stable_error_code() -> None:
         }
         """,
         variable_values={"id": "wine:demo"},
-        context_value={"graph_service": service},
+        context_value={"graph_service": service, "role": "operator"},
     )
 
     assert result.errors is not None
@@ -120,7 +120,7 @@ async def test_expand_query_returns_entities() -> None:
         }
         """,
         variable_values={"id": "wine:demo", "relation": "hasMaker"},
-        context_value={"graph_service": service},
+        context_value={"graph_service": service, "role": "operator"},
     )
 
     assert result.errors is None
@@ -143,9 +143,9 @@ async def test_get_active_profile_query() -> None:
           }
         }
         """,
-        context_value={"graph_service": service},
+        context_value={"graph_service": service, "role": "operator"},
     )
 
     assert result.errors is None
     assert result.data is not None
-    assert result.data["get_active_profile"]["metadata"]["package_id"] is not None
+    assert result.data["get_active_profile"]["metadata"]["package_id"] is not None
