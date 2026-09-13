@@ -127,7 +127,7 @@ async def readiness_check(request: Request) -> JSONResponse:
         "manifest_hash": build_id, 
         "triple_count": metadata.get("triple_count", current_data.get("triple_count", 0)),
         "inferred_count": metadata.get("inferred_triple_count", 0),
-        "semantic_profile": profile.id,
+        "semantic_profile": profile.package_id,
         "reasoner_status": "completed" if metadata.get("inferred_triple_count") else "none",
         "consistency": "consistent",
         "validation_summary": "Passed",

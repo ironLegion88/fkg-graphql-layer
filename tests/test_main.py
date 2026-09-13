@@ -21,6 +21,18 @@ async def test_health_endpoint() -> None:
     assert response.json() == {"status": "ok"}
 
 
+async def test_readiness_endpoint_not_ready() -> None:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://testserver",
+    ) as client:
+        # Without running lifespan, store_open will be False
+        response = await client.get("/health/readiness")
+
+    assert response.status_code == 503
+    assert response.json() == {"status": "not ready", "store_open": False}
+
+
 async def test_frontend_cors_preflight() -> None:
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
@@ -97,6 +109,8 @@ async def test_graphql_runs_without_graphdb_using_promoted_oxigraph_store(
                     "variables": {"id": wine_iri},
                 },
             )
+            
+            readiness_response = await client.get("/health/readiness")
 
     assert response.status_code == 200
     assert response.json() == {
@@ -120,3 +134,9 @@ async def test_graphql_runs_without_graphdb_using_promoted_oxigraph_store(
             },
         }
     }
+    
+    assert readiness_response.status_code == 200
+    readiness_data = readiness_response.json()
+    assert readiness_data["status"] == "ok"
+    assert readiness_data["store_open"] is True
+    assert readiness_data["triple_count"] > 0
