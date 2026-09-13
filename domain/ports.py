@@ -42,9 +42,10 @@ class GraphRepository(Protocol):
         self,
         entity_id: str,
         options: TraversalOptions,
+        deadline: float | None = None,
     ) -> GraphExpansion: ...
 
-    async def expand(self, entity_id: str, relation: str) -> list[GraphEntity]:
+    async def expand(self, entity_id: str, relation: str, deadline: float | None = None) -> list[GraphEntity]:
         """Expand a single generic relation. Deprecated: use expand_graph instead."""
 
     async def find_shortest_path(
@@ -52,12 +53,14 @@ class GraphRepository(Protocol):
         source_id: str,
         target_id: str,
         options: PathOptions,
+        deadline: float | None = None,
     ) -> PathResult: ...
 
     async def compare_entities(
         self,
         id_a: str,
         id_b: str,
+        deadline: float | None = None,
     ) -> ComparisonResult: ...
 
 
