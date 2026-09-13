@@ -407,9 +407,9 @@ FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 | **1C** | Secure Imports & Parsing | 1A | ✅ DONE | Vendor Food import, parser hardening, serialization tests |
 | **1D** | Full OWL 2 DL Reasoning | 1A, 1C | ✅ DONE | Reasoner ADR, ReasoningProvider port, isolated reasoning |
 | **1E** | Paths, Comparison, Errors | 1A, 1B | ✅ DONE | Repository-native paths, comparison, stable error codes |
-| **1F** | GraphQL Safety | 1A, 1E | 🔜 NEXT | Complexity limits, timeouts, auth boundary |
-| **1G** | Store Operations | 1A, 1D | 🔜 NEXT | Lifecycle commands, readiness, telemetry |
-| **1H** | Frontend Contracts & CI | 1A, 1B | 🔜 NEXT | Shared packages, renderer contracts, CI gates |
+| **1F** | GraphQL Safety | 1A, 1E | ✅ DONE | Complexity limits, timeouts, auth boundary |
+| **1G** | Store Operations | 1A, 1D | ✅ DONE | Lifecycle commands, readiness, telemetry |
+| **1H** | Frontend Contracts & CI | 1A, 1B | ✅ DONE | Shared packages, renderer contracts, CI gates |
 
 ---
 
@@ -426,8 +426,8 @@ FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 All 58 backend tests and 6 frontend tests pass.
 
 ### 10.1 What Batch 1B Changed
-- **Defect Fixes:** Fixed all 5 defects from Batch 1A (restored `expand` return, dynamic Cytoscape colors, dynamic label predicates, and added GraphQL tests).
-- **New Semantic Models:** Added `SemanticKind`, `CompactIRI`, `ClassInfo`, `PropertyInfo`, etc. to `domain/semantic_models.py`.
+- **Defect Fixes:** Fixed all 5 defects from Batch 1A.
+- **New Semantic Models:** Added `SemanticKind`, `CompactIRI`, `ClassInfo`, `PropertyInfo`, etc.
 - **Semantic Repository:** Added `SemanticRepository` port and implemented `get_class_info`, `get_property_info` in the Oxigraph adapter.
 - **Relationship Provenance:** Enriched `GraphRelationship` with `relationship_id`, `predicate_iri`, `is_inferred`, etc.
 - **Search & Preview:** Implemented cursor-paginated `search` and `expansion_preview` in the Oxigraph adapter and exposed via GraphQL.
@@ -436,12 +436,12 @@ All 58 backend tests and 6 frontend tests pass.
 
 ## 11. Batch 1C Completion Summary
 *(Implemented in `feat/secure-imports-parsing`)*
-All 74 backend tests (including parsing security tests) pass.
+All 74 backend tests pass.
 
 ### 11.1 What Batch 1C Changed
-- **Import Resolution:** Added `ingestion/imports.py`. Vendored the W3C Food ontology. Imports are resolved locally, checksum-verified, and cycle-checked.
-- **Parser Security:** Added `ingestion/security.py` with `validate_source_path`, `validate_file_size`, and `safe_parse_rdf`. Prevents XXE, path traversal, and billion-laughs attacks.
-- **Serialization Formats:** Added comprehensive test fixtures (`tests/fixtures/`) and parsing coverage for Turtle, JSON-LD, N-Triples, N-Quads, TriG, plus multilingual and malformed edge cases.
+- **Import Resolution:** Added `ingestion/imports.py`. Vendored the W3C Food ontology.
+- **Parser Security:** Added `ingestion/security.py` with `validate_source_path`, `validate_file_size`, and `safe_parse_rdf`.
+- **Serialization Formats:** Added comprehensive test fixtures (`tests/fixtures/`) and parsing coverage for Turtle, JSON-LD, N-Triples, N-Quads, TriG.
 
 ---
 
@@ -450,7 +450,7 @@ All 74 backend tests (including parsing security tests) pass.
 All backend tests pass, including the new HermiT provider tests.
 
 ### 12.1 What Batch 1D Changed
-- **Isolated Reasoning:** Integrated the HermiT reasoner using `owlready2` within a constrained subprocess (`_hermit_worker.py`) to prevent JVM memory leaks and enforce timeouts.
+- **Isolated Reasoning:** Integrated the HermiT reasoner using `owlready2` within a constrained subprocess.
 - **Provider Protocol:** Defined `ReasoningProvider` interface for abstracting reasoners.
 - **Build Integration:** `ingestion/build_store.py` now routes parsed ontologies through the reasoner and pushes inferences into a distinct named graph.
 
@@ -461,13 +461,45 @@ All backend tests pass, including the new HermiT provider tests.
 All backend tests pass.
 
 ### 13.1 What Batch 1E Changed
-- **Native Pathfinding:** Implemented BFS-based shortest-path traversal (`find_path`) with hard depth and visit bounds inside the Oxigraph repository.
-- **Entity Comparison:** Implemented bounding comparison logic (`compare`) that computes intersection and differences of properties and neighbors between two entities.
-- **Standardized Errors:** Centralized GraphQL error handling using stable enums (e.g., `NOT_FOUND`, `BUDGET_EXHAUSTED`). Replaced internal leaking exception texts with safe client-facing messages.
+- **Native Pathfinding:** Implemented BFS-based shortest-path traversal (`find_path`) inside the Oxigraph repository.
+- **Entity Comparison:** Implemented bounding comparison logic (`compare`) that computes intersection and differences.
+- **Standardized Errors:** Centralized GraphQL error handling using stable enums (e.g., `NOT_FOUND`, `BUDGET_EXHAUSTED`).
 
 ---
 
-## 14. Current Architecture After Batch 1D/1E
+## 14. Batch 1F Completion Summary
+*(Implemented in `feat/graphql-safety`)*
+
+### 14.1 What Batch 1F Changed
+- **GraphQL Complexity Limits:** Created `GraphQLSafetyExtension` to enforce a Max Query Depth of 7 and Max Field Count of 100, rejecting complex queries with `BUDGET_EXHAUSTED`.
+- **Authorization Boundary:** Injected `"role"` into the GraphQL context and added runtime checks inside `_graph_service`, rejecting unauthorized access.
+- **Cancellation and Timeouts:** Added a strict 15-second `asyncio.timeout` and propagated `deadline` down to `GraphService` and PyOxigraph traversals to ensure iterative queries timeout safely.
+
+---
+
+## 15. Batch 1G Completion Summary
+*(Implemented in `feat/store-operations`)*
+
+### 15.1 What Batch 1G Changed
+- **Readiness Probe:** Added `/health/readiness` endpoint returning active build ID, manifest hash, triple/inferred counts, semantic profile, and store-open state.
+- **Store Lifecycle Operations:** Created `ingestion/lifecycle.py` CLI for `list`, `backup`, `restore`, `promote`, and `rollback` commands.
+- **Structured Telemetry:** Added `TelemetryMiddleware` to record JSON logs for request operations, duration, and stable error codes safely without leaking sensitive data.
+- **Deployment Documentation:** Documented single-writer/multiple-reader topology and recovery objectives in `docs/deployment-model.md`.
+
+---
+
+## 16. Batch 1H Completion Summary
+*(Implemented in `feat/frontend-ci`)*
+
+### 16.1 What Batch 1H Changed
+- **Shared Packages & Contracts:** Extracted shared TypeScript interfaces for GraphQL clients, models, and errors.
+- **Renderer Interfaces:** Defined `DetailGraphRenderer`, `OverviewGraphRenderer`, and `OntologyDataProvider` in `frontend/src/interfaces/`.
+- **CI Pipeline:** Created `.github/workflows/ci.yml` combining Python tests, frontend tests, linting, and building.
+- **Expanded Fixtures:** Added new RDF fixtures (`dense_axioms.rdf`, `unsupported_datatypes.rdf`, `deep_hierarchy.rdf`) and parser validation tests.
+
+---
+
+## 17. Final Architecture After Sprint 1
 
 ```text
 OntologyPackage (profile YAML)
