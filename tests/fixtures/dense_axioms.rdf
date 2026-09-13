@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://example.org/dense#"
+     xml:base="http://example.org/dense"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
+    <owl:Ontology rdf:about="http://example.org/dense"/>
+    
+    <owl:Class rdf:about="#A">
+        <owl:equivalentClass>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="#B"/>
+                    <rdf:Description rdf:about="#C"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="#p"/>
+                        <owl:someValuesFrom rdf:resource="#D"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </owl:equivalentClass>
+    </owl:Class>
+    <owl:Class rdf:about="#B"/>
+    <owl:Class rdf:about="#C"/>
+    <owl:Class rdf:about="#D"/>
+    <owl:ObjectProperty rdf:about="#p"/>
+</rdf:RDF>

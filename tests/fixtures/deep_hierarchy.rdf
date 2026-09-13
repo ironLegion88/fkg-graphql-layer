@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://example.org/deep#"
+     xml:base="http://example.org/deep"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
+    <owl:Ontology rdf:about="http://example.org/deep"/>
+    
+    <owl:Class rdf:about="#L0"/>
+    <owl:Class rdf:about="#L1"> <rdfs:subClassOf rdf:resource="#L0"/> </owl:Class>
+    <owl:Class rdf:about="#L2"> <rdfs:subClassOf rdf:resource="#L1"/> </owl:Class>
+    <owl:Class rdf:about="#L3"> <rdfs:subClassOf rdf:resource="#L2"/> </owl:Class>
+    <owl:Class rdf:about="#L4"> <rdfs:subClassOf rdf:resource="#L3"/> </owl:Class>
+    <owl:Class rdf:about="#L5"> <rdfs:subClassOf rdf:resource="#L4"/> </owl:Class>
+    <owl:Class rdf:about="#L6"> <rdfs:subClassOf rdf:resource="#L5"/> </owl:Class>
+    <owl:Class rdf:about="#L7"> <rdfs:subClassOf rdf:resource="#L6"/> </owl:Class>
+    <owl:Class rdf:about="#L8"> <rdfs:subClassOf rdf:resource="#L7"/> </owl:Class>
+    <owl:Class rdf:about="#L9"> <rdfs:subClassOf rdf:resource="#L8"/> </owl:Class>
+    <owl:Class rdf:about="#L10"> <rdfs:subClassOf rdf:resource="#L9"/> </owl:Class>
+</rdf:RDF>
