@@ -467,6 +467,38 @@ def _to_domain_traversal(options: TraversalInput | None) -> TraversalOptions:
     )
 
 
+@strawberry.input
+class SearchInput:
+    query: str
+    limit: int = 100
+    offset: int = 0
+    kinds: list[str] | None = None
+    require_description: bool = False
+
+
+@strawberry.type
+class SearchResultType:
+    entities: list[Entity]
+    total_matches: int
+
+
+def _to_domain_search_options(options: SearchInput) -> SearchOptions:
+    return SearchOptions(
+        query=options.query,
+        limit=options.limit,
+        offset=options.offset,
+        kinds=tuple(options.kinds or ()),
+        require_description=options.require_description,
+    )
+
+
+def _to_api_search_result(result: DomainSearchResult) -> SearchResultType:
+    return SearchResultType(
+        entities=[_to_api_entity(e) for e in result.entities],
+        total_matches=result.total_matches,
+    )
+
+
 def _graph_service(info: Info[GraphQLContext, None]) -> GraphService:
     ctx = info.context
     if ctx.get("role") not in ("operator", "anonymous"):
@@ -765,6 +797,20 @@ class Query:
             raise GraphQLError(msg, extensions={"code": error.code.value}) from None
         return _to_api_expansion_preview(preview)
 
+    @strawberry.field
+    async def search(
+        self,
+        info: Info[GraphQLContext, None],
+        options: SearchInput,
+    ) -> SearchResultType:
+        try:
+            domain_options = _to_domain_search_options(options)
+            result = await _graph_service(info).search(domain_options)
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+        return _to_api_search_result(result)
+
 
 schema = strawberry.Schema(
     query=Query,
@@ -788,6 +834,7 @@ schema = strawberry.Schema(
         PropertyInfoType,
         ExpansionPreviewType,
         PreviewGroupType,
+        SearchResultType,
     ],
 
     extensions=[GraphQLSafetyExtension],
