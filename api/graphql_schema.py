@@ -339,6 +339,43 @@ def _to_api_class_info(info: ClassInfo | None) -> ClassInfoType | None:
     )
 
 
+@strawberry.type
+class PropertyInfoType:
+    iri: str
+    compact_iri: CompactIRIType | None = None
+    label: str
+    property_kind: str
+    domains: list[str]
+    ranges: list[str]
+    inverse_of: str | None = None
+    equivalent_properties: list[str]
+    sub_properties: list[str]
+    super_properties: list[str]
+    characteristics: list[str]
+    usage_count: int
+    annotations: list[AnnotationType]
+
+
+def _to_api_property_info(info: PropertyInfo | None) -> PropertyInfoType | None:
+    if info is None:
+        return None
+    return PropertyInfoType(
+        iri=info.iri,
+        compact_iri=_to_api_compact_iri(info.compact_iri),
+        label=info.label,
+        property_kind=str(info.property_kind),
+        domains=list(info.domains),
+        ranges=list(info.ranges),
+        inverse_of=info.inverse_of,
+        equivalent_properties=list(info.equivalent_properties),
+        sub_properties=list(info.sub_properties),
+        super_properties=list(info.super_properties),
+        characteristics=list(info.characteristics),
+        usage_count=info.usage_count,
+        annotations=[_to_api_annotation(a) for a in info.annotations],
+    )
+
+
 def _to_api_entity(
 entity: GraphEntity) -> Entity:
     """Convert database-neutral domain objects into stable public GraphQL types."""
@@ -655,6 +692,33 @@ class Query:
             raise GraphQLError(msg, extensions={"code": error.code.value}) from None
         return [api_cls for c in classes if (api_cls := _to_api_class_info(c)) is not None]
 
+    @strawberry.field
+    async def get_property_info(
+        self,
+        info: Info[GraphQLContext, None],
+        iri: str,
+    ) -> PropertyInfoType | None:
+        try:
+            prop_info = await _semantic_repository(info).get_property_info(iri)
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+        return _to_api_property_info(prop_info)
+
+    @strawberry.field
+    async def list_properties(
+        self,
+        info: Info[GraphQLContext, None],
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[PropertyInfoType]:
+        try:
+            properties = await _semantic_repository(info).list_properties(limit, offset)
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+        return [api_prop for p in properties if (api_prop := _to_api_property_info(p)) is not None]
+
 
 schema = strawberry.Schema(
     query=Query,
@@ -675,6 +739,7 @@ schema = strawberry.Schema(
         AnnotationType,
         ResourceMetadataType,
         ClassInfoType,
+        PropertyInfoType,
     ],
 
     extensions=[GraphQLSafetyExtension],
