@@ -23,6 +23,7 @@ from domain.models import (
     PathOptions,
 )
 from typing import TypedDict, NotRequired
+from domain.ports import SemanticRepository
 from services.exceptions import EntityNotFoundError, GraphServiceError, InvalidTraversalError, GraphQLErrorCode
 from api.security import GraphQLSafetyExtension
 from services.graph_service import GraphService
@@ -32,6 +33,7 @@ class GraphQLContext(TypedDict):
     """Request dependencies available to Strawberry resolvers."""
 
     graph_service: GraphService
+    semantic_repository: SemanticRepository
     deadline: NotRequired[float]
     role: NotRequired[str]
 

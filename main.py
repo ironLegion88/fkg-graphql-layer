@@ -20,6 +20,7 @@ from fastapi.responses import JSONResponse
 
 from domain.ontology_profile import load_ontology_profile
 from core.telemetry import TelemetryMiddleware
+from adapters.oxigraph.semantic_repository import OxigraphSemanticRepository
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -38,9 +39,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             pass
     app.state.active_build_id = active_build_id
     
-    app.state.graph_service = GraphService(
-        create_graph_repository(profile, client),
-        profile
+    graph_repository = create_graph_repository(profile, client)
+    app.state.graph_service = GraphService(graph_repository, profile)
+    store = getattr(graph_repository, "_store", None)
+    app.state.semantic_repository = OxigraphSemanticRepository(
+        profile=profile,
+        store=store,
     )
     app.state.store_open = True
     try:
@@ -52,7 +56,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 async def get_graphql_context(request: Request) -> GraphQLContext:
     """Inject the database-agnostic service into every GraphQL request."""
-    return {"graph_service": request.app.state.graph_service}
+    return {
+        "graph_service": request.app.state.graph_service,
+        "semantic_repository": request.app.state.semantic_repository,
+    }
 
 
 app = FastAPI(
