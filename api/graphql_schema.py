@@ -376,6 +376,37 @@ def _to_api_property_info(info: PropertyInfo | None) -> PropertyInfoType | None:
     )
 
 
+@strawberry.type
+class PreviewGroupType:
+    relation: str
+    direction: TraversalDirectionValue
+    count: int
+
+
+@strawberry.type
+class ExpansionPreviewType:
+    entity_id: str
+    total_count: int
+    groups: list[PreviewGroupType]
+
+
+def _to_api_expansion_preview(preview: DomainExpansionPreview) -> ExpansionPreviewType:
+    return ExpansionPreviewType(
+        entity_id=preview.entity_id,
+        total_count=preview.total_count,
+        groups=[
+            PreviewGroupType(
+                relation=g.relation,
+                direction=TraversalDirectionValue(
+                    g.direction.value if hasattr(g.direction, "value") else str(g.direction)
+                ),
+                count=g.count,
+            )
+            for g in preview.groups
+        ],
+    )
+
+
 def _to_api_entity(
 entity: GraphEntity) -> Entity:
     """Convert database-neutral domain objects into stable public GraphQL types."""
@@ -719,6 +750,21 @@ class Query:
             raise GraphQLError(msg, extensions={"code": error.code.value}) from None
         return [api_prop for p in properties if (api_prop := _to_api_property_info(p)) is not None]
 
+    @strawberry.field
+    async def get_expansion_preview(
+        self,
+        info: Info[GraphQLContext, None],
+        id: strawberry.ID,
+    ) -> ExpansionPreviewType:
+        try:
+            preview = await _graph_service(info).get_expansion_preview(str(id))
+        except EntityNotFoundError as error:
+            raise GraphQLError(str(error), extensions={"code": "NOT_FOUND"}) from error
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+        return _to_api_expansion_preview(preview)
+
 
 schema = strawberry.Schema(
     query=Query,
@@ -740,6 +786,8 @@ schema = strawberry.Schema(
         ResourceMetadataType,
         ClassInfoType,
         PropertyInfoType,
+        ExpansionPreviewType,
+        PreviewGroupType,
     ],
 
     extensions=[GraphQLSafetyExtension],
