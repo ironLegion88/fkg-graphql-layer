@@ -21,6 +21,19 @@ from domain.models import (
     TraversalDirection,
     TraversalOptions,
     PathOptions,
+    SearchOptions,
+    SearchResult as DomainSearchResult,
+    ExpansionPreview as DomainExpansionPreview,
+    PreviewGroup as DomainPreviewGroup,
+)
+from domain.semantic_models import (
+    CompactIRI,
+    MultilingualLabel,
+    Annotation,
+    TypedValue,
+    ResourceMetadata,
+    ClassInfo,
+    PropertyInfo,
 )
 from typing import TypedDict, NotRequired
 from domain.ports import SemanticRepository
@@ -199,6 +212,63 @@ class ComparisonResult:
     unique_properties_b: list[str]
     shared_neighbors: list[Entity]
 
+
+@strawberry.type
+class CompactIRIType:
+    full_iri: str
+    prefix: str | None = None
+    local_name: str
+    namespace: str | None = None
+
+
+@strawberry.type
+class MultilingualLabelType:
+    value: str
+    language: str | None = None
+    datatype: str | None = None
+    predicate_iri: str
+
+
+@strawberry.type
+class AnnotationType:
+    predicate_iri: str
+    value: str
+    language: str | None = None
+
+
+def _to_api_compact_iri(compact_iri: CompactIRI | None) -> CompactIRIType | None:
+    if compact_iri is None:
+        return None
+    return CompactIRIType(
+        full_iri=compact_iri.full_iri,
+        prefix=compact_iri.prefix,
+        local_name=compact_iri.local_name,
+        namespace=compact_iri.namespace,
+    )
+
+
+def _to_api_label(label: MultilingualLabel) -> MultilingualLabelType:
+    return MultilingualLabelType(
+        value=label.value,
+        language=label.language,
+        datatype=label.datatype,
+        predicate_iri=label.predicate_iri,
+    )
+
+
+def _to_api_annotation(annotation: Annotation) -> AnnotationType:
+    val = annotation.value
+    if isinstance(val, TypedValue):
+        str_val = val.lexical_form
+    else:
+        str_val = str(val)
+    return AnnotationType(
+        predicate_iri=annotation.predicate_iri,
+        value=str_val,
+        language=annotation.language,
+    )
+
+
 def _to_api_entity(
 entity: GraphEntity) -> Entity:
     """Convert database-neutral domain objects into stable public GraphQL types."""
@@ -264,6 +334,13 @@ def _graph_service(info: Info[GraphQLContext, None]) -> GraphService:
     if ctx.get("role") not in ("operator", "anonymous"):
         raise GraphQLError("Unauthorized access", extensions={"code": "UNAUTHORIZED"})
     return ctx["graph_service"]
+
+
+def _semantic_repository(info: Info[GraphQLContext, None]) -> SemanticRepository:
+    ctx = info.context
+    if ctx.get("role") not in ("operator", "anonymous"):
+        raise GraphQLError("Unauthorized access", extensions={"code": "UNAUTHORIZED"})
+    return ctx["semantic_repository"]
 
 
 async def _resolve_entity(operation: object) -> Entity:
@@ -483,6 +560,9 @@ schema = strawberry.Schema(
         GraphPath,
         PathResult,
         ComparisonResult,
+        CompactIRIType,
+        MultilingualLabelType,
+        AnnotationType,
     ],
 
     extensions=[GraphQLSafetyExtension],
