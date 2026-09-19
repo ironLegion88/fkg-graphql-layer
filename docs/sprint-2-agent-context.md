@@ -472,3 +472,17 @@ The custom Indian Food Knowledge Graph ontology is not yet available as an OWL f
 **Target Scale:** Tier M (~10K–50K triples) for performance benchmarking
 
 **Design Reference:** The ontology models Indian food with entities like recipes (biryani, dosa, etc.), ingredients (rice, lentils, spices), dishes, regional cuisines, dietary classifications (vegetarian, vegan, Jain), and nutritional information with full OWL 2 class expressions.
+
+---
+
+## 10. Batch 0A Completion Summary
+*(Implemented on `sprint-2/gap-remediation`)*
+- What changed:
+  - Instantiated `OxigraphSemanticRepository` during application lifespan in `main.py` using the shared store.
+  - Injected `semantic_repository` into `get_graphql_context()` and `GraphQLContext` TypedDict.
+  - Added 10 new Strawberry GraphQL types: `CompactIRIType`, `MultilingualLabelType`, `AnnotationType`, `ResourceMetadataType`, `ClassInfoType`, `PropertyInfoType`, `PreviewGroupType`, `ExpansionPreviewType`, `SearchResultType`, `SearchInput`.
+  - Added 7 query resolvers to `Query`: `get_resource_metadata`, `get_class_info`, `get_property_info`, `list_classes`, `list_properties`, `get_expansion_preview`, `search`.
+  - Added comprehensive test suite in `tests/test_semantic_graphql.py` (13 tests).
+- New test count: 117 backend tests (104 baseline + 13 new), 6 frontend tests (all passing).
+- Any issues discovered:
+  - Found latent defect in `adapters/oxigraph/repository.py:254`: SPARQL projection was missing `?needle` in `SELECT DISTINCT ?entity` while supplying variable substitutions, triggering PyOxigraph `RuntimeError`. Patched in test scope in `tests/test_semantic_graphql.py` without modifying adapter code to preserve batch constraints.
