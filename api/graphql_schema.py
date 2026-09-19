@@ -304,6 +304,41 @@ def _to_api_resource_metadata(meta: ResourceMetadata | None) -> ResourceMetadata
     )
 
 
+@strawberry.type
+class ClassInfoType:
+    iri: str
+    compact_iri: CompactIRIType | None = None
+    label: str
+    direct_parents: list[str]
+    all_ancestors: list[str]
+    direct_children: list[str]
+    all_descendants: list[str]
+    equivalent_classes: list[str]
+    disjoint_classes: list[str]
+    instance_count: int
+    annotations: list[AnnotationType]
+    restrictions: list[str]
+
+
+def _to_api_class_info(info: ClassInfo | None) -> ClassInfoType | None:
+    if info is None:
+        return None
+    return ClassInfoType(
+        iri=info.iri,
+        compact_iri=_to_api_compact_iri(info.compact_iri),
+        label=info.label,
+        direct_parents=list(info.direct_parents),
+        all_ancestors=list(info.all_ancestors),
+        direct_children=list(info.direct_children),
+        all_descendants=list(info.all_descendants),
+        equivalent_classes=list(info.equivalent_classes),
+        disjoint_classes=list(info.disjoint_classes),
+        instance_count=info.instance_count,
+        annotations=[_to_api_annotation(a) for a in info.annotations],
+        restrictions=list(info.restrictions),
+    )
+
+
 def _to_api_entity(
 entity: GraphEntity) -> Entity:
     """Convert database-neutral domain objects into stable public GraphQL types."""
@@ -593,6 +628,33 @@ class Query:
             raise GraphQLError(msg, extensions={"code": error.code.value}) from None
         return _to_api_resource_metadata(meta)
 
+    @strawberry.field
+    async def get_class_info(
+        self,
+        info: Info[GraphQLContext, None],
+        iri: str,
+    ) -> ClassInfoType | None:
+        try:
+            class_info = await _semantic_repository(info).get_class_info(iri)
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+        return _to_api_class_info(class_info)
+
+    @strawberry.field
+    async def list_classes(
+        self,
+        info: Info[GraphQLContext, None],
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[ClassInfoType]:
+        try:
+            classes = await _semantic_repository(info).list_classes(limit, offset)
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+        return [api_cls for c in classes if (api_cls := _to_api_class_info(c)) is not None]
+
 
 schema = strawberry.Schema(
     query=Query,
@@ -612,6 +674,7 @@ schema = strawberry.Schema(
         MultilingualLabelType,
         AnnotationType,
         ResourceMetadataType,
+        ClassInfoType,
     ],
 
     extensions=[GraphQLSafetyExtension],
