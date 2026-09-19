@@ -269,6 +269,41 @@ def _to_api_annotation(annotation: Annotation) -> AnnotationType:
     )
 
 
+@strawberry.type
+class ResourceMetadataType:
+    iri: str
+    compact_iri: CompactIRIType | None = None
+    semantic_kind: str
+    asserted_types: list[str]
+    inferred_types: list[str]
+    labels: list[MultilingualLabelType]
+    preferred_label: str
+    descriptions: list[MultilingualLabelType]
+    aliases: list[MultilingualLabelType]
+    annotations: list[AnnotationType]
+    source_graphs: list[str]
+    build_id: str | None = None
+
+
+def _to_api_resource_metadata(meta: ResourceMetadata | None) -> ResourceMetadataType | None:
+    if meta is None:
+        return None
+    return ResourceMetadataType(
+        iri=meta.iri,
+        compact_iri=_to_api_compact_iri(meta.compact_iri),
+        semantic_kind=str(meta.semantic_kind),
+        asserted_types=list(meta.asserted_types),
+        inferred_types=list(meta.inferred_types),
+        labels=[_to_api_label(lbl) for lbl in meta.labels],
+        preferred_label=meta.preferred_label,
+        descriptions=[_to_api_label(d) for d in meta.descriptions],
+        aliases=[_to_api_label(a) for a in meta.aliases],
+        annotations=[_to_api_annotation(ann) for ann in meta.annotations],
+        source_graphs=list(meta.source_graphs),
+        build_id=meta.build_id,
+    )
+
+
 def _to_api_entity(
 entity: GraphEntity) -> Entity:
     """Convert database-neutral domain objects into stable public GraphQL types."""
@@ -545,6 +580,19 @@ class Query:
             build_id=None,
         )
 
+    @strawberry.field
+    async def get_resource_metadata(
+        self,
+        info: Info[GraphQLContext, None],
+        iri: str,
+    ) -> ResourceMetadataType | None:
+        try:
+            meta = await _semantic_repository(info).get_resource_metadata(iri)
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+        return _to_api_resource_metadata(meta)
+
 
 schema = strawberry.Schema(
     query=Query,
@@ -563,6 +611,7 @@ schema = strawberry.Schema(
         CompactIRIType,
         MultilingualLabelType,
         AnnotationType,
+        ResourceMetadataType,
     ],
 
     extensions=[GraphQLSafetyExtension],
