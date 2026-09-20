@@ -390,7 +390,7 @@ interface OntologyDataProvider {
 | Batch | Name | Depends On | Status | Focus |
 |---|---|---|---|---|
 | **0A** | Wire SemanticRepository into GraphQL | — | ✅ DONE | 7 new resolvers, 10 new types, 13 new tests |
-| **0B** | Expose Relationship Provenance | 0A | Pending | Enrich GraphQL `GraphRelationship` |
+| **0B** | Expose Relationship Provenance | 0A | ✅ DONE | 5 provenance fields, DEF-0A-1 fix, 5 new tests |
 | **0C** | Error Codes + build_id + Readiness | 0A | Pending | Complete enum, fix hardcoded values |
 | **0D** | CI Hardening + Tech Debt | 0A | Pending | Strict lint, guard imports, shared fixtures |
 
@@ -501,23 +501,45 @@ The custom Indian Food Knowledge Graph ontology is not yet available as an OWL f
 | File | Lines | Last Modified By |
 |---|---|---|
 | `main.py` | 144 | Batch 0A |
-| `api/graphql_schema.py` | 843 | Batch 0A |
+| `api/graphql_schema.py` | 853 | Batch 0B |
+| `adapters/oxigraph/repository.py` | 600 | Batch 0B |
 | `api/security.py` | 104 | Sprint 1 (Batch 1F) |
 | `services/exceptions.py` | 39 | Sprint 1 (Batch 1E) |
 | `services/repository_factory.py` | 27 | Sprint 1 |
 | `services/graph_service.py` | ~140 | Sprint 1 |
 | `.github/workflows/ci.yml` | 63 | Sprint 1 (Batch 1H) |
-| `tests/test_semantic_graphql.py` | 530 | Batch 0A |
+| `tests/test_semantic_graphql.py` | 460 | Batch 0B |
+| `tests/test_relationship_provenance.py` | 264 | Batch 0B |
 
-### Remaining Gaps for Batches 0B–0D
+### Remaining Gaps for Batches 0C–0D
 
 | Gap | Target Batch | Status |
 |---|---|---|
-| Gap 2: `GraphRelationship` lacks provenance fields | 0B | Pending |
+| Gap 2: `GraphRelationship` lacks provenance fields | 0B | ✅ RESOLVED |
 | Gap 3: `GraphQLErrorCode` has only 5 of 16 codes | 0C | Pending |
 | Gap 4: `build_id=None` hardcoded in `get_active_profile` | 0C | Pending |
 | Gap 5: Readiness hardcodes `"consistent"` | 0C | Pending |
 | CI: ruff has `continue-on-error: true` | 0D | Pending |
 | Tech debt: Unconditional `httpx`/GraphDB import in factory | 0D | Pending |
-| DEF-0A-1: SPARQL projection bug in `_search` | 0B or 0D | Pending |
+| DEF-0A-1: SPARQL projection bug in `_search` | 0B | ✅ RESOLVED |
+
+---
+
+## 12. Batch 0B Completion Summary
+*(Implemented on `sprint-2/gap-remediation`, commits `d9e2356` → `cfdc138`)*
+
+### What Changed
+- Fixed DEF-0A-1 in `adapters/oxigraph/repository.py`: SPARQL query in `_search` now includes `?needle` in `SELECT DISTINCT ?entity ?needle` projection, eliminating runtime errors under PyOxigraph variable substitution.
+- Added 5 provenance fields to Strawberry `GraphRelationship` type in `api/graphql_schema.py`: `predicate_iri`, `predicate_label`, `is_inferred`, `source_graph`, `explanation_handle`.
+- Updated mapper `_to_api_relationship` in `api/graphql_schema.py` to pass through all domain provenance attributes (`predicate_iri or None`, `predicate_label`, `is_inferred`, `source_graph`, `explanation_handle`).
+- Removed temporary monkeypatch workaround `patch_oxigraph_search_projection` from `tests/test_semantic_graphql.py`.
+- Created `tests/test_relationship_provenance.py` (264 lines, 5 tests) covering provenance field presence, inferred vs asserted distinction, defaults, expand_graph provenance, and end-to-end search fix.
+
+### Test Counts After Batch 0B
+- Backend: **122 passed** (117 baseline + 5 new), 9 deprecation warnings
+- Frontend: **6 passed** (Vitest)
+- Frontend build: Clean (`tsc -b && vite build` passed)
+
+### Issues Discovered
+- None. All 122 backend tests and 6 frontend tests pass cleanly without defects.
 
