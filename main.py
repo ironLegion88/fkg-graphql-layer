@@ -59,6 +59,7 @@ async def get_graphql_context(request: Request) -> GraphQLContext:
     return {
         "graph_service": request.app.state.graph_service,
         "semantic_repository": request.app.state.semantic_repository,
+        "active_build_id": getattr(request.app.state, "active_build_id", None),
     }
 
 

@@ -49,6 +49,7 @@ class GraphQLContext(TypedDict):
     semantic_repository: SemanticRepository
     deadline: NotRequired[float]
     role: NotRequired[str]
+    active_build_id: NotRequired[str | None]
 
 
 @strawberry.interface
@@ -723,7 +724,7 @@ class Query:
                 preferred_languages=list(profile.languages.preferred_languages)
             ),
             reasoning_profile=profile.reasoning.profile_name,
-            build_id=None,
+            build_id=info.context.get("active_build_id"),
         )
 
     @strawberry.field
