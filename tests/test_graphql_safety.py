@@ -49,7 +49,7 @@ async def test_unauthorized_if_invalid_role(fake_service: GraphService) -> None:
     # The role 'hacker' is invalid and not "operator"
     assert result.errors
     assert "Unauthorized access" in str(result.errors[0])
-    assert result.errors[0].extensions["code"] == "UNAUTHORIZED"
+    assert result.errors[0].extensions["code"] == "FORBIDDEN"
 
 @pytest.mark.asyncio
 async def test_deadline_injected_and_timeout(fake_service: GraphService) -> None:

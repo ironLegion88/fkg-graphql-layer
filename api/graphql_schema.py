@@ -513,14 +513,14 @@ def _to_api_search_result(result: DomainSearchResult) -> SearchResultType:
 def _graph_service(info: Info[GraphQLContext, None]) -> GraphService:
     ctx = info.context
     if ctx.get("role") not in ("operator", "anonymous"):
-        raise GraphQLError("Unauthorized access", extensions={"code": "UNAUTHORIZED"})
+        raise GraphQLError("Unauthorized access", extensions={"code": GraphQLErrorCode.FORBIDDEN.value})
     return ctx["graph_service"]
 
 
 def _semantic_repository(info: Info[GraphQLContext, None]) -> SemanticRepository:
     ctx = info.context
     if ctx.get("role") not in ("operator", "anonymous"):
-        raise GraphQLError("Unauthorized access", extensions={"code": "UNAUTHORIZED"})
+        raise GraphQLError("Unauthorized access", extensions={"code": GraphQLErrorCode.FORBIDDEN.value})
     return ctx["semantic_repository"]
 
 
