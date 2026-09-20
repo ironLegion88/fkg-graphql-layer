@@ -155,6 +155,12 @@ class GraphRelationship:
     source: Entity
     target: Entity
     relation: str
+    # Provenance fields
+    predicate_iri: str | None = None
+    predicate_label: str | None = None
+    is_inferred: bool = False
+    source_graph: str | None = None
+    explanation_handle: str | None = None
 
 
 @strawberry.enum(name="TraversalDirection")
