@@ -137,8 +137,8 @@ async def readiness_check(request: Request) -> JSONResponse:
         "inferred_count": metadata.get("inferred_triple_count", 0),
         "semantic_profile": profile.package_id,
         "reasoner_status": "completed" if metadata.get("inferred_triple_count") else "none",
-        "consistency": "consistent",
-        "validation_summary": "Passed",
+        "consistency": metadata.get("consistency", "unknown"),
+        "validation_summary": metadata.get("validation_summary", "unknown"),
     }
     
     return JSONResponse(content=response_data)
