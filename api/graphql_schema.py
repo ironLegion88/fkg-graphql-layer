@@ -441,6 +441,11 @@ def _to_api_relationship(relationship: DomainGraphRelationship) -> GraphRelation
         source=_to_api_entity(relationship.source),
         target=_to_api_entity(relationship.target),
         relation=relationship.relation,
+        predicate_iri=relationship.predicate_iri or None,
+        predicate_label=relationship.predicate_label,
+        is_inferred=relationship.is_inferred,
+        source_graph=relationship.source_graph,
+        explanation_handle=relationship.explanation_handle,
     )
 
 
