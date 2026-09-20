@@ -251,7 +251,7 @@ self, entity_id: str) -> GraphEntity | None:
             """
 
         sparql = f"""
-            SELECT DISTINCT ?entity
+            SELECT DISTINCT ?entity ?needle
             WHERE {{
               VALUES ?entityType {{ {type_values} }}
               ?entity a ?entityType .
