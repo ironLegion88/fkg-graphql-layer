@@ -391,7 +391,7 @@ interface OntologyDataProvider {
 |---|---|---|---|---|
 | **0A** | Wire SemanticRepository into GraphQL | — | ✅ DONE | 7 new resolvers, 10 new types, 13 new tests |
 | **0B** | Expose Relationship Provenance | 0A | ✅ DONE | 5 provenance fields, DEF-0A-1 fix, 5 new tests |
-| **0C** | Error Codes + build_id + Readiness | 0A | Pending | Complete enum, fix hardcoded values |
+| **0C** | Error Codes + build_id + Readiness | 0A | ✅ DONE | Complete enum (16 codes), wire build_id, dynamic readiness consistency |
 | **0D** | CI Hardening + Tech Debt | 0A | Pending | Strict lint, guard imports, shared fixtures |
 
 ### Definition of Done (per batch)
@@ -516,9 +516,9 @@ The custom Indian Food Knowledge Graph ontology is not yet available as an OWL f
 | Gap | Target Batch | Status |
 |---|---|---|
 | Gap 2: `GraphRelationship` lacks provenance fields | 0B | ✅ RESOLVED |
-| Gap 3: `GraphQLErrorCode` has only 5 of 16 codes | 0C | Pending |
-| Gap 4: `build_id=None` hardcoded in `get_active_profile` | 0C | Pending |
-| Gap 5: Readiness hardcodes `"consistent"` | 0C | Pending |
+| Gap 3: `GraphQLErrorCode` has only 5 of 16 codes | 0C | ✅ RESOLVED |
+| Gap 4: `build_id=None` hardcoded in `get_active_profile` | 0C | ✅ RESOLVED |
+| Gap 5: Readiness hardcodes `"consistent"` | 0C | ✅ RESOLVED |
 | CI: ruff has `continue-on-error: true` | 0D | Pending |
 | Tech debt: Unconditional `httpx`/GraphDB import in factory | 0D | Pending |
 | DEF-0A-1: SPARQL projection bug in `_search` | 0B | ✅ RESOLVED |
@@ -543,3 +543,24 @@ The custom Indian Food Knowledge Graph ontology is not yet available as an OWL f
 ### Issues Discovered
 - None. All 122 backend tests and 6 frontend tests pass cleanly without defects.
 
+---
+
+## 13. Batch 0C Completion Summary
+*(Implemented on `sprint-2/gap-remediation`, commits `5bcaeda` → `1ee7d5c`)*
+
+### What Changed
+- Expanded `GraphQLErrorCode` enum in `services/exceptions.py` from 5 to all 16 required codes (`TIMEOUT`, `CANCELLED`, `FORBIDDEN`, `STORE_NOT_READY`, `ONTOLOGY_INCONSISTENT`, `REASONER_UNAVAILABLE`, `EXPLANATION_UNAVAILABLE`, `UNSUPPORTED_SEMANTIC_CONSTRUCT`, `BACKEND_UNAVAILABLE`, `INVALID_PREDICATE`, `QUERY_TOO_COMPLEX`).
+- Refactored `api/security.py` to use `GraphQLErrorCode.BUDGET_EXHAUSTED.value` and `GraphQLErrorCode.TIMEOUT.value` instead of raw strings.
+- Refactored `api/graphql_schema.py` `_graph_service()` and `_semantic_repository()` auth rejection to emit `GraphQLErrorCode.FORBIDDEN.value` instead of raw string `"UNAUTHORIZED"`.
+- Added `active_build_id: NotRequired[str | None]` to `GraphQLContext` TypedDict, populated it from `app.state.active_build_id` in `main.py`, and wired it into `get_active_profile` query resolver.
+- Updated `/health/readiness` endpoint in `main.py` to dynamically read `consistency` and `validation_summary` from `store-manifest.json` metadata with fallback to `"unknown"`.
+- Updated test assertion in `tests/test_graphql_safety.py` to expect `"FORBIDDEN"`.
+- Created `tests/test_error_codes.py` (318 lines, 9 tests) covering all 16 enum codes, context and end-to-end `build_id` resolution, readiness manifest reading and fallback, auth rejection `FORBIDDEN` codes, and timeout `TIMEOUT` codes.
+
+### Test Counts After Batch 0C
+- Backend: **131 passed** (122 baseline + 9 new), 9 deprecation warnings
+- Frontend: **6 passed** (Vitest)
+- Frontend build: Clean (`tsc -b && vite build` passed)
+
+### Issues Discovered
+- None. All 131 backend tests and 6 frontend tests pass cleanly without defects.
