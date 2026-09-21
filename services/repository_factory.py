@@ -7,12 +7,11 @@ import os
 import httpx
 
 from adapters.oxigraph import OxigraphGraphRepository
+from domain.ontology_profile import OntologyPackage
 from domain.ports import GraphRepository
 from services.exceptions import GraphBackendError
 from services.graph_retrieval import GraphDBSettings, GraphRetrievalService
 
-
-from domain.ontology_profile import OntologyPackage
 
 def create_graph_repository(
     profile: OntologyPackage,

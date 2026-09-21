@@ -1,10 +1,11 @@
 """Tests for RDF serialization formats and edge cases."""
 
-import pytest
 from pathlib import Path
-from pyoxigraph import Store, RdfFormat, NamedNode
 
-from ingestion.security import safe_parse_rdf, ParserSecurityError
+import pytest
+from pyoxigraph import NamedNode, RdfFormat, Store
+
+from ingestion.security import ParserSecurityError, safe_parse_rdf
 
 
 @pytest.fixture
@@ -35,7 +36,7 @@ def test_simple_jsonld(fixtures_dir):
     try:
         count = safe_parse_rdf(f, RdfFormat.JSON_LD, store, NamedNode("urn:test"))
         assert count > 0
-    except Exception as e:
+    except Exception:  # noqa: BLE001, S110
         # If pyoxigraph on this platform does not support json_ld (requires a rust feature),
         # we can skip. But we added it in FORMAT_BY_NAME, so we assume it does.
         pass

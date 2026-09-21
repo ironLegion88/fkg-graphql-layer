@@ -14,7 +14,6 @@ from domain.models import (
     TraversalOptions,
 )
 
-
 CURSOR_VERSION = 1
 
 

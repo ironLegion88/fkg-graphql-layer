@@ -5,7 +5,6 @@ from domain.semantic_models import (
     CompactIRI,
     MultilingualLabel,
     ResourceMetadata,
-    SourceProvenance,
     TypedValue,
 )
 

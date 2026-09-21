@@ -1,10 +1,17 @@
-import time
 import asyncio
-from typing import Any
+import time
+
+from graphql import (
+    FieldNode,
+    FragmentSpreadNode,
+    GraphQLError,
+    InlineFragmentNode,
+    get_operation_ast,
+)
 from strawberry.extensions import SchemaExtension
-from graphql import GraphQLError, get_operation_ast, FieldNode, FragmentSpreadNode, InlineFragmentNode
 
 from services.exceptions import GraphQLErrorCode
+
 
 class GraphQLSafetyExtension(SchemaExtension):
     """
@@ -54,8 +61,7 @@ class GraphQLSafetyExtension(SchemaExtension):
             if current_depth > self.max_depth:
                 raise ValueError("MAX_DEPTH")
             
-            if current_depth > max_depth_found[0]:
-                max_depth_found[0] = current_depth
+            max_depth_found[0] = max(max_depth_found[0], current_depth)
 
             if visited_fragments is None:
                 visited_fragments = set()

@@ -1,7 +1,9 @@
-import pytest
 from pathlib import Path
+
+import pytest
+
 from ingestion.reasoners.hermit_provider import HermitProvider
-from ingestion.reasoners.provider import ReasoningResult
+
 
 @pytest.fixture
 def inconsistent_ontology() -> Path:
@@ -36,6 +38,6 @@ def test_hermit_provider_materialize(consistent_ontology, tmp_path):
     assert result.is_consistent is True
     assert out_path.exists()
     
-    content = out_path.read_text()
+    out_path.read_text()
     # It should have inferred that x is a Thing, etc.
     # owlready2 might output nothing if no new inferences are made, but let's just assert file exists.

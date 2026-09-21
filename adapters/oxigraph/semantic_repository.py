@@ -1,13 +1,16 @@
 import asyncio
-from pyoxigraph import Store, NamedNode, Variable, Literal
 
+from pyoxigraph import Literal, NamedNode, Store
+
+from adapters.oxigraph.repository import OxigraphSettings, _iri_local_name
 from domain.ontology_profile import OntologyPackage
 from domain.semantic_models import (
-    ResourceMetadata, ClassInfo, PropertyInfo, CompactIRI,
-    SemanticKind, Annotation, MultilingualLabel, TypedValue
+    ClassInfo,
+    CompactIRI,
+    MultilingualLabel,
+    PropertyInfo,
+    ResourceMetadata,
 )
-from domain.models import UNKNOWN_KIND
-from adapters.oxigraph.repository import OxigraphSettings, _iri_local_name
 
 RDF_TYPE = NamedNode("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
 RDFS_LABEL = NamedNode("http://www.w3.org/2000/01/rdf-schema#label")
@@ -174,7 +177,7 @@ class OxigraphSemanticRepository:
 
     def _list_classes(self, limit: int, offset: int) -> list[ClassInfo]:
         classes = []
-        nodes = set(q.subject.value for q in self._store.quads_for_pattern(None, RDF_TYPE, NamedNode("http://www.w3.org/2002/07/owl#Class"), None) if isinstance(q.subject, NamedNode))
+        nodes = {q.subject.value for q in self._store.quads_for_pattern(None, RDF_TYPE, NamedNode("http://www.w3.org/2002/07/owl#Class"), None) if isinstance(q.subject, NamedNode)}
         for c in list(nodes)[offset:offset+limit]:
             info = self._get_class_info(c)
             if info:
@@ -183,7 +186,7 @@ class OxigraphSemanticRepository:
 
     def _list_properties(self, limit: int, offset: int) -> list[PropertyInfo]:
         props = []
-        nodes = set(q.subject.value for q in self._store.quads_for_pattern(None, RDF_TYPE, NamedNode("http://www.w3.org/2002/07/owl#ObjectProperty"), None) if isinstance(q.subject, NamedNode))
+        nodes = {q.subject.value for q in self._store.quads_for_pattern(None, RDF_TYPE, NamedNode("http://www.w3.org/2002/07/owl#ObjectProperty"), None) if isinstance(q.subject, NamedNode)}
         nodes.update(q.subject.value for q in self._store.quads_for_pattern(None, RDF_TYPE, NamedNode("http://www.w3.org/2002/07/owl#DatatypeProperty"), None) if isinstance(q.subject, NamedNode))
         for p in list(nodes)[offset:offset+limit]:
             info = self._get_property_info(p)

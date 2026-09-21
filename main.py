@@ -2,25 +2,25 @@
 
 from __future__ import annotations
 
+import json
 import os
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from strawberry.fastapi import GraphQLRouter
 
+from adapters.oxigraph.semantic_repository import OxigraphSemanticRepository
 from api.graphql_schema import GraphQLContext, schema
+from core.telemetry import TelemetryMiddleware
+from domain.ontology_profile import load_ontology_profile
 from services.graph_service import GraphService
 from services.repository_factory import create_graph_repository
-import json
-from pathlib import Path
-from fastapi.responses import JSONResponse
 
-from domain.ontology_profile import load_ontology_profile
-from core.telemetry import TelemetryMiddleware
-from adapters.oxigraph.semantic_repository import OxigraphSemanticRepository
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:

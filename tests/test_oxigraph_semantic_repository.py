@@ -1,9 +1,10 @@
 import pytest
-from pyoxigraph import Store, RdfFormat
+from pyoxigraph import RdfFormat, Store
 
 from adapters.oxigraph.semantic_repository import OxigraphSemanticRepository
 from domain.ontology_profile import load_ontology_profile
 from tests.test_oxigraph_repository import WINE
+
 
 @pytest.fixture
 def profile():

@@ -5,18 +5,18 @@ from __future__ import annotations
 from typing import Protocol
 
 from domain.models import (
+    ComparisonResult,
+    ExpansionPreview,
     GraphEntity,
     GraphExpansion,
     GraphRelationship,
-    TraversalOptions,
+    PathOptions,
+    PathResult,
     SearchOptions,
     SearchResult,
-    ExpansionPreview,
-    PathResult,
-    ComparisonResult,
-    PathOptions,
+    TraversalOptions,
 )
-from domain.semantic_models import ResourceMetadata, ClassInfo, PropertyInfo
+from domain.semantic_models import ClassInfo, PropertyInfo, ResourceMetadata
 
 
 class GraphRepository(Protocol):

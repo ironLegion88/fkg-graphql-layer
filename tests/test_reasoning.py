@@ -12,7 +12,6 @@ from ingestion.reasoning import (
     materialize_semantics,
 )
 
-
 EX = "https://example.org/"
 
 

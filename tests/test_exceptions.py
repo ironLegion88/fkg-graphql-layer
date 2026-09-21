@@ -1,11 +1,11 @@
-import pytest
 from services.exceptions import (
-    GraphServiceError,
     EntityNotFoundError,
-    InvalidTraversalError,
     GraphBackendError,
     GraphQLErrorCode,
+    GraphServiceError,
+    InvalidTraversalError,
 )
+
 
 def test_entity_not_found_error_has_correct_code():
     error = EntityNotFoundError("not found")

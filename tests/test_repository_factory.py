@@ -36,6 +36,7 @@ def _build_promoted_store(root: Path) -> Path:
 
 from domain.ontology_profile import load_ontology_profile
 
+
 @pytest.fixture
 def profile():
     return load_ontology_profile()

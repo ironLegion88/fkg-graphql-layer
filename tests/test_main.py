@@ -56,7 +56,7 @@ async def test_graphql_runs_without_graphdb_using_promoted_oxigraph_store(
 ) -> None:
     wine_iri = "http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#DemoWine"
     (tmp_path / "source.ttl").write_text(
-        f"""
+        """
         @prefix wine: <http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#> .
         @prefix owl: <http://www.w3.org/2002/07/owl#> .
         @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -85,11 +85,13 @@ async def test_graphql_runs_without_graphdb_using_promoted_oxigraph_store(
     monkeypatch.setenv("GRAPH_BACKEND", "oxigraph")
     monkeypatch.setenv("RDF_STORE_PATH", str(store_root))
 
-    async with app.router.lifespan_context(app):
-        async with httpx.AsyncClient(
+    async with (
+        app.router.lifespan_context(app),
+        httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app),
             base_url="http://testserver",
-        ) as client:
+        ) as client,
+    ):
             response = await client.post(
                 "/graphql",
                 json={

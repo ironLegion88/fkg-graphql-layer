@@ -1,16 +1,16 @@
 """Tests for parser hardening and path security."""
 
+
 import pytest
-from pathlib import Path
-from pyoxigraph import Store, RdfFormat, NamedNode
+from pyoxigraph import NamedNode, RdfFormat, Store
 
 from ingestion.security import (
-    validate_source_path,
-    validate_file_size,
-    safe_parse_rdf,
-    PathTraversalError,
     FileSizeLimitError,
-    ParserSecurityError
+    ParserSecurityError,
+    PathTraversalError,
+    safe_parse_rdf,
+    validate_file_size,
+    validate_source_path,
 )
 
 
@@ -85,7 +85,7 @@ def test_safe_parse_rdf_xxe(tmp_path):
     # It might parse successfully but ignore external entity, or raise error.
     # PyOxigraph usually fails to parse SYSTEM entities or ignores them.
     try:
-        count = safe_parse_rdf(xxe, RdfFormat.RDF_XML, store, NamedNode("urn:test"))
+        safe_parse_rdf(xxe, RdfFormat.RDF_XML, store, NamedNode("urn:test"))
         # If it parsed, the value should NOT be the contents of /etc/passwd
         for t in store:
             assert "root:x" not in str(t.object)
@@ -114,5 +114,5 @@ def test_safe_parse_rdf_billion_laughs(tmp_path):
         safe_parse_rdf(bl, RdfFormat.RDF_XML, store, NamedNode("urn:test"))
     except ParserSecurityError:
         pass
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         pytest.fail(f"Should not crash, expected ParserSecurityError or safe handling. Got: {e}")

@@ -7,38 +7,48 @@ contained behind the service and retrieval boundaries.
 from __future__ import annotations
 
 from enum import Enum
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 import strawberry
 from graphql import GraphQLError
 from strawberry.schema.config import StrawberryConfig
 from strawberry.types import Info
 
+from api.security import GraphQLSafetyExtension
+from domain.models import (
+    ExpansionPreview as DomainExpansionPreview,
+)
 from domain.models import (
     GraphEntity,
-    GraphExpansion as DomainGraphExpansion,
-    GraphRelationship as DomainGraphRelationship,
+    SearchOptions,
     TraversalDirection,
     TraversalOptions,
-    PathOptions,
-    SearchOptions,
-    SearchResult as DomainSearchResult,
-    ExpansionPreview as DomainExpansionPreview,
-    PreviewGroup as DomainPreviewGroup,
 )
+from domain.models import (
+    GraphExpansion as DomainGraphExpansion,
+)
+from domain.models import (
+    GraphRelationship as DomainGraphRelationship,
+)
+from domain.models import (
+    SearchResult as DomainSearchResult,
+)
+from domain.ports import SemanticRepository
 from domain.semantic_models import (
+    Annotation,
+    ClassInfo,
     CompactIRI,
     MultilingualLabel,
-    Annotation,
-    TypedValue,
-    ResourceMetadata,
-    ClassInfo,
     PropertyInfo,
+    ResourceMetadata,
+    TypedValue,
 )
-from typing import TypedDict, NotRequired
-from domain.ports import SemanticRepository
-from services.exceptions import EntityNotFoundError, GraphServiceError, InvalidTraversalError, GraphQLErrorCode
-from api.security import GraphQLSafetyExtension
+from services.exceptions import (
+    EntityNotFoundError,
+    GraphQLErrorCode,
+    GraphServiceError,
+    InvalidTraversalError,
+)
 from services.graph_service import GraphService
 
 

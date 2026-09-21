@@ -12,11 +12,11 @@ from domain.models import TraversalDirection, TraversalOptions
 from ingestion.reasoning import materialize_semantics
 from services.exceptions import GraphBackendError
 
-
 WINE = "http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#"
 
 
 from domain.ontology_profile import load_ontology_profile
+
 
 @pytest.fixture
 def profile():

@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from api.graphql_schema import schema
+from domain.ontology_profile import load_ontology_profile
 from services.graph_service import GraphService
 from tests.fakes import FakeGraphRepository, wine_graph_fixture
 
-
-from domain.ontology_profile import load_ontology_profile
 
 def get_profile():
     return load_ontology_profile()

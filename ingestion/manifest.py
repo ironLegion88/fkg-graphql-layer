@@ -5,14 +5,13 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Literal, TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from ingestion.imports import ResolvedImport
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
-
 
 RDFFormatName = Literal[
     "json-ld",

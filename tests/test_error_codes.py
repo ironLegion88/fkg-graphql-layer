@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from typing import Any
 
 import httpx
 import pytest
@@ -19,7 +18,6 @@ from main import app
 from services.exceptions import GraphQLErrorCode
 from services.graph_service import GraphService
 from tests.fakes import FakeGraphRepository
-
 
 EXPECTED_16_ERROR_CODES = {
     "NOT_FOUND",
@@ -143,21 +141,20 @@ async def test_build_id_populated_end_to_end_from_active_store(
         encoding="utf-8",
     )
     store_root = tmp_path / "output"
-    build_metadata = build_store(tmp_path / "sources.yaml", store_root)
+    build_store(tmp_path / "sources.yaml", store_root)
     build_id = json.loads((store_root / "current.json").read_text())["build_id"]
 
     monkeypatch.setenv("GRAPH_BACKEND", "oxigraph")
     monkeypatch.setenv("RDF_STORE_PATH", str(store_root))
 
-    async with app.router.lifespan_context(app):
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app),
-            base_url="http://testserver",
-        ) as client:
-            response = await client.post(
-                "/graphql",
-                json={
-                    "query": """
+    async with app.router.lifespan_context(app), httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://testserver",
+    ) as client:
+        response = await client.post(
+            "/graphql",
+            json={
+                "query": """
                         query {
                             get_active_profile {
                                 build_id
@@ -167,8 +164,8 @@ async def test_build_id_populated_end_to_end_from_active_store(
                             }
                         }
                     """
-                },
-            )
+            },
+        )
 
     assert response.status_code == 200
     res_data = response.json()

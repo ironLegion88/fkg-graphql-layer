@@ -14,6 +14,7 @@ from pathlib import Path
 
 from pyoxigraph import NamedNode, RdfFormat, Store
 
+from ingestion.imports import ImportResolver, ResolvedImport
 from ingestion.manifest import (
     RDFFormatName,
     ResolvedRDFSource,
@@ -22,13 +23,9 @@ from ingestion.manifest import (
     resolve_sources,
 )
 from ingestion.reasoning import materialize_semantics
-from ingestion.imports import ImportResolver, ResolvedImport
 from ingestion.security import (
-    validate_source_path,
-    validate_file_size,
     safe_parse_rdf,
-    PathTraversalError,
-    ParserSecurityError,
+    validate_source_path,
 )
 
 FORMAT_BY_NAME: dict[RDFFormatName, RdfFormat] = {

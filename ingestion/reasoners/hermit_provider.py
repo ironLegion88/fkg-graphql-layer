@@ -1,12 +1,15 @@
-import time
-import subprocess
 import json
-import tempfile
-from pathlib import Path
-from dataclasses import dataclass
+import subprocess
 import sys
+import time
+from pathlib import Path
 
-from ingestion.reasoners.provider import ReasoningProvider, ReasoningResult, ExplanationArtifact
+from ingestion.reasoners.provider import (
+    ExplanationArtifact,
+    ReasoningProvider,
+    ReasoningResult,
+)
+
 
 class HermitProvider(ReasoningProvider):
     """
@@ -21,9 +24,7 @@ class HermitProvider(ReasoningProvider):
 
     def validate_compatibility(self, profile) -> bool:
         # HermiT supports full OWL 2 DL.
-        if profile.reasoning.provider_name and profile.reasoning.provider_name.lower() not in ("hermit", "owlready2"):
-            return False
-        return True
+        return not (profile.reasoning.provider_name and profile.reasoning.provider_name.lower() not in ("hermit", "owlready2"))
 
     def check_consistency(self, ontology_path: Path) -> ReasoningResult:
         return self._run_worker(ontology_path, "consistency", None)
@@ -57,8 +58,9 @@ class HermitProvider(ReasoningProvider):
             result = subprocess.run(
                 cmd,
                 capture_output=True,
+                check=False,
                 text=True,
-                timeout=self.timeout_seconds
+                timeout=self.timeout_seconds,
             )
             execution_time = (time.time() - start_time) * 1000
             
@@ -97,7 +99,7 @@ class HermitProvider(ReasoningProvider):
                 execution_time_ms=execution_time
             )
             
-        except subprocess.TimeoutExpired as e:
+        except subprocess.TimeoutExpired:
             return ReasoningResult(
                 is_consistent=False,
                 unsatisfiable_classes=[],

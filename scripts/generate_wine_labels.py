@@ -13,7 +13,6 @@ import xml.etree.ElementTree as element_tree
 from collections import Counter
 from pathlib import Path
 
-
 BASE_IRI = "http://www.w3.org/TR/2003/PR-owl-guide-20031209/wine#"
 RDF_ID = "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}ID"
 RDF_ABOUT = "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}about"

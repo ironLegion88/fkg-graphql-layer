@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-import pytest
-
 from dataclasses import replace
 
-from domain.models import TraversalOptions, UNKNOWN_KIND
+import pytest
+
+from domain.models import TraversalOptions
+from domain.ontology_profile import load_ontology_profile
 from services.exceptions import EntityNotFoundError, InvalidTraversalError
 from services.graph_service import GraphService, GraphServiceLimits
 from tests.fakes import FakeGraphRepository, wine_graph_fixture
 
-
-from domain.ontology_profile import load_ontology_profile
 
 @pytest.fixture
 def profile():
@@ -82,6 +81,7 @@ async def test_expand_filters_by_relation(service: GraphService) -> None:
 
 
 from domain.models import PathOptions
+
 
 async def test_path_uses_real_predicates_and_honors_depth(service: GraphService) -> None:
     result = await service.find_path("grape:demo", "winery:demo", PathOptions(max_depth=2))

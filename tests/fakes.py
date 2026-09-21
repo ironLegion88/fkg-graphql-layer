@@ -3,22 +3,19 @@
 from __future__ import annotations
 
 from domain.models import (
+    ComparisonResult,
+    ExpansionPreview,
     GraphEntity,
     GraphExpansion,
+    GraphPath,
     GraphRelationship,
-    SemanticResourceKind,
-    UNKNOWN_KIND,
-    TraversalDirection,
-    TraversalOptions,
     PathOptions,
     PathResult,
     PathStatus,
-    GraphPath,
-    ComparisonResult,
     SearchOptions,
     SearchResult,
-    ExpansionPreview,
-    PreviewGroup,
+    TraversalDirection,
+    TraversalOptions,
 )
 from domain.traversal import paginate_relationships
 
@@ -112,10 +109,10 @@ class FakeGraphRepository:
 
     async def search(self, options: SearchOptions) -> SearchResult:
         # Dummy implementation
-        return SearchResult(entities=tuple(), total_matches=0)
+        return SearchResult(entities=(), total_matches=0)
 
     async def get_expansion_preview(self, entity_id: str) -> ExpansionPreview:
-        return ExpansionPreview(entity_id=entity_id, total_count=0, groups=tuple())
+        return ExpansionPreview(entity_id=entity_id, total_count=0, groups=())
 
     async def find_shortest_path(self, source_id: str, target_id: str, options: PathOptions, deadline: float | None = None) -> PathResult:
         if source_id == target_id:
@@ -149,7 +146,7 @@ class FakeGraphRepository:
 
 
     async def compare_entities(self, id_a: str, id_b: str, deadline: float | None = None) -> ComparisonResult:
-        return ComparisonResult(tuple(), tuple(), tuple(), tuple(), tuple(), tuple(), tuple())
+        return ComparisonResult((), (), (), (), (), (), ())
 
     async def expand(self, entity_id: str, relation: str, deadline: float | None = None) -> list[GraphEntity]:
 

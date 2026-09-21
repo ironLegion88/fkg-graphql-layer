@@ -1,7 +1,8 @@
-import sys
 import argparse
 import json
+import sys
 import traceback
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -14,7 +15,12 @@ def main():
     
     try:
         import owlready2
-        from owlready2 import get_ontology, sync_reasoner, OwlReadyInconsistentOntologyError, default_world
+        from owlready2 import (
+            OwlReadyInconsistentOntologyError,
+            default_world,
+            get_ontology,
+            sync_reasoner,
+        )
         
         # Enforce memory limit
         owlready2.reasoning.JAVA_MEMORY = args.memory_mb
@@ -36,9 +42,7 @@ def main():
         # Check for unsatisfiable classes (Nothing)
         from owlready2 import Nothing
         for cls in onto.classes():
-            if cls.equivalent_to and Nothing in cls.equivalent_to:
-                unsatisfiable_classes.append(cls.iri)
-            elif Nothing in cls.is_a:
+            if cls.equivalent_to and Nothing in cls.equivalent_to or Nothing in cls.is_a:
                 unsatisfiable_classes.append(cls.iri)
                 
         if args.mode == "materialize" and args.output:
@@ -61,7 +65,7 @@ def main():
             "error": "Ontology is inconsistent according to HermiT."
         }))
         sys.exit(1)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(json.dumps({
             "is_consistent": False,
             "error": str(e),

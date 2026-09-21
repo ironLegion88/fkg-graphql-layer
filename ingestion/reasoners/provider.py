@@ -1,6 +1,7 @@
-from typing import Protocol, runtime_checkable
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Protocol, runtime_checkable
+
 
 @dataclass(frozen=True)
 class ReasoningResult:

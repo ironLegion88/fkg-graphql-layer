@@ -1,11 +1,13 @@
-import pytest
-from strawberry import Schema
-from api.graphql_schema import schema
-from services.graph_service import GraphService
-from domain.models import GraphEntity
-from tests.fakes import FakeGraphRepository
-from domain.ontology_profile import load_ontology_profile
 import time
+
+import pytest
+
+from api.graphql_schema import schema
+from domain.models import GraphEntity
+from domain.ontology_profile import load_ontology_profile
+from services.graph_service import GraphService
+from tests.fakes import FakeGraphRepository
+
 
 @pytest.fixture
 def fake_service() -> GraphService:

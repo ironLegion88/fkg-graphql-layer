@@ -10,16 +10,15 @@ from __future__ import annotations
 import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 import httpx
 
 from domain.models import (
+    UNKNOWN_KIND,
     GraphEntity,
     GraphExpansion,
     GraphRelationship,
-    SemanticResourceKind,
-    UNKNOWN_KIND,
     TraversalDirection,
     TraversalOptions,
 )
@@ -47,7 +46,7 @@ class GraphDBSettings:
     timeout_seconds: float = 15.0
 
     @classmethod
-    def from_environment(cls) -> "GraphDBSettings":
+    def from_environment(cls) -> GraphDBSettings:
         """Build settings from environment variables without leaking them upward."""
         base_url = os.getenv("GRAPHDB_BASE_URL", "http://localhost:7200").rstrip("/")
         repository = os.getenv("GRAPHDB_REPOSITORY", "wine")
@@ -119,7 +118,7 @@ class GraphRetrievalService:
         }
     """
 
-    _EXPANDABLE_RELATIONS = {
+    _EXPANDABLE_RELATIONS: ClassVar[set[str]] = {
         "hasMaker",
         "locatedIn",
         "madeFromGrape",
