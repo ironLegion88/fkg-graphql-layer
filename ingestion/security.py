@@ -2,22 +2,19 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
-from pyoxigraph import NamedNode, RdfFormat, Store, parse, Quad
+from pyoxigraph import NamedNode, Quad, RdfFormat, Store, parse
+
 
 class PathTraversalError(Exception):
     """Raised when a path resolves outside allowed root directories."""
-    pass
 
 class FileSizeLimitError(Exception):
     """Raised when a file exceeds the allowed size limit."""
-    pass
 
 class ParserSecurityError(Exception):
     """Raised when a parser security violation occurs."""
-    pass
 
 def validate_source_path(path: Path, allowed_roots: list[Path]) -> Path:
     """

@@ -34,7 +34,11 @@ def _build_promoted_store(root: Path) -> Path:
     return store_root
 
 
+import httpx
+
+import services.repository_factory
 from domain.ontology_profile import load_ontology_profile
+
 
 @pytest.fixture
 def profile():
@@ -56,8 +60,27 @@ def test_factory_allows_explicit_graphdb_rollback(
     profile,
 ) -> None:
     monkeypatch.setenv("GRAPH_BACKEND", "graphdb")
+    client = httpx.AsyncClient()
 
-    assert isinstance(create_graph_repository(profile), GraphRetrievalService)
+    assert isinstance(create_graph_repository(profile, client=client), GraphRetrievalService)
+
+
+def test_factory_graphdb_requires_async_client(
+    monkeypatch: pytest.MonkeyPatch,
+    profile,
+) -> None:
+    monkeypatch.setenv("GRAPH_BACKEND", "graphdb")
+
+    with pytest.raises(GraphBackendError, match="GraphDB backend requires an httpx.AsyncClient"):
+        create_graph_repository(profile)
+
+    with pytest.raises(GraphBackendError, match="GraphDB backend requires an httpx.AsyncClient"):
+        create_graph_repository(profile, client="invalid-client")
+
+
+def test_repository_factory_does_not_expose_httpx_at_module_level() -> None:
+    assert "httpx" not in services.repository_factory.__dict__
+    assert "GraphRetrievalService" not in services.repository_factory.__dict__
 
 
 def test_factory_rejects_unknown_backend(monkeypatch: pytest.MonkeyPatch, profile) -> None:

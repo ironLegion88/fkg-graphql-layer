@@ -1,6 +1,8 @@
 from __future__ import annotations
-import pytest
+
 from pathlib import Path
+
+import pytest
 from pyoxigraph import Store
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"

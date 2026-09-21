@@ -1,11 +1,13 @@
 import json
-import tarfile
 import zipfile
 from pathlib import Path
-from unittest.mock import patch
-import pytest
 
-from ingestion.lifecycle import list_builds, backup_build, restore_build, promote_build, rollback_build
+from ingestion.lifecycle import (
+    backup_build,
+    promote_build,
+    restore_build,
+    rollback_build,
+)
 
 
 def test_backup_and_restore(tmp_path: Path):

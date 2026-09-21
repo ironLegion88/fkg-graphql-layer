@@ -3,26 +3,23 @@
 from __future__ import annotations
 
 import warnings
-from collections import deque
 from dataclasses import dataclass, replace
 
 from domain.models import (
+    ComparisonResult,
+    ExpansionPreview,
     GraphEntity,
     GraphExpansion,
-    GraphPath,
     GraphRelationship,
-    PageInfo,
-    TraversalOptions,
-    TraversalDirection,
-    SearchOptions,
-    SearchResult,
-    ExpansionPreview,
     PathOptions,
     PathResult,
-    ComparisonResult,
+    SearchOptions,
+    SearchResult,
+    TraversalDirection,
+    TraversalOptions,
 )
-from domain.ports import GraphRepository
 from domain.ontology_profile import OntologyPackage
+from domain.ports import GraphRepository
 from services.exceptions import EntityNotFoundError, InvalidTraversalError
 
 

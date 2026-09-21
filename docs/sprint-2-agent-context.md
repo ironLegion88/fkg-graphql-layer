@@ -187,18 +187,16 @@ graphql_layer/
 
 These are the specific gaps from Sprint 1 that Phase 0 must address. Each gap includes exact file locations and the code that needs changing.
 
-### Gap 1: SemanticRepository Not Wired into GraphQL
+### Gap 1: SemanticRepository Not Wired into GraphQL — ✅ RESOLVED (Batch 0A)
 
-**What exists:**
-- `domain/ports.py` defines `SemanticRepository` protocol with 5 methods
-- `adapters/oxigraph/semantic_repository.py` fully implements all 5 methods
-- `services/graph_service.py` exposes `search()` and `get_expansion_preview()` but they're not in GraphQL
+Resolved by Batch 0A (commit `6f66e5e` → `6f8f821`):
+- `OxigraphSemanticRepository` instantiated in `main.py` lifespan (line 45–48)
+- `GraphQLContext` TypedDict includes `semantic_repository` (line 49)
+- 7 new query resolvers added: `get_resource_metadata`, `get_class_info`, `get_property_info`, `list_classes`, `list_properties`, `get_expansion_preview`, `search`
+- 10 new Strawberry types added for all semantic models
+- 13 new tests in `tests/test_semantic_graphql.py`
 
-**What's missing:**
-- `SemanticRepository` is NEVER instantiated in `main.py` lifespan
-- `GraphQLContext` in `api/graphql_schema.py` (line 31) does NOT include `semantic_repository`
-- No GraphQL query resolvers exist for: `get_resource_metadata`, `get_class_info`, `get_property_info`, `list_classes`, `list_properties`, `get_expansion_preview`, or advanced `search`
-- No Strawberry types exist for: `ResourceMetadata`, `ClassInfo`, `PropertyInfo`, `ExpansionPreview`, `SearchResult`
+**Known issue from Batch 0A:** `adapters/oxigraph/repository.py:254` has a SPARQL projection bug — `SELECT DISTINCT ?entity` should be `SELECT DISTINCT ?entity ?needle` when using variable substitutions. Patched in test scope only. Should be fixed in a maintenance commit.
 
 ### Gap 2: GraphQL Relationship Lacks Provenance
 
@@ -269,20 +267,20 @@ class SemanticRepository(Protocol):
 | `get_entity(id)` | ✅ Active | Generic entity lookup |
 | `search_entities(query)` | ✅ Active | Basic string search |
 | `get_neighbors(id)` | ✅ Active | 1-hop neighbors |
-| `get_relationships(id)` | ✅ Active | Missing provenance fields |
+| `get_relationships(id)` | ✅ Active | Missing provenance fields (Gap 2) |
 | `expand_graph(id, options)` | ✅ Active | Bounded with cursors |
 | `find_path(source_id, target_id)` | ✅ Active | BFS shortest path |
 | `compare(id_a, id_b)` | ✅ Active | Entity comparison |
-| `get_active_profile()` | ✅ Active | build_id always None |
+| `get_active_profile()` | ✅ Active | build_id still None (Gap 4) |
+| `get_resource_metadata(iri)` | ✅ Active | Added Batch 0A |
+| `get_class_info(iri)` | ✅ Active | Added Batch 0A |
+| `get_property_info(iri)` | ✅ Active | Added Batch 0A |
+| `list_classes(limit, offset)` | ✅ Active | Added Batch 0A |
+| `list_properties(limit, offset)` | ✅ Active | Added Batch 0A |
+| `get_expansion_preview(id)` | ✅ Active | Added Batch 0A |
+| `search(options)` | ✅ Active | Added Batch 0A |
 | `expand(id, relation)` | ⚠️ Deprecated | Legacy |
 | `get_wine(id)` | ⚠️ Deprecated | Legacy |
-| `get_resource_metadata(iri)` | ❌ Missing | Backend ready |
-| `get_class_info(iri)` | ❌ Missing | Backend ready |
-| `get_property_info(iri)` | ❌ Missing | Backend ready |
-| `list_classes(limit, offset)` | ❌ Missing | Backend ready |
-| `list_properties(limit, offset)` | ❌ Missing | Backend ready |
-| `get_expansion_preview(id)` | ❌ Missing | Backend ready |
-| `search(options)` | ❌ Missing | Backend ready |
 
 ### 4.4 Semantic Domain Types Available (`domain/semantic_models.py`)
 
@@ -353,7 +351,7 @@ interface OntologyDataProvider {
 - **Run backend:** `.venv\Scripts\python.exe -m pytest tests/ -v --tb=short`
 - **Run frontend:** `cd frontend; npm test`
 - **Build frontend:** `cd frontend; npm run build`
-- **All 104 backend + 6 frontend tests must pass at baseline**
+- **All 117 backend + 6 frontend tests must pass after Batch 0A**
 
 ### 5.3 Frontend
 
@@ -389,12 +387,12 @@ interface OntologyDataProvider {
 
 ## 6. Phase 0 Batch Sequencing & Definition of Done
 
-| Batch | Name | Depends On | Focus |
-|---|---|---|---|
-| **0A** | Wire SemanticRepository into GraphQL | — | 7 new resolvers, ~10 new types |
-| **0B** | Expose Relationship Provenance | 0A | Enrich GraphQL `GraphRelationship` |
-| **0C** | Error Codes + build_id + Readiness | 0A | Complete enum, fix hardcoded values |
-| **0D** | CI Hardening | 0A | Strict lint, guard imports, shared fixtures |
+| Batch | Name | Depends On | Status | Focus |
+|---|---|---|---|---|
+| **0A** | Wire SemanticRepository into GraphQL | — | ✅ DONE | 7 new resolvers, 10 new types, 13 new tests |
+| **0B** | Expose Relationship Provenance | 0A | ✅ DONE | 5 provenance fields, DEF-0A-1 fix, 5 new tests |
+| **0C** | Error Codes + build_id + Readiness | 0A | ✅ DONE | Complete enum (16 codes), wire build_id, dynamic readiness consistency |
+| **0D** | CI Hardening + Tech Debt | 0A | ✅ DONE | Strict lint, guard imports, shared fixtures |
 
 ### Definition of Done (per batch)
 
@@ -472,3 +470,148 @@ The custom Indian Food Knowledge Graph ontology is not yet available as an OWL f
 **Target Scale:** Tier M (~10K–50K triples) for performance benchmarking
 
 **Design Reference:** The ontology models Indian food with entities like recipes (biryani, dosa, etc.), ingredients (rice, lentils, spices), dishes, regional cuisines, dietary classifications (vegetarian, vegan, Jain), and nutritional information with full OWL 2 class expressions.
+
+---
+
+## 10. Batch 0A Completion Summary
+*(Implemented on `sprint-2/gap-remediation`, commits `6f66e5e` → `6f8f821`)*
+
+### What Changed
+- Instantiated `OxigraphSemanticRepository` during application lifespan in `main.py` (now 144 lines) using the shared store.
+- Injected `semantic_repository` into `get_graphql_context()` and `GraphQLContext` TypedDict.
+- Added 10 new Strawberry GraphQL types: `CompactIRIType`, `MultilingualLabelType`, `AnnotationType`, `ResourceMetadataType`, `ClassInfoType`, `PropertyInfoType`, `PreviewGroupType`, `ExpansionPreviewType`, `SearchResultType`, `SearchInput`.
+- Added helper `_semantic_repository()` (line 509) for auth-gated context access.
+- Added conversion mappers: `_to_api_compact_iri`, `_to_api_label`, `_to_api_annotation`, `_to_api_resource_metadata`, `_to_api_class_info`, `_to_api_property_info`, `_to_api_expansion_preview`, `_to_domain_search_options`, `_to_api_search_result`.
+- Added 7 query resolvers to `Query`: `get_resource_metadata`, `get_class_info`, `get_property_info`, `list_classes`, `list_properties`, `get_expansion_preview`, `search`.
+- `api/graphql_schema.py` is now 843 lines (was 489).
+- Created `tests/test_semantic_graphql.py` (530 lines, 13 tests).
+
+### Test Counts After Batch 0A
+- Backend: **117 passed** (104 baseline + 13 new), 9 deprecation warnings
+- Frontend: **6 passed** (Vitest)
+- Frontend build: Clean
+
+### Known Defect (DEF-0A-1)
+`adapters/oxigraph/repository.py:254`: `_search` SPARQL query has `SELECT DISTINCT ?entity` but supplies `{Variable("needle"): Literal(options.query)}` substitution. PyOxigraph requires substitution variables in SELECT projection. Should be `SELECT DISTINCT ?entity ?needle`. Patched in test scope only — needs adapter fix.
+
+---
+
+## 11. Post-Batch-0A File State (Key Files)
+
+| File | Lines | Last Modified By |
+|---|---|---|
+| `main.py` | 144 | Batch 0A |
+| `api/graphql_schema.py` | 853 | Batch 0B |
+| `adapters/oxigraph/repository.py` | 600 | Batch 0B |
+| `api/security.py` | 104 | Sprint 1 (Batch 1F) |
+| `services/exceptions.py` | 39 | Sprint 1 (Batch 1E) |
+| `services/repository_factory.py` | 27 | Sprint 1 |
+| `services/graph_service.py` | ~140 | Sprint 1 |
+| `.github/workflows/ci.yml` | 63 | Sprint 1 (Batch 1H) |
+| `tests/test_semantic_graphql.py` | 460 | Batch 0B |
+| `tests/test_relationship_provenance.py` | 264 | Batch 0B |
+
+### Remaining Gaps for Batches 0C–0D
+
+| Gap | Target Batch | Status |
+|---|---|---|
+| Gap 2: `GraphRelationship` lacks provenance fields | 0B | ✅ RESOLVED |
+| Gap 3: `GraphQLErrorCode` has only 5 of 16 codes | 0C | ✅ RESOLVED |
+| Gap 4: `build_id=None` hardcoded in `get_active_profile` | 0C | ✅ RESOLVED |
+| Gap 5: Readiness hardcodes `"consistent"` | 0C | ✅ RESOLVED |
+| CI: ruff has `continue-on-error: true` | 0D | ✅ RESOLVED |
+| Tech debt: Unconditional `httpx`/GraphDB import in factory | 0D | ✅ RESOLVED |
+| DEF-0A-1: SPARQL projection bug in `_search` | 0B | ✅ RESOLVED |
+
+---
+
+## 12. Batch 0B Completion Summary
+*(Implemented on `sprint-2/gap-remediation`, commits `d9e2356` → `cfdc138`)*
+
+### What Changed
+- Fixed DEF-0A-1 in `adapters/oxigraph/repository.py`: SPARQL query in `_search` now includes `?needle` in `SELECT DISTINCT ?entity ?needle` projection, eliminating runtime errors under PyOxigraph variable substitution.
+- Added 5 provenance fields to Strawberry `GraphRelationship` type in `api/graphql_schema.py`: `predicate_iri`, `predicate_label`, `is_inferred`, `source_graph`, `explanation_handle`.
+- Updated mapper `_to_api_relationship` in `api/graphql_schema.py` to pass through all domain provenance attributes (`predicate_iri or None`, `predicate_label`, `is_inferred`, `source_graph`, `explanation_handle`).
+- Removed temporary monkeypatch workaround `patch_oxigraph_search_projection` from `tests/test_semantic_graphql.py`.
+- Created `tests/test_relationship_provenance.py` (264 lines, 5 tests) covering provenance field presence, inferred vs asserted distinction, defaults, expand_graph provenance, and end-to-end search fix.
+
+### Test Counts After Batch 0B
+- Backend: **122 passed** (117 baseline + 5 new), 9 deprecation warnings
+- Frontend: **6 passed** (Vitest)
+- Frontend build: Clean (`tsc -b && vite build` passed)
+
+### Issues Discovered
+- None. All 122 backend tests and 6 frontend tests pass cleanly without defects.
+
+---
+
+## 13. Batch 0C Completion Summary
+*(Implemented on `sprint-2/gap-remediation`, commits `5bcaeda` → `1ee7d5c`)*
+
+### What Changed
+- Expanded `GraphQLErrorCode` enum in `services/exceptions.py` from 5 to all 16 required codes (`TIMEOUT`, `CANCELLED`, `FORBIDDEN`, `STORE_NOT_READY`, `ONTOLOGY_INCONSISTENT`, `REASONER_UNAVAILABLE`, `EXPLANATION_UNAVAILABLE`, `UNSUPPORTED_SEMANTIC_CONSTRUCT`, `BACKEND_UNAVAILABLE`, `INVALID_PREDICATE`, `QUERY_TOO_COMPLEX`).
+- Refactored `api/security.py` to use `GraphQLErrorCode.BUDGET_EXHAUSTED.value` and `GraphQLErrorCode.TIMEOUT.value` instead of raw strings.
+- Refactored `api/graphql_schema.py` `_graph_service()` and `_semantic_repository()` auth rejection to emit `GraphQLErrorCode.FORBIDDEN.value` instead of raw string `"UNAUTHORIZED"`.
+- Added `active_build_id: NotRequired[str | None]` to `GraphQLContext` TypedDict, populated it from `app.state.active_build_id` in `main.py`, and wired it into `get_active_profile` query resolver.
+- Updated `/health/readiness` endpoint in `main.py` to dynamically read `consistency` and `validation_summary` from `store-manifest.json` metadata with fallback to `"unknown"`.
+- Updated test assertion in `tests/test_graphql_safety.py` to expect `"FORBIDDEN"`.
+- Created `tests/test_error_codes.py` (318 lines, 9 tests) covering all 16 enum codes, context and end-to-end `build_id` resolution, readiness manifest reading and fallback, auth rejection `FORBIDDEN` codes, and timeout `TIMEOUT` codes.
+
+### Test Counts After Batch 0C
+- Backend: **131 passed** (122 baseline + 9 new), 9 deprecation warnings
+- Frontend: **6 passed** (Vitest)
+- Frontend build: Clean (`tsc -b && vite build` passed)
+
+### Issues Discovered
+- None. All 131 backend tests and 6 frontend tests pass cleanly without defects.
+
+---
+
+## 14. Batch 0D Completion Summary
+*(Implemented on `sprint-2/gap-remediation`, commits `5e0e8e0` → `20e21f9`)*
+
+### What Changed
+- Fixed all 147 ruff lint violations across 46 files (unused imports, duplicate `TypedDict` in `api/graphql_schema.py`, sorting, collection constructors, and broad exception handlers).
+- Made ruff lint strict in CI by removing `continue-on-error: true` from `.github/workflows/ci.yml`.
+- Expanded GitHub Actions push and PR triggers to include `sprint-2/*` branches.
+- Lazy-imported GraphDB adapter (`httpx`, `GraphDBSettings`, `GraphRetrievalService`) within `create_graph_repository` in `services/repository_factory.py`, removing `httpx` as a hard runtime dependency when using the default Oxigraph backend.
+- Enforced `isinstance(client, httpx.AsyncClient)` check for GraphDB backend in repository factory.
+- Added client validation tests and module-level import verification in `tests/test_repository_factory.py` (2 new tests).
+- Created shared test fixtures package `tests/shared/` containing:
+  - `tests/shared/__init__.py`: Package marker.
+  - `tests/shared/graphql_fixtures.py`: Canonical shapes for entities, all 16 error codes, provenance relationships, class/property metadata, search results, expansion previews, and active profiles.
+  - `tests/shared/test_conformance.py`: 9 conformance tests validating fixture structure and field parity against Strawberry GraphQL schema execution.
+
+### Test Counts After Batch 0D
+- Backend: **142 passed** (131 baseline + 11 new), 9 deprecation warnings
+- Frontend: **6 passed** (Vitest)
+- Frontend build: Clean (`tsc -b && vite build` passed)
+- Ruff lint: Clean (0 errors across entire repository)
+
+### Issues Discovered
+- None. All 142 backend tests and 6 frontend tests pass cleanly without defects.
+
+---
+
+## 15. Phase 0 Complete Summary
+
+Phase 0 (Sprint 1 Gap Remediation) is officially **COMPLETE**.
+
+### Summary of Resolved Items
+1. **Gap 1 (SemanticRepository GraphQL)**: Wired into application lifespan, GraphQL context, 7 query resolvers, 10 types (Batch 0A).
+2. **Gap 2 (Relationship Provenance)**: Exposed `predicate_iri`, `predicate_label`, `is_inferred`, `source_graph`, `explanation_handle` on `GraphRelationship` (Batch 0B).
+3. **Gap 3 (Error Codes)**: Expanded `GraphQLErrorCode` to all 16 stable codes required by GQ-115; wired through safety extension and auth guards (Batch 0C).
+4. **Gap 4 (build_id)**: Injected active build ID from application state into `get_active_profile` resolver (Batch 0C).
+5. **Gap 5 (Readiness Consistency)**: Dynamically reading `consistency` and `validation_summary` from `store-manifest.json` metadata (Batch 0C).
+6. **DEF-0A-1 (SPARQL Projection)**: Corrected `_search` projection to include `?needle` in `adapters/oxigraph/repository.py` (Batch 0B).
+7. **CI Strictness & Triggers**: Removed `continue-on-error` from ruff step; added `sprint-2/*` triggers (Batch 0D).
+8. **Tech Debt (Lazy Imports)**: Lazy-imported GraphDB adapter in repository factory (Batch 0D).
+9. **Shared Fixtures**: Canonical fixtures and 9 conformance tests in `tests/shared/` (Batch 0D).
+
+### Phase 0 Metrics
+- **Phase 0 Branch:** `sprint-2/gap-remediation`
+- **Total Commits on Branch:** 27 commits across Batches 0A–0D
+- **Total Backend Tests:** 142 passed (+38 tests added across Phase 0 from 104 baseline)
+- **Total Frontend Tests:** 6 passed (Vitest), clean build
+- **Lint Status:** 0 errors (`ruff check .` strict)
+- **Status:** Ready for merge into `sprint-2/supported-app` to initiate Phase 1 (Supported Application).

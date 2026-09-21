@@ -1,8 +1,16 @@
 import pytest
-from domain.models import PathOptions, PathStatus, GraphPath, GraphEntity, ComparisonResult, GraphRelationship
-from tests.fakes import FakeGraphRepository
-from services.graph_service import GraphService
+
+from domain.models import (
+    ComparisonResult,
+    GraphEntity,
+    GraphRelationship,
+    PathOptions,
+    PathStatus,
+)
 from domain.ontology_profile import load_ontology_profile
+from services.graph_service import GraphService
+from tests.fakes import FakeGraphRepository
+
 
 @pytest.fixture
 def profile():

@@ -1,9 +1,9 @@
 """Tests for import resolution and cycle detection."""
 
-import pytest
-from pathlib import Path
 
-from ingestion.imports import ImportResolver, ImportResolutionError, ResolvedImport
+import pytest
+
+from ingestion.imports import ImportResolutionError, ImportResolver
 from ingestion.manifest import ImportPolicy
 
 
@@ -42,7 +42,7 @@ def setup_files(base_dir):
 
 
 def test_import_resolution_success(setup_files):
-    base_dir, vendor_dir, source_rdf, food_rdf, changed_rdf = setup_files
+    base_dir, _vendor_dir, source_rdf, food_rdf, _changed_rdf = setup_files
     
     resolver = ImportResolver(ImportPolicy(mode="vendored"), base_dir)
     # create custom checksums
@@ -76,7 +76,7 @@ def test_import_resolution_success(setup_files):
 
 
 def test_import_resolution_not_allowlisted(setup_files):
-    base_dir, vendor_dir, source_rdf, food_rdf, changed_rdf = setup_files
+    base_dir, _vendor_dir, source_rdf, _food_rdf, _changed_rdf = setup_files
     
     source_rdf.write_text('''
     <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:owl="http://www.w3.org/2002/07/owl#">
@@ -94,7 +94,7 @@ def test_import_resolution_not_allowlisted(setup_files):
 
 
 def test_import_resolution_missing_local(setup_files):
-    base_dir, vendor_dir, source_rdf, food_rdf, changed_rdf = setup_files
+    base_dir, _vendor_dir, source_rdf, _food_rdf, _changed_rdf = setup_files
     
     source_rdf.write_text('''
     <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:owl="http://www.w3.org/2002/07/owl#">
@@ -116,7 +116,7 @@ def test_import_resolution_missing_local(setup_files):
 
 
 def test_import_resolution_checksum_mismatch(setup_files):
-    base_dir, vendor_dir, source_rdf, food_rdf, changed_rdf = setup_files
+    base_dir, _vendor_dir, source_rdf, _food_rdf, _changed_rdf = setup_files
     
     source_rdf.write_text('''
     <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:owl="http://www.w3.org/2002/07/owl#">
@@ -139,7 +139,7 @@ def test_import_resolution_checksum_mismatch(setup_files):
 
 
 def test_import_resolution_cyclic(setup_files):
-    base_dir, vendor_dir, source_rdf, food_rdf, changed_rdf = setup_files
+    base_dir, vendor_dir, source_rdf, _food_rdf, _changed_rdf = setup_files
     
     # A imports B
     source_rdf.write_text('''
@@ -189,7 +189,7 @@ def test_import_resolution_cyclic(setup_files):
     assert iris == {"http://example.org/a", "http://example.org/b"}
 
 def test_import_resolution_iri_mismatch(setup_files):
-    base_dir, vendor_dir, source_rdf, food_rdf, changed_rdf = setup_files
+    base_dir, _vendor_dir, source_rdf, food_rdf, _changed_rdf = setup_files
     
     source_rdf.write_text('''
     <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:owl="http://www.w3.org/2002/07/owl#">

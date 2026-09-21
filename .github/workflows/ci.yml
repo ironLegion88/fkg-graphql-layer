@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - sprint-1/*
+      - sprint-2/*
   pull_request:
     branches:
       - main
       - sprint-1/*
+      - sprint-2/*
 
 jobs:
   backend:
@@ -31,7 +33,6 @@ jobs:
       - name: Run Ruff Lint
         run: |
           ruff check .
-        continue-on-error: true
 
       - name: Run Backend Tests
         run: |

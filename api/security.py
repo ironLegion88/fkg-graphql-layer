@@ -1,8 +1,17 @@
-import time
 import asyncio
-from typing import Any
+import time
+
+from graphql import (
+    FieldNode,
+    FragmentSpreadNode,
+    GraphQLError,
+    InlineFragmentNode,
+    get_operation_ast,
+)
 from strawberry.extensions import SchemaExtension
-from graphql import GraphQLError, get_operation_ast, FieldNode, FragmentSpreadNode, InlineFragmentNode
+
+from services.exceptions import GraphQLErrorCode
+
 
 class GraphQLSafetyExtension(SchemaExtension):
     """
@@ -52,8 +61,7 @@ class GraphQLSafetyExtension(SchemaExtension):
             if current_depth > self.max_depth:
                 raise ValueError("MAX_DEPTH")
             
-            if current_depth > max_depth_found[0]:
-                max_depth_found[0] = current_depth
+            max_depth_found[0] = max(max_depth_found[0], current_depth)
 
             if visited_fragments is None:
                 visited_fragments = set()
@@ -87,12 +95,12 @@ class GraphQLSafetyExtension(SchemaExtension):
             if str(e) == "MAX_DEPTH":
                 raise GraphQLError(
                     f"Query depth exceeds maximum allowed depth of {self.max_depth}",
-                    extensions={"code": "BUDGET_EXHAUSTED"}
+                    extensions={"code": GraphQLErrorCode.BUDGET_EXHAUSTED.value}
                 )
             elif str(e) == "MAX_FIELDS":
                 raise GraphQLError(
                     f"Query complexity exceeds maximum allowed fields of {self.max_fields}",
-                    extensions={"code": "BUDGET_EXHAUSTED"}
+                    extensions={"code": GraphQLErrorCode.BUDGET_EXHAUSTED.value}
                 )
 
     async def on_execute(self):
@@ -100,4 +108,4 @@ class GraphQLSafetyExtension(SchemaExtension):
             async with asyncio.timeout(self.timeout_seconds):
                 yield
         except asyncio.TimeoutError:
-            raise GraphQLError("GraphQL execution timed out", extensions={"code": "TIMEOUT"})
+            raise GraphQLError("GraphQL execution timed out", extensions={"code": GraphQLErrorCode.TIMEOUT.value})

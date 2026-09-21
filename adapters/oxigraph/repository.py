@@ -1,39 +1,38 @@
 """Database-neutral graph retrieval backed by an embedded PyOxigraph store."""
 
 from __future__ import annotations
-import time
 
 import asyncio
 import hashlib
 import json
 import os
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
 from pyoxigraph import Literal, NamedNode, Store, Variable
 
 from domain.models import (
+    UNKNOWN_KIND,
+    ComparisonResult,
+    ExpansionPreview,
     GraphEntity,
     GraphExpansion,
+    GraphPath,
     GraphRelationship,
-    SemanticResourceKind,
-    UNKNOWN_KIND,
-    TraversalDirection,
-    TraversalOptions,
-    SearchOptions,
-    SearchResult,
-    ExpansionPreview,
-    PreviewGroup,
     PathOptions,
     PathResult,
     PathStatus,
-    GraphPath,
-    ComparisonResult,
+    PreviewGroup,
+    SearchOptions,
+    SearchResult,
+    SemanticResourceKind,
+    TraversalDirection,
+    TraversalOptions,
 )
 from domain.ontology_profile import OntologyPackage
 from domain.traversal import paginate_relationships
 from services.exceptions import GraphBackendError
-
 
 RDF_TYPE = NamedNode("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
 RDFS_LABEL = NamedNode("http://www.w3.org/2000/01/rdf-schema#label")
@@ -49,7 +48,7 @@ class OxigraphSettings:
     label_languages: tuple[str, ...] = ("en", "ANY")
 
     @classmethod
-    def from_environment(cls) -> "OxigraphSettings":
+    def from_environment(cls) -> OxigraphSettings:
         root = Path(os.getenv("RDF_STORE_PATH", ".data/oxigraph"))
         languages = tuple(
             language.strip()
@@ -251,7 +250,7 @@ self, entity_id: str) -> GraphEntity | None:
             """
 
         sparql = f"""
-            SELECT DISTINCT ?entity
+            SELECT DISTINCT ?entity ?needle
             WHERE {{
               VALUES ?entityType {{ {type_values} }}
               ?entity a ?entityType .

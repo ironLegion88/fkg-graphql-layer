@@ -2,24 +2,25 @@
 
 from __future__ import annotations
 
+import json
 import os
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from strawberry.fastapi import GraphQLRouter
 
+from adapters.oxigraph.semantic_repository import OxigraphSemanticRepository
 from api.graphql_schema import GraphQLContext, schema
+from core.telemetry import TelemetryMiddleware
+from domain.ontology_profile import load_ontology_profile
 from services.graph_service import GraphService
 from services.repository_factory import create_graph_repository
-import json
-from pathlib import Path
-from fastapi.responses import JSONResponse
 
-from domain.ontology_profile import load_ontology_profile
-from core.telemetry import TelemetryMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -38,9 +39,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             pass
     app.state.active_build_id = active_build_id
     
-    app.state.graph_service = GraphService(
-        create_graph_repository(profile, client),
-        profile
+    graph_repository = create_graph_repository(profile, client)
+    app.state.graph_service = GraphService(graph_repository, profile)
+    store = getattr(graph_repository, "_store", None)
+    app.state.semantic_repository = OxigraphSemanticRepository(
+        profile=profile,
+        store=store,
     )
     app.state.store_open = True
     try:
@@ -52,7 +56,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 async def get_graphql_context(request: Request) -> GraphQLContext:
     """Inject the database-agnostic service into every GraphQL request."""
-    return {"graph_service": request.app.state.graph_service}
+    return {
+        "graph_service": request.app.state.graph_service,
+        "semantic_repository": request.app.state.semantic_repository,
+        "active_build_id": getattr(request.app.state, "active_build_id", None),
+    }
 
 
 app = FastAPI(
@@ -129,8 +137,8 @@ async def readiness_check(request: Request) -> JSONResponse:
         "inferred_count": metadata.get("inferred_triple_count", 0),
         "semantic_profile": profile.package_id,
         "reasoner_status": "completed" if metadata.get("inferred_triple_count") else "none",
-        "consistency": "consistent",
-        "validation_summary": "Passed",
+        "consistency": metadata.get("consistency", "unknown"),
+        "validation_summary": metadata.get("validation_summary", "unknown"),
     }
     
     return JSONResponse(content=response_data)

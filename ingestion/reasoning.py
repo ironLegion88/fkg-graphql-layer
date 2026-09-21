@@ -7,7 +7,6 @@ from typing import Any
 
 from pyoxigraph import BlankNode, NamedNode, Quad, Store
 
-
 RDF_TYPE = NamedNode("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
 RDF_FIRST = NamedNode("http://www.w3.org/1999/02/22-rdf-syntax-ns#first")
 RDF_REST = NamedNode("http://www.w3.org/1999/02/22-rdf-syntax-ns#rest")
@@ -174,9 +173,8 @@ def _all_ancestors(
 
 def _run_hermit_provider(store: Store, inferred_graph: NamedNode) -> int:
     import tempfile
-    import os
     from pathlib import Path
-    from pyoxigraph import RdfFormat
+
     from ingestion.reasoners.hermit_provider import HermitProvider
     
     provider = HermitProvider()
@@ -196,7 +194,7 @@ def _run_hermit_provider(store: Store, inferred_graph: NamedNode) -> int:
                     s = quad.subject
                     p = quad.predicate
                     o = quad.object
-                    line = f"{s} {p} {o} .\n".encode("utf-8")
+                    line = f"{s} {p} {o} .\n".encode()
                     f.write(line)
             
         # Run HermiT provider

@@ -1,4 +1,5 @@
 import json
+
 import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
@@ -50,9 +51,11 @@ def test_telemetry_server_error(caplog):
     old_handlers = logger.handlers
     logger.handlers = []
     
-    with pytest.raises(ValueError):
-        with caplog.at_level(logging.INFO, logger="ontology_explorer"):
-            client.get("/error")
+    with (
+        pytest.raises(ValueError),
+        caplog.at_level(logging.INFO, logger="ontology_explorer"),
+    ):
+        client.get("/error")
             
     logger.handlers = old_handlers
             

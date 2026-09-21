@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-from ingestion.manifest import ImportPolicy, RDFFormatName, RDFSource
+from ingestion.manifest import ImportPolicy, RDFSource
 
 
 class SourceConfig(RDFSource):

@@ -7,24 +7,48 @@ contained behind the service and retrieval boundaries.
 from __future__ import annotations
 
 from enum import Enum
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 import strawberry
 from graphql import GraphQLError
 from strawberry.schema.config import StrawberryConfig
 from strawberry.types import Info
 
+from api.security import GraphQLSafetyExtension
+from domain.models import (
+    ExpansionPreview as DomainExpansionPreview,
+)
 from domain.models import (
     GraphEntity,
-    GraphExpansion as DomainGraphExpansion,
-    GraphRelationship as DomainGraphRelationship,
+    SearchOptions,
     TraversalDirection,
     TraversalOptions,
-    PathOptions,
 )
-from typing import TypedDict, NotRequired
-from services.exceptions import EntityNotFoundError, GraphServiceError, InvalidTraversalError, GraphQLErrorCode
-from api.security import GraphQLSafetyExtension
+from domain.models import (
+    GraphExpansion as DomainGraphExpansion,
+)
+from domain.models import (
+    GraphRelationship as DomainGraphRelationship,
+)
+from domain.models import (
+    SearchResult as DomainSearchResult,
+)
+from domain.ports import SemanticRepository
+from domain.semantic_models import (
+    Annotation,
+    ClassInfo,
+    CompactIRI,
+    MultilingualLabel,
+    PropertyInfo,
+    ResourceMetadata,
+    TypedValue,
+)
+from services.exceptions import (
+    EntityNotFoundError,
+    GraphQLErrorCode,
+    GraphServiceError,
+    InvalidTraversalError,
+)
 from services.graph_service import GraphService
 
 
@@ -32,8 +56,10 @@ class GraphQLContext(TypedDict):
     """Request dependencies available to Strawberry resolvers."""
 
     graph_service: GraphService
+    semantic_repository: SemanticRepository
     deadline: NotRequired[float]
     role: NotRequired[str]
+    active_build_id: NotRequired[str | None]
 
 
 @strawberry.interface
@@ -140,6 +166,12 @@ class GraphRelationship:
     source: Entity
     target: Entity
     relation: str
+    # Provenance fields
+    predicate_iri: str | None = None
+    predicate_label: str | None = None
+    is_inferred: bool = False
+    source_graph: str | None = None
+    explanation_handle: str | None = None
 
 
 @strawberry.enum(name="TraversalDirection")
@@ -197,6 +229,201 @@ class ComparisonResult:
     unique_properties_b: list[str]
     shared_neighbors: list[Entity]
 
+
+@strawberry.type
+class CompactIRIType:
+    full_iri: str
+    prefix: str | None = None
+    local_name: str
+    namespace: str | None = None
+
+
+@strawberry.type
+class MultilingualLabelType:
+    value: str
+    language: str | None = None
+    datatype: str | None = None
+    predicate_iri: str
+
+
+@strawberry.type
+class AnnotationType:
+    predicate_iri: str
+    value: str
+    language: str | None = None
+
+
+def _to_api_compact_iri(compact_iri: CompactIRI | None) -> CompactIRIType | None:
+    if compact_iri is None:
+        return None
+    return CompactIRIType(
+        full_iri=compact_iri.full_iri,
+        prefix=compact_iri.prefix,
+        local_name=compact_iri.local_name,
+        namespace=compact_iri.namespace,
+    )
+
+
+def _to_api_label(label: MultilingualLabel) -> MultilingualLabelType:
+    return MultilingualLabelType(
+        value=label.value,
+        language=label.language,
+        datatype=label.datatype,
+        predicate_iri=label.predicate_iri,
+    )
+
+
+def _to_api_annotation(annotation: Annotation) -> AnnotationType:
+    val = annotation.value
+    if isinstance(val, TypedValue):
+        str_val = val.lexical_form
+    else:
+        str_val = str(val)
+    return AnnotationType(
+        predicate_iri=annotation.predicate_iri,
+        value=str_val,
+        language=annotation.language,
+    )
+
+
+@strawberry.type
+class ResourceMetadataType:
+    iri: str
+    compact_iri: CompactIRIType | None = None
+    semantic_kind: str
+    asserted_types: list[str]
+    inferred_types: list[str]
+    labels: list[MultilingualLabelType]
+    preferred_label: str
+    descriptions: list[MultilingualLabelType]
+    aliases: list[MultilingualLabelType]
+    annotations: list[AnnotationType]
+    source_graphs: list[str]
+    build_id: str | None = None
+
+
+def _to_api_resource_metadata(meta: ResourceMetadata | None) -> ResourceMetadataType | None:
+    if meta is None:
+        return None
+    return ResourceMetadataType(
+        iri=meta.iri,
+        compact_iri=_to_api_compact_iri(meta.compact_iri),
+        semantic_kind=str(meta.semantic_kind),
+        asserted_types=list(meta.asserted_types),
+        inferred_types=list(meta.inferred_types),
+        labels=[_to_api_label(lbl) for lbl in meta.labels],
+        preferred_label=meta.preferred_label,
+        descriptions=[_to_api_label(d) for d in meta.descriptions],
+        aliases=[_to_api_label(a) for a in meta.aliases],
+        annotations=[_to_api_annotation(ann) for ann in meta.annotations],
+        source_graphs=list(meta.source_graphs),
+        build_id=meta.build_id,
+    )
+
+
+@strawberry.type
+class ClassInfoType:
+    iri: str
+    compact_iri: CompactIRIType | None = None
+    label: str
+    direct_parents: list[str]
+    all_ancestors: list[str]
+    direct_children: list[str]
+    all_descendants: list[str]
+    equivalent_classes: list[str]
+    disjoint_classes: list[str]
+    instance_count: int
+    annotations: list[AnnotationType]
+    restrictions: list[str]
+
+
+def _to_api_class_info(info: ClassInfo | None) -> ClassInfoType | None:
+    if info is None:
+        return None
+    return ClassInfoType(
+        iri=info.iri,
+        compact_iri=_to_api_compact_iri(info.compact_iri),
+        label=info.label,
+        direct_parents=list(info.direct_parents),
+        all_ancestors=list(info.all_ancestors),
+        direct_children=list(info.direct_children),
+        all_descendants=list(info.all_descendants),
+        equivalent_classes=list(info.equivalent_classes),
+        disjoint_classes=list(info.disjoint_classes),
+        instance_count=info.instance_count,
+        annotations=[_to_api_annotation(a) for a in info.annotations],
+        restrictions=list(info.restrictions),
+    )
+
+
+@strawberry.type
+class PropertyInfoType:
+    iri: str
+    compact_iri: CompactIRIType | None = None
+    label: str
+    property_kind: str
+    domains: list[str]
+    ranges: list[str]
+    inverse_of: str | None = None
+    equivalent_properties: list[str]
+    sub_properties: list[str]
+    super_properties: list[str]
+    characteristics: list[str]
+    usage_count: int
+    annotations: list[AnnotationType]
+
+
+def _to_api_property_info(info: PropertyInfo | None) -> PropertyInfoType | None:
+    if info is None:
+        return None
+    return PropertyInfoType(
+        iri=info.iri,
+        compact_iri=_to_api_compact_iri(info.compact_iri),
+        label=info.label,
+        property_kind=str(info.property_kind),
+        domains=list(info.domains),
+        ranges=list(info.ranges),
+        inverse_of=info.inverse_of,
+        equivalent_properties=list(info.equivalent_properties),
+        sub_properties=list(info.sub_properties),
+        super_properties=list(info.super_properties),
+        characteristics=list(info.characteristics),
+        usage_count=info.usage_count,
+        annotations=[_to_api_annotation(a) for a in info.annotations],
+    )
+
+
+@strawberry.type
+class PreviewGroupType:
+    relation: str
+    direction: TraversalDirectionValue
+    count: int
+
+
+@strawberry.type
+class ExpansionPreviewType:
+    entity_id: str
+    total_count: int
+    groups: list[PreviewGroupType]
+
+
+def _to_api_expansion_preview(preview: DomainExpansionPreview) -> ExpansionPreviewType:
+    return ExpansionPreviewType(
+        entity_id=preview.entity_id,
+        total_count=preview.total_count,
+        groups=[
+            PreviewGroupType(
+                relation=g.relation,
+                direction=TraversalDirectionValue(
+                    g.direction.value if hasattr(g.direction, "value") else str(g.direction)
+                ),
+                count=g.count,
+            )
+            for g in preview.groups
+        ],
+    )
+
+
 def _to_api_entity(
 entity: GraphEntity) -> Entity:
     """Convert database-neutral domain objects into stable public GraphQL types."""
@@ -225,6 +452,11 @@ def _to_api_relationship(relationship: DomainGraphRelationship) -> GraphRelation
         source=_to_api_entity(relationship.source),
         target=_to_api_entity(relationship.target),
         relation=relationship.relation,
+        predicate_iri=relationship.predicate_iri or None,
+        predicate_label=relationship.predicate_label,
+        is_inferred=relationship.is_inferred,
+        source_graph=relationship.source_graph,
+        explanation_handle=relationship.explanation_handle,
     )
 
 
@@ -257,11 +489,50 @@ def _to_domain_traversal(options: TraversalInput | None) -> TraversalOptions:
     )
 
 
+@strawberry.input
+class SearchInput:
+    query: str
+    limit: int = 100
+    offset: int = 0
+    kinds: list[str] | None = None
+    require_description: bool = False
+
+
+@strawberry.type
+class SearchResultType:
+    entities: list[Entity]
+    total_matches: int
+
+
+def _to_domain_search_options(options: SearchInput) -> SearchOptions:
+    return SearchOptions(
+        query=options.query,
+        limit=options.limit,
+        offset=options.offset,
+        kinds=tuple(options.kinds or ()),
+        require_description=options.require_description,
+    )
+
+
+def _to_api_search_result(result: DomainSearchResult) -> SearchResultType:
+    return SearchResultType(
+        entities=[_to_api_entity(e) for e in result.entities],
+        total_matches=result.total_matches,
+    )
+
+
 def _graph_service(info: Info[GraphQLContext, None]) -> GraphService:
     ctx = info.context
     if ctx.get("role") not in ("operator", "anonymous"):
-        raise GraphQLError("Unauthorized access", extensions={"code": "UNAUTHORIZED"})
+        raise GraphQLError("Unauthorized access", extensions={"code": GraphQLErrorCode.FORBIDDEN.value})
     return ctx["graph_service"]
+
+
+def _semantic_repository(info: Info[GraphQLContext, None]) -> SemanticRepository:
+    ctx = info.context
+    if ctx.get("role") not in ("operator", "anonymous"):
+        raise GraphQLError("Unauthorized access", extensions={"code": GraphQLErrorCode.FORBIDDEN.value})
+    return ctx["semantic_repository"]
 
 
 async def _resolve_entity(operation: object) -> Entity:
@@ -463,8 +734,104 @@ class Query:
                 preferred_languages=list(profile.languages.preferred_languages)
             ),
             reasoning_profile=profile.reasoning.profile_name,
-            build_id=None,
+            build_id=info.context.get("active_build_id"),
         )
+
+    @strawberry.field
+    async def get_resource_metadata(
+        self,
+        info: Info[GraphQLContext, None],
+        iri: str,
+    ) -> ResourceMetadataType | None:
+        try:
+            meta = await _semantic_repository(info).get_resource_metadata(iri)
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+        return _to_api_resource_metadata(meta)
+
+    @strawberry.field
+    async def get_class_info(
+        self,
+        info: Info[GraphQLContext, None],
+        iri: str,
+    ) -> ClassInfoType | None:
+        try:
+            class_info = await _semantic_repository(info).get_class_info(iri)
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+        return _to_api_class_info(class_info)
+
+    @strawberry.field
+    async def list_classes(
+        self,
+        info: Info[GraphQLContext, None],
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[ClassInfoType]:
+        try:
+            classes = await _semantic_repository(info).list_classes(limit, offset)
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+        return [api_cls for c in classes if (api_cls := _to_api_class_info(c)) is not None]
+
+    @strawberry.field
+    async def get_property_info(
+        self,
+        info: Info[GraphQLContext, None],
+        iri: str,
+    ) -> PropertyInfoType | None:
+        try:
+            prop_info = await _semantic_repository(info).get_property_info(iri)
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+        return _to_api_property_info(prop_info)
+
+    @strawberry.field
+    async def list_properties(
+        self,
+        info: Info[GraphQLContext, None],
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[PropertyInfoType]:
+        try:
+            properties = await _semantic_repository(info).list_properties(limit, offset)
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+        return [api_prop for p in properties if (api_prop := _to_api_property_info(p)) is not None]
+
+    @strawberry.field
+    async def get_expansion_preview(
+        self,
+        info: Info[GraphQLContext, None],
+        id: strawberry.ID,
+    ) -> ExpansionPreviewType:
+        try:
+            preview = await _graph_service(info).get_expansion_preview(str(id))
+        except EntityNotFoundError as error:
+            raise GraphQLError(str(error), extensions={"code": "NOT_FOUND"}) from error
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+        return _to_api_expansion_preview(preview)
+
+    @strawberry.field
+    async def search(
+        self,
+        info: Info[GraphQLContext, None],
+        options: SearchInput,
+    ) -> SearchResultType:
+        try:
+            domain_options = _to_domain_search_options(options)
+            result = await _graph_service(info).search(domain_options)
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+        return _to_api_search_result(result)
 
 
 schema = strawberry.Schema(
@@ -481,6 +848,15 @@ schema = strawberry.Schema(
         GraphPath,
         PathResult,
         ComparisonResult,
+        CompactIRIType,
+        MultilingualLabelType,
+        AnnotationType,
+        ResourceMetadataType,
+        ClassInfoType,
+        PropertyInfoType,
+        ExpansionPreviewType,
+        PreviewGroupType,
+        SearchResultType,
     ],
 
     extensions=[GraphQLSafetyExtension],

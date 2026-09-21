@@ -18,7 +18,13 @@ import httpx
 import yaml
 
 from adapters.oxigraph import OxigraphGraphRepository, OxigraphSettings
-from domain.models import GraphEntity, GraphExpansion, GraphPath, GraphRelationship, TraversalOptions
+from domain.models import (
+    GraphEntity,
+    GraphExpansion,
+    GraphPath,
+    GraphRelationship,
+    TraversalOptions,
+)
 from domain.ports import GraphRepository
 from services.graph_retrieval import GraphDBSettings, GraphRetrievalService
 from services.graph_service import GraphService
@@ -103,7 +109,7 @@ async def measure_operation(
             started = time.perf_counter()
             await operation()
             durations.append((time.perf_counter() - started) * 1_000)
-    except Exception as error:  # benchmark evidence must preserve backend failures
+    except Exception as error:  # noqa: BLE001  # benchmark evidence must preserve backend failures
         return {
             "status": "error",
             "error_type": type(error).__name__,
@@ -128,7 +134,7 @@ async def _capture(
 ) -> dict[str, Any]:
     try:
         return {"status": "ok", "value": normalize(await operation())}
-    except Exception as error:
+    except Exception as error:  # noqa: BLE001
         return {
             "status": "error",
             "error_type": type(error).__name__,

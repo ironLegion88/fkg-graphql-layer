@@ -6,14 +6,13 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
-from pyoxigraph import NamedNode, parse, RdfFormat
+from pyoxigraph import NamedNode, RdfFormat, parse
 
 from ingestion.manifest import ImportPolicy
 
 
 class ImportResolutionError(Exception):
     """Raised when an import cannot be securely resolved or verified."""
-    pass
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,10 +138,14 @@ class ImportResolver:
             for triple in parse(path.read_bytes(), fmt):
                 if triple.predicate == owl_imports and isinstance(triple.object, NamedNode):
                     imports.append(triple.object.value)
-                elif triple.predicate == rdf_type and triple.object == owl_ontology and isinstance(triple.subject, NamedNode):
-                    if ontology_iri is None:
-                        ontology_iri = triple.subject.value
-        except Exception:
+                elif (
+                    triple.predicate == rdf_type
+                    and triple.object == owl_ontology
+                    and isinstance(triple.subject, NamedNode)
+                    and ontology_iri is None
+                ):
+                    ontology_iri = triple.subject.value
+        except Exception:  # noqa: BLE001, S110
             pass
             
         return ontology_iri, imports

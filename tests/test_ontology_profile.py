@@ -1,8 +1,9 @@
-import os
 from pathlib import Path
+
 import pytest
 
-from domain.ontology_profile import load_ontology_profile, OntologyPackage
+from domain.ontology_profile import OntologyPackage, load_ontology_profile
+
 
 def test_load_wine_profile():
     profile_path = Path("config/wine-profile.yaml")
