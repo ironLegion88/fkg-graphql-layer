@@ -392,7 +392,7 @@ interface OntologyDataProvider {
 | **0A** | Wire SemanticRepository into GraphQL | — | ✅ DONE | 7 new resolvers, 10 new types, 13 new tests |
 | **0B** | Expose Relationship Provenance | 0A | ✅ DONE | 5 provenance fields, DEF-0A-1 fix, 5 new tests |
 | **0C** | Error Codes + build_id + Readiness | 0A | ✅ DONE | Complete enum (16 codes), wire build_id, dynamic readiness consistency |
-| **0D** | CI Hardening + Tech Debt | 0A | Pending | Strict lint, guard imports, shared fixtures |
+| **0D** | CI Hardening + Tech Debt | 0A | ✅ DONE | Strict lint, guard imports, shared fixtures |
 
 ### Definition of Done (per batch)
 
@@ -519,8 +519,8 @@ The custom Indian Food Knowledge Graph ontology is not yet available as an OWL f
 | Gap 3: `GraphQLErrorCode` has only 5 of 16 codes | 0C | ✅ RESOLVED |
 | Gap 4: `build_id=None` hardcoded in `get_active_profile` | 0C | ✅ RESOLVED |
 | Gap 5: Readiness hardcodes `"consistent"` | 0C | ✅ RESOLVED |
-| CI: ruff has `continue-on-error: true` | 0D | Pending |
-| Tech debt: Unconditional `httpx`/GraphDB import in factory | 0D | Pending |
+| CI: ruff has `continue-on-error: true` | 0D | ✅ RESOLVED |
+| Tech debt: Unconditional `httpx`/GraphDB import in factory | 0D | ✅ RESOLVED |
 | DEF-0A-1: SPARQL projection bug in `_search` | 0B | ✅ RESOLVED |
 
 ---
@@ -564,3 +564,54 @@ The custom Indian Food Knowledge Graph ontology is not yet available as an OWL f
 
 ### Issues Discovered
 - None. All 131 backend tests and 6 frontend tests pass cleanly without defects.
+
+---
+
+## 14. Batch 0D Completion Summary
+*(Implemented on `sprint-2/gap-remediation`, commits `5e0e8e0` → `20e21f9`)*
+
+### What Changed
+- Fixed all 147 ruff lint violations across 46 files (unused imports, duplicate `TypedDict` in `api/graphql_schema.py`, sorting, collection constructors, and broad exception handlers).
+- Made ruff lint strict in CI by removing `continue-on-error: true` from `.github/workflows/ci.yml`.
+- Expanded GitHub Actions push and PR triggers to include `sprint-2/*` branches.
+- Lazy-imported GraphDB adapter (`httpx`, `GraphDBSettings`, `GraphRetrievalService`) within `create_graph_repository` in `services/repository_factory.py`, removing `httpx` as a hard runtime dependency when using the default Oxigraph backend.
+- Enforced `isinstance(client, httpx.AsyncClient)` check for GraphDB backend in repository factory.
+- Added client validation tests and module-level import verification in `tests/test_repository_factory.py` (2 new tests).
+- Created shared test fixtures package `tests/shared/` containing:
+  - `tests/shared/__init__.py`: Package marker.
+  - `tests/shared/graphql_fixtures.py`: Canonical shapes for entities, all 16 error codes, provenance relationships, class/property metadata, search results, expansion previews, and active profiles.
+  - `tests/shared/test_conformance.py`: 9 conformance tests validating fixture structure and field parity against Strawberry GraphQL schema execution.
+
+### Test Counts After Batch 0D
+- Backend: **142 passed** (131 baseline + 11 new), 9 deprecation warnings
+- Frontend: **6 passed** (Vitest)
+- Frontend build: Clean (`tsc -b && vite build` passed)
+- Ruff lint: Clean (0 errors across entire repository)
+
+### Issues Discovered
+- None. All 142 backend tests and 6 frontend tests pass cleanly without defects.
+
+---
+
+## 15. Phase 0 Complete Summary
+
+Phase 0 (Sprint 1 Gap Remediation) is officially **COMPLETE**.
+
+### Summary of Resolved Items
+1. **Gap 1 (SemanticRepository GraphQL)**: Wired into application lifespan, GraphQL context, 7 query resolvers, 10 types (Batch 0A).
+2. **Gap 2 (Relationship Provenance)**: Exposed `predicate_iri`, `predicate_label`, `is_inferred`, `source_graph`, `explanation_handle` on `GraphRelationship` (Batch 0B).
+3. **Gap 3 (Error Codes)**: Expanded `GraphQLErrorCode` to all 16 stable codes required by GQ-115; wired through safety extension and auth guards (Batch 0C).
+4. **Gap 4 (build_id)**: Injected active build ID from application state into `get_active_profile` resolver (Batch 0C).
+5. **Gap 5 (Readiness Consistency)**: Dynamically reading `consistency` and `validation_summary` from `store-manifest.json` metadata (Batch 0C).
+6. **DEF-0A-1 (SPARQL Projection)**: Corrected `_search` projection to include `?needle` in `adapters/oxigraph/repository.py` (Batch 0B).
+7. **CI Strictness & Triggers**: Removed `continue-on-error` from ruff step; added `sprint-2/*` triggers (Batch 0D).
+8. **Tech Debt (Lazy Imports)**: Lazy-imported GraphDB adapter in repository factory (Batch 0D).
+9. **Shared Fixtures**: Canonical fixtures and 9 conformance tests in `tests/shared/` (Batch 0D).
+
+### Phase 0 Metrics
+- **Phase 0 Branch:** `sprint-2/gap-remediation`
+- **Total Commits on Branch:** 27 commits across Batches 0A–0D
+- **Total Backend Tests:** 142 passed (+38 tests added across Phase 0 from 104 baseline)
+- **Total Frontend Tests:** 6 passed (Vitest), clean build
+- **Lint Status:** 0 errors (`ruff check .` strict)
+- **Status:** Ready for merge into `sprint-2/supported-app` to initiate Phase 1 (Supported Application).
