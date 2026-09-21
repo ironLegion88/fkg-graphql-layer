@@ -1,22 +1,22 @@
 # Sprint 2 Agent Context: Architecture, Inventory & Implementation Guide
 
 - **Document type:** Supplementary implementation context for LLM agent delegation
-- **Status:** Active
+- **Status:** Active — Phase 0 complete, Phase 1 in progress
 - **Created:** 2026-09-19
-- **Current Sprint:** Sprint 2 (Gap Remediation + Supported Application)
-- **Baseline Branch:** `sprint-1/core-platform` (commit `b16b2c7`)
-- **Phase 0 Branch:** `sprint-2/gap-remediation` (created from `sprint-1/core-platform`)
-- **Phase 1 Branch:** `sprint-2/supported-app` (created from Phase 0 merge point)
+- **Last Updated:** 2026-09-21 (Phase 0 complete)
+- **Current Sprint:** Sprint 2 (Supported Application)
+- **Phase 0 Status:** ✅ COMPLETE (all 9 gaps resolved, 142 backend + 6 frontend tests passing)
+- **Sprint 2 Baseline Branch:** `sprint-2/cytoscape` (created from `sprint-1/core-platform`, with `sprint-2/gap-remediation` merged)
+- **Per-batch branches:** Each Phase 1 batch gets a dedicated branch from `sprint-2/cytoscape`, merged back upon completion
 - **Prerequisite reading:** Before beginning any batch, read these documents in order:
-  1. [Project Status 2026-09-14](project-status-2026-09-14.md) — what exists now
-  2. [Sprint 1 Completion Report](sprint-1-completion-report.md) — what Sprint 1 delivered and its gaps
-  3. [Sprint 2 Implementation Plan](sprint-2-implementation-plan.md) — what to build and how
-  4. [Requirements](ontology-graph-explorer-requirements.md) — full requirements specification
-  5. [Implementation Plan](ontology-graph-explorer-implementation-plan.md) — Sprint 2 = Section 7
+  1. [Sprint 2 Implementation Plan](sprint-2-implementation-plan.md) — what to build and how (Phase 1)
+  2. [Requirements](ontology-graph-explorer-requirements.md) — full requirements specification
+  3. [Implementation Plan](ontology-graph-explorer-implementation-plan.md) — Sprint 2 = Section 7
+  4. This document — architecture map, file inventory, coding conventions
 
 This document provides the **architecture map, file inventory, interface details,
-gap inventory, coding conventions, and batch-specific guidance** needed to
-implement Sprint 2 without reverse-engineering the repository.
+coding conventions, and batch-specific guidance** needed to implement Sprint 2
+Phase 1 (the supported application) without reverse-engineering the repository.
 
 ---
 
@@ -614,4 +614,143 @@ Phase 0 (Sprint 1 Gap Remediation) is officially **COMPLETE**.
 - **Total Backend Tests:** 142 passed (+38 tests added across Phase 0 from 104 baseline)
 - **Total Frontend Tests:** 6 passed (Vitest), clean build
 - **Lint Status:** 0 errors (`ruff check .` strict)
-- **Status:** Ready for merge into `sprint-2/supported-app` to initiate Phase 1 (Supported Application).
+- **Status:** ✅ Complete. Merged into `sprint-2/cytoscape` baseline branch.
+
+---
+
+## Phase 1: Frontend Context for Supported Application
+
+### Branching Strategy for Phase 1
+
+```
+sprint-2/cytoscape (baseline — Phase 0 merged)
+  ├── batch-2a/app-shell         → merge back to sprint-2/cytoscape
+  ├── batch-2b/semantic-inspector → merge back to sprint-2/cytoscape
+  ├── batch-2c/cytoscape-detail  → merge back to sprint-2/cytoscape
+  └── batch-2d/accessible-views  → merge back to sprint-2/cytoscape
+```
+
+Each batch branch is created from the current HEAD of `sprint-2/cytoscape` (which will include all previously merged batches).
+
+### Current Frontend File Inventory (Phase 1 Starting Point)
+
+| File | Lines | Purpose | Phase 1 Action |
+|---|---|---|---|
+| `App.tsx` | 426 | Monolithic app with search, filters, graph, entity list | **Decompose** into shell + panels |
+| `App.css` | ~200 | All styles in one file | **Split** per component |
+| `api/graph.ts` | 116 | GraphQL client with 3 queries (profile, search, expand) | **Extend** with 7+ new query functions |
+| `graph/state.ts` | 169 | Pure functional state engine (merge/collapse/limits) | **Extend** with undo/redo, multi-hop |
+| `graph/CytoscapeGraph.tsx` | ~200 | Cytoscape wrapper component | **Enhance** with profile-driven styling |
+| `interfaces/models.ts` | 62 | TypeScript domain types | **Update** to match backend schema |
+| `interfaces/renderers.ts` | 33 | Renderer contracts | Keep as-is |
+| `main.tsx` | 20 | Entry point (App vs Benchmark mode) | Keep as-is |
+
+### CRITICAL: Frontend TypeScript Models Are Outdated
+
+The `interfaces/models.ts` file does NOT match the current backend GraphQL schema. Phase 1 agents must update these:
+
+**`GraphRelationship` — missing provenance fields:**
+```typescript
+// CURRENT (incomplete):
+export interface GraphRelationship {
+  relation: string
+  source: GraphEntity
+  target: GraphEntity
+}
+
+// MUST BECOME:
+export interface GraphRelationship {
+  relation: string
+  source: GraphEntity
+  target: GraphEntity
+  predicate_iri: string | null
+  predicate_label: string | null
+  is_inferred: boolean
+  source_graph: string | null
+  explanation_handle: string | null
+}
+```
+
+**`ActiveProfile` — missing full profile fields:**
+```typescript
+// CURRENT (incomplete):
+export interface ActiveProfile {
+  metadata: { title: string; description: string }
+  categories: SemanticCategory[]
+  predicates: PredicateInfo[]
+}
+
+// MUST BECOME:
+export interface ActiveProfile {
+  metadata: { package_id: string; version: string; title: string; description: string; ontology_iris: string[] }
+  prefixes: { prefix: string; iri: string }[]
+  categories: SemanticCategory[]
+  predicates: PredicateInfo[]
+  limits: { max_depth: number; max_nodes: number; max_edges: number }
+  languages: { preferred_languages: string[] }
+  reasoning_profile: string
+  build_id: string | null
+}
+```
+
+### New TypeScript Types Needed (not yet in `models.ts`)
+
+These types map to the backend GraphQL types added in Phase 0:
+
+```typescript
+export interface CompactIRI { full_iri: string; prefix: string | null; local_name: string }
+export interface MultilingualLabel { value: string; language: string | null; predicate_iri: string }
+export interface Annotation { predicate_iri: string; value: string; language: string | null }
+export interface ResourceMetadata {
+  iri: string; compact_iri: CompactIRI | null; semantic_kind: string
+  asserted_types: string[]; inferred_types: string[]
+  labels: MultilingualLabel[]; preferred_label: string
+  descriptions: MultilingualLabel[]; annotations: Annotation[]
+  source_graphs: string[]; build_id: string | null
+}
+export interface ClassInfo {
+  iri: string; compact_iri: CompactIRI | null; label: string
+  direct_parents: string[]; all_ancestors: string[]
+  direct_children: string[]; all_descendants: string[]
+  equivalent_classes: string[]; disjoint_classes: string[]
+  instance_count: number; annotations: Annotation[]; restrictions: string[]
+}
+export interface PropertyInfo {
+  iri: string; compact_iri: CompactIRI | null; label: string
+  property_kind: string; domains: string[]; ranges: string[]
+  inverse_of: string | null; characteristics: string[]; usage_count: number
+  annotations: Annotation[]
+}
+export interface PreviewGroup { relation: string; direction: TraversalDirection; count: number }
+export interface ExpansionPreview { entity_id: string; total_count: number; groups: PreviewGroup[] }
+export interface SearchResult { entities: GraphEntity[]; total_matches: number }
+export interface SearchOptions { query: string; limit?: number; offset?: number; kinds?: string[] }
+```
+
+### Available Backend GraphQL Queries (Phase 0 Delivered)
+
+All of these are operational and tested. Frontend query strings and functions must be added in Phase 1:
+
+| Query | Signature | Used By (Batch) |
+|---|---|---|
+| `get_resource_metadata(iri)` | → `ResourceMetadataType \| null` | 2B (Resource Inspector) |
+| `get_class_info(iri)` | → `ClassInfoType \| null` | 2A (Class Tree), 2B (Class Inspector) |
+| `get_property_info(iri)` | → `PropertyInfoType \| null` | 2A (Property Browser), 2B (Property Inspector) |
+| `list_classes(limit, offset)` | → `[ClassInfoType!]!` | 2A (Class Tree) |
+| `list_properties(limit, offset)` | → `[PropertyInfoType!]!` | 2A (Property Browser) |
+| `get_expansion_preview(id)` | → `ExpansionPreviewType` | 2C (Expansion Preview Dialog) |
+| `search(options: SearchInput)` | → `SearchResultType` | 2A (Search Panel) |
+| `get_active_profile()` | → `ActiveProfile` (with build_id) | 2A (Profile metadata) |
+
+### Frontend Dependencies Available
+
+From `package.json`:
+- `react@^19.2.7`, `react-dom@^19.2.7`
+- `@tanstack/react-query@^5.101.2` (data fetching / caching)
+- `cytoscape@^3.34.0`, `react-cytoscapejs@^2.0.0`
+- `@cosmos.gl/graph@^3.3.0` (GPU overview — Batch 2G)
+- `graphql-request@^7.4.0`
+- `lucide-react@^1.25.0` (icons)
+- `vitest@^4.1.10` (testing)
+- TypeScript `~6.0.2`, Vite `^8.1.1`
+
