@@ -1,0 +1,49 @@
+/* GraphSummary.css — Screen-reader live region and optional visual disclosure (AX-004, AX-005) */
+
+.graph-summary-component {
+  position: relative;
+}
+
+/* Screen reader only utility */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border-width: 0 !important;
+}
+
+/* Optional Visual Disclosure for keyboard/low-vision users */
+.graph-summary-disclosure {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  color: #334155;
+  margin: 6px 0;
+}
+
+.summary-disclosure-title {
+  font-weight: 600;
+  cursor: pointer;
+  color: #0369a1;
+  user-select: none;
+}
+
+.summary-disclosure-title:focus-visible {
+  outline: 2px solid #0284c7;
+  outline-offset: 2px;
+}
+
+.summary-disclosure-content {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #e2e8f0;
+  color: #475569;
+  line-height: 1.4;
+}

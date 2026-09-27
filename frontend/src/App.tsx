@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import './App.css'
 import { VisibleGraphTable } from './views/VisibleGraphTable'
+import { GraphSummary } from './accessibility/GraphSummary'
 import {
   type GraphEntity,
   type GraphExpansion,
@@ -124,6 +125,9 @@ function App() {
   const selectedEntity = selectedId ? graph.entities[selectedId] : undefined
   const nodeCount = Object.keys(graph.entities).length
   const edgeCount = Object.keys(graph.relationships).length
+  const inferredCount = useMemo(() => {
+    return Object.values(graph.relationships).filter((rel) => rel.is_inferred).length
+  }, [graph.relationships])
   const visibleRelationships = selectedEntity
     ? relationshipsForEntity(graph, selectedEntity.id)
     : []
@@ -889,6 +893,24 @@ function App() {
           <span>{notice}</span>
         </div>
       )}
+
+      <GraphSummary
+        nodeCount={nodeCount}
+        edgeCount={edgeCount}
+        inferredCount={inferredCount}
+        selectedEntity={selectedEntity}
+        selectedRelationship={selectedRelationship}
+        filters={{
+          direction,
+          selectedRelations,
+          totalAvailableRelations: RELATION_OPTIONS.length,
+          includeInferred,
+          layoutName,
+        }}
+        limitReached={Boolean(notice?.includes('limit reached'))}
+        isTruncated={Boolean(selectedEntity && nextCursorByEntity[selectedEntity.id])}
+        viewMode={centerViewMode}
+      />
 
       {centerViewMode === 'table' ? (
         <VisibleGraphTable
