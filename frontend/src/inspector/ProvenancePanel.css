@@ -1,0 +1,234 @@
+.provenance-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  font-size: 13px;
+  color: #173b37;
+}
+
+.provenance-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #dbe1d8;
+}
+
+.provenance-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #173b37;
+}
+
+/* Fact Selector dropdown */
+.fact-selector-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fact-select {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid #c5cfc4;
+  background: #ffffff;
+  color: #173b37;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.fact-select:focus {
+  outline: none;
+  border-color: #287b73;
+  box-shadow: 0 0 0 2px rgba(40, 123, 115, 0.15);
+}
+
+/* Non-color cues for Provenance status (AC-106) */
+.provenance-status-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 8px;
+  border-width: 2px;
+}
+
+/* Asserted: Solid green border, CheckCircle icon, clean background */
+.provenance-status-card.asserted {
+  background: #f0fdf4;
+  border-color: #16a34a;
+  border-style: solid;
+  color: #14532d;
+}
+
+.provenance-status-card.asserted .prov-icon {
+  color: #16a34a;
+}
+
+/* Inferred: Dashed purple border, Sparkles icon, patterned background */
+.provenance-status-card.inferred {
+  background: #fbf7ff;
+  border-color: #7c3aed;
+  border-style: dashed;
+  background-image: radial-gradient(#ede9fe 1.5px, transparent 1.5px);
+  background-size: 10px 10px;
+  color: #5b21b6;
+}
+
+.provenance-status-card.inferred .prov-icon {
+  color: #7c3aed;
+}
+
+.prov-status-details h4 {
+  margin: 0 0 3px 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.prov-status-details p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 0.9;
+}
+
+/* Triple Fact Summary */
+.triple-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid #dbe1d8;
+  border-radius: 8px;
+}
+
+.triple-component {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.component-role {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #567069;
+}
+
+.component-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: #173b37;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 3px 0;
+  text-align: left;
+  transition: color 0.15s ease;
+}
+
+.component-btn:hover {
+  color: #287b73;
+  text-decoration: underline;
+}
+
+.component-iri {
+  font-family: monospace;
+  font-size: 11px;
+  color: #7c8e88;
+  word-break: break-all;
+}
+
+.predicate-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px;
+  background: #f4f7f3;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #287b73;
+}
+
+/* Lineage Details */
+.lineage-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f7faf6;
+  border: 1px solid #dbe1d8;
+  border-radius: 6px;
+}
+
+.lineage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.lineage-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #567069;
+  font-weight: 600;
+}
+
+.lineage-val {
+  font-family: monospace;
+  font-size: 11.5px;
+  color: #173b37;
+  font-weight: 600;
+}
+
+/* "Why?" Button and Explanation Handle */
+.why-action-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: #faf5ff;
+  border: 1px solid #e9d5ff;
+  border-radius: 6px;
+}
+
+.why-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #7c3aed;
+  background: #7c3aed;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.why-btn:hover {
+  background: #6d28d9;
+  border-color: #6d28d9;
+}
+
+.why-explainer-copy {
+  margin: 0;
+  font-size: 11.5px;
+  color: #6b21a8;
+  line-height: 1.35;
+}
