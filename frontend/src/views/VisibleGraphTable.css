@@ -497,3 +497,90 @@
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ==========================================================================
+   Mobile (<768px) and Touch Accessibility (AX-007, AC-113)
+   Ensures touch targets >= 44px and responsive mobile layout
+   ========================================================================== */
+@media (max-width: 767px) {
+  .table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .filter-group.text-search {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .table-search-input {
+    min-height: 44px;
+    font-size: 0.875rem;
+  }
+
+  .clear-search-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .filter-group {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .table-select {
+    min-height: 44px;
+    font-size: 0.875rem;
+    flex: 1;
+  }
+
+  .table-th button {
+    min-height: 44px;
+    padding: 8px 6px;
+  }
+
+  .table-row {
+    min-height: 48px;
+  }
+
+  .table-action-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+
+  .table-pagination-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .page-size-selector {
+    justify-content: space-between;
+  }
+
+  .page-size-select {
+    min-height: 44px;
+    font-size: 0.875rem;
+  }
+
+  .page-navigation-controls {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .pagination-buttons {
+    gap: 8px;
+  }
+
+  .pagination-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

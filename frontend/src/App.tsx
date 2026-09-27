@@ -94,7 +94,28 @@ function App() {
   const multiHopAbortController = useRef<AbortController | null>(null)
   const [layoutName, setLayoutName] = useState<string>('breadthfirst')
   const [pinnedNodeIds, setPinnedNodeIds] = useState<string[]>([])
-  const [centerViewMode, setCenterViewMode] = useState<'canvas' | 'table'>('canvas')
+  // On mobile (<768px), textual VisibleGraphTable is the primary accessible view (AX-007)
+  const [centerViewMode, setCenterViewMode] = useState<'canvas' | 'table'>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return 'table'
+    }
+    return 'canvas'
+  })
+
+  // Switch to table view when entering mobile breakpoint (AX-007)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mql = window.matchMedia('(max-width: 767px)')
+    const handleMediaChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        setCenterViewMode('table')
+      }
+    }
+    if (mql.addEventListener) {
+      mql.addEventListener('change', handleMediaChange)
+      return () => mql.removeEventListener('change', handleMediaChange)
+    }
+  }, [])
 
   const rendererRef = useRef<GraphRendererHandle | null>(null)
 

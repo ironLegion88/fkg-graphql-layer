@@ -502,6 +502,66 @@ button { font: inherit; }
   animation: spin 0.9s linear infinite;
 }
 
+/* ==========================================================================
+   Mobile (<768px) and Touch Accessibility (AX-007, AC-113)
+   Ensures touch targets >= 44px and responsive controls
+   ========================================================================== */
+@media (max-width: 767px) {
+  .canvas-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 8px 4px;
+  }
+
+  .view-mode-selector {
+    display: flex;
+    width: 100%;
+  }
+
+  .view-mode-btn {
+    flex: 1;
+    min-height: 44px;
+    justify-content: center;
+    font-size: 0.8125rem;
+    padding: 10px 14px;
+  }
+
+  .layout-select {
+    min-height: 44px;
+    font-size: 0.875rem;
+    flex: 1;
+  }
+
+  .manual-layout-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 0.8125rem;
+  }
+
+  .icon-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .icon-actions button {
+    min-width: 44px;
+    min-height: 44px;
+    flex: 1;
+  }
+
+  .nav-tab-btn {
+    min-height: 44px;
+    font-size: 13px;
+  }
+
+  .command-palette-trigger {
+    min-height: 44px;
+  }
+}
+
 /* RC-008, AX-004: Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   *,

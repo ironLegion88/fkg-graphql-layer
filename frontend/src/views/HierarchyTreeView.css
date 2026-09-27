@@ -296,3 +296,56 @@
 .tree-reset-filter-btn:hover {
   background: #f1f5f9;
 }
+
+/* ==========================================================================
+   Mobile (<768px) and Touch Accessibility (AX-007, AC-113)
+   Ensures tree node rows and action buttons have touch targets >= 44px
+   ========================================================================== */
+@media (max-width: 767px) {
+  .hierarchy-tree-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .tree-filter-input {
+    min-height: 44px;
+    font-size: 0.875rem;
+  }
+
+  .clear-tree-filter {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tree-quick-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .tree-action-btn {
+    min-height: 44px;
+    padding: 8px 12px;
+    flex: 1;
+    font-size: 0.8125rem;
+  }
+
+  .tree-node-row {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+
+  .tree-chevron-btn {
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .tree-reset-filter-btn {
+    min-height: 44px;
+    padding: 8px 14px;
+  }
+}
