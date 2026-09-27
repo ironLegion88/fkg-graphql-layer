@@ -90,6 +90,7 @@ Batch 2B is the second batch of Sprint 2 Phase 1 (Supported Application). It del
 ### 2.8 AppShell Integration (`inspector/InspectorPanel.tsx`, `App.tsx`)
 - Replaced previous ad-hoc right panel in `App.tsx` with unified `InspectorPanel`.
 - Wired selected entity, class, property, and relationship states to inspector props.
+- Wired `onShowInstances` (navigates to Search) and `onShowSubclasses` (navigates to ClassTree) actions from the inspector to the shell navigation tabs.
 - Added smart tab auto-switching:
   - Selecting a Class switches active tab to `Class` inspector.
   - Selecting a Property switches active tab to `Property` inspector.
