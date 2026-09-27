@@ -148,3 +148,40 @@ async def test_get_active_profile_query() -> None:
     assert result.errors is None
     assert result.data is not None
     assert result.data["get_active_profile"]["metadata"]["package_id"] is not None
+
+
+async def test_get_build_status_query() -> None:
+    entities, relationships, _ = wine_graph_fixture()
+    service = GraphService(FakeGraphRepository(entities, relationships), get_profile())
+    result = await schema.execute(
+        """
+        query GetBuildStatus {
+          get_build_status {
+            build_id
+            status
+            consistency
+            triple_count
+            inferred_count
+            semantic_profile
+            reasoner_status
+            reasoner_name
+            validation_summary
+            unsatisfiable_classes
+            unsupported_constructs
+            findings {
+              severity
+              message
+            }
+          }
+        }
+        """,
+        context_value={"graph_service": service, "role": "operator", "active_build_id": "test_bld_123"},
+    )
+
+    assert result.errors is None
+    assert result.data is not None
+    status = result.data["get_build_status"]
+    assert status["build_id"] == "test_bld_123"
+    assert status["status"] == "ready"
+    assert status["semantic_profile"] is not None
+    assert isinstance(status["unsatisfiable_classes"], list)
