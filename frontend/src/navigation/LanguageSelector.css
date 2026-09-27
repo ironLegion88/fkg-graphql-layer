@@ -1,0 +1,36 @@
+/* LanguageSelector styling */
+.language-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  background: #f7faf6;
+  border: 1px solid #cedcd3;
+  border-radius: 6px;
+  color: #49635e;
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.language-selector:hover {
+  background: #ffffff;
+  border-color: #287b73;
+}
+
+.lang-icon {
+  color: #287b73;
+  display: grid;
+  place-items: center;
+}
+
+.lang-select {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #173b37;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}

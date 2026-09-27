@@ -13,8 +13,17 @@ function entity(id: string): GraphEntity {
   return { __typename: 'Wine', id, label: id, description: null }
 }
 
-function relationship(source: GraphEntity, target: GraphEntity, relation: string): GraphRelationship {
-  return { source, target, relation }
+function relationship(source: GraphEntity, target: GraphEntity, relation: string, is_inferred = false): GraphRelationship {
+  return {
+    source,
+    target,
+    relation,
+    predicate_iri: null,
+    predicate_label: null,
+    is_inferred,
+    source_graph: null,
+    explanation_handle: null,
+  }
 }
 
 function expansion(center: GraphEntity, relationships: GraphRelationship[]): GraphExpansion {
