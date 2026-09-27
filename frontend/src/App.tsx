@@ -10,6 +10,7 @@ import {
   Search,
   FolderTree,
   Binary,
+  Layers,
 } from 'lucide-react'
 import './App.css'
 import {
@@ -18,11 +19,15 @@ import {
   type GraphRelationship,
   type ExpansionRequest,
   type TraversalDirection,
+  type ExpansionPreview,
+  type PreviewGroup,
   expandGraph,
   fetchProfile,
+  getExpansionPreview,
 } from './api/graph'
 import { InspectorPanel } from './inspector'
 import CytoscapeGraph, { type GraphRendererHandle } from './graph/CytoscapeGraph'
+import { ExpansionPreviewDialog } from './graph/ExpansionPreviewDialog'
 import {
   DEFAULT_VISIBLE_LIMITS,
   addStandaloneEntity,
@@ -56,6 +61,10 @@ function App() {
   const [currentLanguage, setCurrentLanguage] = useState('en')
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [selectedRelationship, setSelectedRelationship] = useState<GraphRelationship | null>(null)
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false)
+  const [expansionPreview, setExpansionPreview] = useState<ExpansionPreview | null>(null)
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false)
+  const [previewTargetEntity, setPreviewTargetEntity] = useState<GraphEntity | null>(null)
 
   const rendererRef = useRef<GraphRendererHandle | null>(null)
 
@@ -148,23 +157,94 @@ function App() {
     }
   }
 
-  async function expandSelected() {
+  async function performExpansion(
+    id: string,
+    cursor: string | null = null,
+    dir: TraversalDirection = direction,
+    relations: string[] = selectedRelations,
+    inferred: boolean = includeInferred,
+  ) {
+    setNotice(null)
+    try {
+      const expansion = await relationshipsMutation.mutateAsync({
+        id,
+        cursor,
+        direction: dir,
+        relations: relations.length > 0 ? relations : undefined,
+        includeInferred: inferred,
+      })
+      const result = applyExpansion(expansion)
+      updateNotice(expansion, result.limitReached)
+      return result
+    } catch {
+      setNotice('The graph service could not load relationships for this entity.')
+      return null
+    }
+  }
+
+  async function expandSelected(forcePreview = false) {
     if (!selectedEntity) {
       return
     }
     setNotice(null)
+    setIsPreviewLoading(true)
+    setPreviewTargetEntity(selectedEntity)
+
     try {
-      const expansion = await relationshipsMutation.mutateAsync(
-        expansionRequest(
+      const preview = await getExpansionPreview(selectedEntity.id)
+      setExpansionPreview(preview)
+      setIsPreviewLoading(false)
+
+      // GE-003, GQ-108: If total count is small (< 10) and preview not explicitly forced, auto-expand
+      if (preview.total_count < 10 && !forcePreview) {
+        await performExpansion(
           selectedEntity.id,
           nextCursorByEntity[selectedEntity.id] ?? null,
-        ),
-      )
-      const result = applyExpansion(expansion)
-      updateNotice(expansion, result.limitReached)
+          direction,
+          selectedRelations,
+          includeInferred,
+        )
+        setPreviewTargetEntity(null)
+        setExpansionPreview(null)
+      } else {
+        // High-degree node or forced preview: show preview dialog
+        setIsPreviewDialogOpen(true)
+      }
     } catch {
-      setNotice('The graph service could not load relationships for this entity.')
+      setIsPreviewLoading(false)
+      // Fallback to direct expansion if preview query encounters an error
+      await performExpansion(
+        selectedEntity.id,
+        nextCursorByEntity[selectedEntity.id] ?? null,
+        direction,
+        selectedRelations,
+        includeInferred,
+      )
+      setPreviewTargetEntity(null)
+      setExpansionPreview(null)
     }
+  }
+
+  async function handleConfirmPreviewExpand(selectedGroups: PreviewGroup[]) {
+    if (!previewTargetEntity) return
+    setIsPreviewDialogOpen(false)
+
+    // Extract selected relations - never add nodes for rejected predicates
+    const chosenRelations = Array.from(new Set(selectedGroups.map((g) => g.relation)))
+    const hasOutgoing = selectedGroups.some((g) => g.direction === 'OUTGOING' || g.direction === 'BOTH')
+    const hasIncoming = selectedGroups.some((g) => g.direction === 'INCOMING' || g.direction === 'BOTH')
+    const chosenDirection: TraversalDirection =
+      hasOutgoing && hasIncoming ? 'BOTH' : hasOutgoing ? 'OUTGOING' : 'INCOMING'
+
+    await performExpansion(
+      previewTargetEntity.id,
+      null,
+      chosenDirection,
+      chosenRelations,
+      includeInferred,
+    )
+    setPreviewTargetEntity(null)
+    setExpansionPreview(null)
   }
 
   function resetGraph() {
@@ -478,22 +558,47 @@ function App() {
         Include inferred relationships
       </label>
 
-      <button
-        type="button"
-        className="primary-action"
-        onClick={() => void expandSelected()}
-        disabled={relationshipsMutation.isPending}
-        style={{ marginTop: 8 }}
-      >
-        {relationshipsMutation.isPending ? (
-          <LoaderCircle size={17} className="spin" />
-        ) : (
-          <Network size={17} />
-        )}
-        {nextCursorByEntity[selectedEntity.id]
-          ? 'Load more relationships'
-          : 'Refresh relationships'}
-      </button>
+      <div style={{ display: 'flex', gap: '8px', marginTop: 8 }}>
+        <button
+          type="button"
+          className="primary-action"
+          onClick={() => void expandSelected(false)}
+          disabled={relationshipsMutation.isPending || isPreviewLoading}
+          style={{ flex: 1 }}
+        >
+          {relationshipsMutation.isPending || isPreviewLoading ? (
+            <LoaderCircle size={17} className="spin" />
+          ) : (
+            <Network size={17} />
+          )}
+          {nextCursorByEntity[selectedEntity.id]
+            ? 'Load more'
+            : 'Expand'}
+        </button>
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={() => void expandSelected(true)}
+          disabled={relationshipsMutation.isPending || isPreviewLoading}
+          title="Preview and select predicate groups before expanding"
+          style={{
+            padding: '0.6rem 0.8rem',
+            borderRadius: '8px',
+            border: '1px solid #cbd5e1',
+            background: '#ffffff',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            fontSize: '0.8125rem',
+            fontWeight: 600,
+            color: '#334155',
+          }}
+        >
+          <Layers size={15} />
+          Preview
+        </button>
+      </div>
 
       <div className="relation-summary" style={{ marginTop: 12 }}>
         <p className="eyebrow">Visible connections ({visibleRelationships.length})</p>
@@ -622,6 +727,20 @@ function App() {
         onClose={() => setIsCommandPaletteOpen(false)}
         onSelectEntity={(entity) => void inspectEntity(entity)}
         actions={commandActions}
+      />
+
+      <ExpansionPreviewDialog
+        isOpen={isPreviewDialogOpen}
+        entityLabel={previewTargetEntity?.label || ''}
+        entityId={previewTargetEntity?.id || ''}
+        preview={expansionPreview}
+        isLoading={isPreviewLoading}
+        onExpand={(groups) => void handleConfirmPreviewExpand(groups)}
+        onCancel={() => {
+          setIsPreviewDialogOpen(false)
+          setPreviewTargetEntity(null)
+          setExpansionPreview(null)
+        }}
       />
     </>
   )
