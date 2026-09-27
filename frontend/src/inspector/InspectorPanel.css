@@ -1,0 +1,139 @@
+.inspector-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #ffffff;
+}
+
+/* 5-Tab Bar */
+.inspector-tabs {
+  display: flex;
+  border-bottom: 1px solid #dbe1d8;
+  background: #f7faf6;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.inspector-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: #567069;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.inspector-tab-btn:hover {
+  color: #173b37;
+  background: #eef3ed;
+}
+
+.inspector-tab-btn.active {
+  color: #287b73;
+  border-bottom-color: #287b73;
+  background: #ffffff;
+}
+
+.tab-smart-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #287b73;
+  margin-left: 2px;
+}
+
+.inspector-tab-btn.tab-muted {
+  opacity: 0.65;
+}
+
+.inspector-tab-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Panel Body */
+.inspector-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Loading & Error States */
+.inspector-loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  color: #567069;
+  text-align: center;
+}
+
+.inspector-error-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 30px 20px;
+  margin: 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  text-align: center;
+}
+
+.inspector-error-card p {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+/* Empty State */
+.inspector-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px 24px;
+  text-align: center;
+  color: #567069;
+}
+
+.inspector-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #eef3ed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #287b73;
+}
+
+.inspector-empty-state h3 {
+  font-size: 16px;
+  color: #173b37;
+  margin: 0;
+}
+
+.inspector-empty-state p {
+  font-size: 12.5px;
+  line-height: 1.4;
+  max-width: 260px;
+  margin: 0;
+}
+
+.inspector-empty-action {
+  margin-top: 8px;
+}

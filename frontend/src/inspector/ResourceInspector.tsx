@@ -23,6 +23,7 @@ export interface ResourceInspectorProps {
   onExpand?: (iri: string) => void
   onInspectClass?: (iri: string) => void
   onInspectProperty?: (iri: string) => void
+  traversalControls?: React.ReactNode
 }
 
 function compactIri(iri: string): string {
@@ -68,6 +69,7 @@ export const ResourceInspector: React.FC<ResourceInspectorProps> = ({
   onExpand,
   onInspectClass,
   onInspectProperty,
+  traversalControls,
 }) => {
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [imageError, setImageError] = useState(false)
@@ -340,6 +342,12 @@ export const ResourceInspector: React.FC<ResourceInspectorProps> = ({
           )}
         </div>
       </div>
+
+      {traversalControls && (
+        <div className="resource-section" style={{ marginTop: 8 }}>
+          {traversalControls}
+        </div>
+      )}
     </div>
   )
 }

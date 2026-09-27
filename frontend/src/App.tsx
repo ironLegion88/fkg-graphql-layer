@@ -15,12 +15,13 @@ import './App.css'
 import {
   type GraphEntity,
   type GraphExpansion,
+  type GraphRelationship,
   type ExpansionRequest,
   type TraversalDirection,
-  entityKind,
   expandGraph,
   fetchProfile,
 } from './api/graph'
+import { InspectorPanel } from './inspector'
 import CytoscapeGraph, { type GraphRendererHandle } from './graph/CytoscapeGraph'
 import {
   DEFAULT_VISIBLE_LIMITS,
@@ -42,10 +43,6 @@ import { LanguageSelector } from './navigation/LanguageSelector'
 
 type NavTab = 'search' | 'classes' | 'properties'
 
-function typeLabel(entity: GraphEntity): string {
-  return entityKind(entity).toLowerCase().replace(/^./, (letter) => letter.toUpperCase())
-}
-
 function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [graph, setGraph] = useState<ExplorerGraph>(emptyGraph)
@@ -58,6 +55,7 @@ function App() {
   const [activeNavTab, setActiveNavTab] = useState<NavTab>('search')
   const [currentLanguage, setCurrentLanguage] = useState('en')
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
+  const [selectedRelationship, setSelectedRelationship] = useState<GraphRelationship | null>(null)
 
   const rendererRef = useRef<GraphRendererHandle | null>(null)
 
@@ -136,6 +134,7 @@ function App() {
 
   async function inspectEntity(entity: GraphEntity) {
     setNotice(null)
+    setSelectedRelationship(null)
     setSelectedId(entity.id)
     setGraph((current) => addStandaloneEntity(current, entity))
     try {
@@ -171,6 +170,7 @@ function App() {
   function resetGraph() {
     setGraph(emptyGraph)
     setSelectedId(null)
+    setSelectedRelationship(null)
     setExpansionHistory([])
     setNextCursorByEntity({})
     setNotice(null)
@@ -439,134 +439,155 @@ function App() {
     </div>
   )
 
-  // Right Inspector Panel Content (Batch 2A placeholder for Batch 2B)
-  const inspectorContent = (
-    <div className="inspector-panel-container">
-      <div className="panel-heading">
-        <p className="eyebrow">Inspect</p>
-        <h2>Selected entity</h2>
-      </div>
-
-      {!selectedEntity && (
-        <div className="detail-empty">
-          <p className="empty-copy">
-            Select a node in the graph, a search result, or a class/property to view its
-            relationships and traversal options.
-          </p>
-        </div>
-      )}
-
-      {selectedEntity && (
-        <div className="selected-entity">
-          <span className={`entity-kind ${entityKind(selectedEntity).toLowerCase()}`}>
-            {typeLabel(selectedEntity)}
-          </span>
-          <h3>{selectedEntity.label}</h3>
-          <p className="entity-id">{selectedEntity.id}</p>
-          {selectedEntity.description && (
-            <p className="entity-description">{selectedEntity.description}</p>
-          )}
-
-          <div className="traversal-controls">
-            <p className="eyebrow">Traversal filters</p>
-            <div className="direction-control" role="group" aria-label="Relationship direction">
-              {(['BOTH', 'OUTGOING', 'INCOMING'] as TraversalDirection[]).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={direction === value ? 'active' : ''}
-                  aria-pressed={direction === value}
-                  onClick={() => changeDirection(value)}
-                >
-                  {value === 'BOTH' ? 'Both' : value === 'OUTGOING' ? 'Out' : 'In'}
-                </button>
-              ))}
-            </div>
-            <fieldset className="relation-filters">
-              <legend>Relationships</legend>
-              {RELATION_OPTIONS.map((relation) => (
-                <label key={relation}>
-                  <input
-                    type="checkbox"
-                    checked={selectedRelations.includes(relation)}
-                    onChange={() => toggleRelation(relation)}
-                  />
-                  {relation}
-                </label>
-              ))}
-            </fieldset>
-            <label className="inference-toggle">
-              <input
-                type="checkbox"
-                checked={includeInferred}
-                onChange={(event) => changeInferenceFilter(event.target.checked)}
-              />
-              Include inferred relationships
-            </label>
-          </div>
-
+  const traversalControlsBlock = selectedEntity ? (
+    <div className="traversal-controls">
+      <p className="eyebrow">Traversal filters</p>
+      <div className="direction-control" role="group" aria-label="Relationship direction">
+        {(['BOTH', 'OUTGOING', 'INCOMING'] as TraversalDirection[]).map((value) => (
           <button
+            key={value}
             type="button"
-            className="primary-action"
-            onClick={() => void expandSelected()}
-            disabled={relationshipsMutation.isPending}
+            className={direction === value ? 'active' : ''}
+            aria-pressed={direction === value}
+            onClick={() => changeDirection(value)}
           >
-            {relationshipsMutation.isPending ? (
-              <LoaderCircle size={17} className="spin" />
-            ) : (
-              <Network size={17} />
-            )}
-            {nextCursorByEntity[selectedEntity.id]
-              ? 'Load more relationships'
-              : 'Refresh relationships'}
+            {value === 'BOTH' ? 'Both' : value === 'OUTGOING' ? 'Out' : 'In'}
           </button>
+        ))}
+      </div>
+      <fieldset className="relation-filters">
+        <legend>Relationships</legend>
+        {RELATION_OPTIONS.map((relation) => (
+          <label key={relation}>
+            <input
+              type="checkbox"
+              checked={selectedRelations.includes(relation)}
+              onChange={() => toggleRelation(relation)}
+            />
+            {relation}
+          </label>
+        ))}
+      </fieldset>
+      <label className="inference-toggle">
+        <input
+          type="checkbox"
+          checked={includeInferred}
+          onChange={(event) => changeInferenceFilter(event.target.checked)}
+        />
+        Include inferred relationships
+      </label>
 
-          <div className="relation-summary">
-            <p className="eyebrow">Visible connections</p>
-            {visibleRelationships.length > 0 && (
-              <table className="relationship-table">
-                <thead>
-                  <tr>
-                    <th>Dir</th>
-                    <th>Relation</th>
-                    <th>Entity</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleRelationships.map((relationship) => {
-                    const outgoing = relationship.source.id === selectedEntity.id
-                    const neighbor = outgoing ? relationship.target : relationship.source
-                    return (
-                      <tr
-                        key={`${relationship.source.id}|${relationship.relation}|${relationship.target.id}`}
+      <button
+        type="button"
+        className="primary-action"
+        onClick={() => void expandSelected()}
+        disabled={relationshipsMutation.isPending}
+        style={{ marginTop: 8 }}
+      >
+        {relationshipsMutation.isPending ? (
+          <LoaderCircle size={17} className="spin" />
+        ) : (
+          <Network size={17} />
+        )}
+        {nextCursorByEntity[selectedEntity.id]
+          ? 'Load more relationships'
+          : 'Refresh relationships'}
+      </button>
+
+      <div className="relation-summary" style={{ marginTop: 12 }}>
+        <p className="eyebrow">Visible connections ({visibleRelationships.length})</p>
+        {visibleRelationships.length > 0 && (
+          <table className="relationship-table">
+            <thead>
+              <tr>
+                <th>Dir</th>
+                <th>Relation</th>
+                <th>Entity</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleRelationships.map((relationship) => {
+                const outgoing = relationship.source.id === selectedEntity.id
+                const neighbor = outgoing ? relationship.target : relationship.source
+                return (
+                  <tr
+                    key={`${relationship.source.id}|${relationship.relation}|${relationship.target.id}`}
+                  >
+                    <td>
+                      <span
+                        className="direction-badge"
+                        title={outgoing ? 'Outgoing' : 'Incoming'}
                       >
-                        <td>
-                          <span
-                            className="direction-badge"
-                            title={outgoing ? 'Outgoing' : 'Incoming'}
-                          >
-                            {outgoing ? '→' : '←'}
-                          </span>
-                        </td>
-                        <td>{relationship.relation}</td>
-                        <td>
-                          <button type="button" onClick={() => setSelectedId(neighbor.id)}>
-                            {neighbor.label}
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )}
-            {visibleRelationships.length === 0 && (
-              <p className="empty-copy">No graph relationships are available for this entity.</p>
-            )}
-          </div>
-        </div>
-      )}
+                        {outgoing ? '→' : '←'}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          font: 'inherit',
+                          color: '#287b73',
+                          textDecoration: 'underline',
+                        }}
+                        onClick={() => setSelectedRelationship(relationship)}
+                        title="Inspect fact provenance in Provenance panel"
+                      >
+                        {relationship.relation}
+                      </button>
+                    </td>
+                    <td>
+                      <button type="button" onClick={() => setSelectedId(neighbor.id)}>
+                        {neighbor.label}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+        {visibleRelationships.length === 0 && (
+          <p className="empty-copy">No graph relationships are available for this entity.</p>
+        )}
+      </div>
     </div>
+  ) : null
+
+  // Right Inspector Panel Content (Batch 2B)
+  const inspectorContent = (
+    <InspectorPanel
+      selectedId={selectedId}
+      selectedRelationship={selectedRelationship}
+      visibleRelationships={visibleRelationships}
+      activeBuildId={profile?.build_id}
+      reasonerName={profile?.reasoning_profile}
+      onNavigate={(iri) => {
+        if (graph.entities[iri]) {
+          setSelectedId(iri)
+        } else {
+          const newEntity: GraphEntity = {
+            __typename: 'OntologyEntity',
+            id: iri,
+            label: iri.includes('#') ? iri.split('#')[1] : iri.split('/').pop() || iri,
+            description: null,
+          }
+          void inspectEntity(newEntity)
+        }
+      }}
+      onExpand={() => void expandSelected()}
+      onShowInstances={(_classIri) => {
+        setActiveNavTab('search')
+      }}
+      onFilterByProperty={(propIri) => {
+        const propName = propIri.includes('#') ? propIri.split('#')[1] : propIri.split('/').pop() || propIri
+        toggleRelation(propName)
+      }}
+      traversalControls={traversalControlsBlock}
+    />
   )
 
   const headerActions = (

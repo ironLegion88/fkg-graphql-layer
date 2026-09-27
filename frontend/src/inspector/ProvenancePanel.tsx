@@ -7,7 +7,6 @@ import {
   Cpu,
   HelpCircle,
   ExternalLink,
-  ArrowRight,
   GitBranch,
 } from 'lucide-react'
 import type { GraphRelationship } from '../interfaces/models'
@@ -156,7 +155,7 @@ export const ProvenancePanel: React.FC<ProvenancePanelProps> = ({
 
         {/* Predicate */}
         <div className="predicate-arrow">
-          <span>--[ {predicateDisplay} ]--&gt;</span>
+          <span title={predicateIri}>--[ {predicateDisplay} ]--&gt;</span>
         </div>
 
         {/* Object */}
