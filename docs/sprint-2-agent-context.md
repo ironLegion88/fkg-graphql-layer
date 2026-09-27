@@ -3,10 +3,10 @@
 - **Document type:** Supplementary implementation context for LLM agent delegation
 - **Status:** Active — Phase 0 complete, Phase 1 in progress
 - **Created:** 2026-09-19
-- **Last Updated:** 2026-09-27 (Batch 2B complete)
+- **Last Updated:** 2026-09-27 (Batch 2C complete)
 - **Current Sprint:** Sprint 2 (Supported Application)
 - **Phase 0 Status:** ✅ COMPLETE (all 9 gaps resolved, 142 backend + 6 frontend tests passing)
-- **Phase 1 Progress:** Batch 2A (AppShell & Navigation) and Batch 2B (Semantic Inspector & Provenance) ✅ COMPLETE
+- **Phase 1 Progress:** Batch 2A (AppShell & Navigation), Batch 2B (Semantic Inspector & Provenance), and Batch 2C (Cytoscape Detail Exploration) ✅ COMPLETE
 - **Sprint 2 Baseline Branch:** `sprint-2/cytoscape` (created from `sprint-1/core-platform`, with `sprint-2/gap-remediation` merged)
 - **Per-batch branches:** Each Phase 1 batch gets a dedicated branch from `sprint-2/cytoscape`, merged back upon completion
 - **Prerequisite reading:** Before beginning any batch, read these documents in order:
@@ -799,6 +799,49 @@ From `package.json`:
 
 ### Test Counts After Batch 2B
 - **Frontend:** **35 passed** (vitest, 6 test files)
+- **Frontend build:** Clean (`tsc -b && vite build` passed)
+- **Backend:** **143 passed** (pytest), 9 deprecation warnings
+- **Git whitespace check:** Clean (`git diff --check` passed)
+
+---
+
+## 18. Batch 2C Completion Summary
+*(Implemented on `batch-2c/cytoscape-detail`, merged into `sprint-2/cytoscape`)*
+
+### What Changed
+- **Profile-Driven Styling (`CytoscapeGraph.tsx`):**
+  - Mapped semantic kinds to standard shapes: classes = diamond (`Class`, `OntologyClass`), properties = rectangle (`ObjectProperty`, `DatatypeProperty`, `Property`), individuals = ellipse (`Wine`, `Winery`, `Individual`, etc.), unknown = round-rectangle.
+  - Dynamically styled nodes using profile categories with colors and category icons (e.g. `🍷`, `🏰`) rendered directly in labels.
+  - Styled asserted edges with solid lines (`asserted-edge`) and inferred edges with dashed lines (`inferred-edge`).
+- **Expansion Preview Dialog (`ExpansionPreviewDialog.tsx`, `ExpansionPreviewDialog.css`):**
+  - Displays predicate groups with relation names, direction badges (`Outgoing`, `Incoming`, `Both`), and connection counts (`GQ-108`, `GE-003`).
+  - Supports selective predicate checkboxes, "Select All", and "Deselect All".
+  - Auto-expands when connection count < 10 for rapid navigation; prompts preview dialog when >= 10 or manually invoked.
+- **Undo / Redo Stack (`state.ts`, `App.tsx`):**
+  - Implemented 20-step undo/redo stack (`undoExpansion`, `redoExpansion`) preserving shared nodes connected by other relationships (`GE-004`).
+  - Added dedicated canvas toolbar buttons and global keyboard shortcuts (`Ctrl+Z`, `Ctrl+Shift+Z` / `Ctrl+Y`).
+- **Node & Expansion Actions (`state.ts`, `App.tsx`):**
+  - Added "Collapse selected expansion" (`collapseNodeExpansion`), "Remove node" (`removeNode`), "Reset view", "Fit all", and "Focus on selected" (`GE-005`).
+  - Added Pin / Unpin node toggling (`pinnedNodeIds`, `node.lock()`, `.pinned` styling with amber border).
+- **Multi-Hop Traversal with Depth Slider (`App.tsx`):**
+  - Added exploration mode toggle (1-Hop vs Multi-Hop) and depth slider (1 to 3 hops) (`GE-006`, `RC-008`).
+  - Iterative BFS traversal updating canvas live and enforcing bounded limits (500 nodes / 1000 edges, `AC-105`).
+  - Supported in-flight cancellation via AbortController and inline "Cancel" button.
+- **Layout Controls (`CytoscapeGraph.tsx`, `App.tsx`):**
+  - Added layout algorithm dropdown with `breadthfirst`, `cose`, `dagre`, `circle`, and `concentric` (`RC-007`).
+  - Installed and registered `cytoscape-dagre` plugin.
+  - Graceful fallback to `breadthfirst` if chosen layout fails.
+- **Prefers-Reduced-Motion Support (`usePrefersReducedMotion.ts`, `CytoscapeGraph.tsx`, `App.css`):**
+  - Added `usePrefersReducedMotion` hook reactively listening to OS `prefers-reduced-motion: reduce` (`RC-008`, `AX-004`).
+  - Disabled Cytoscape layout animations, fit/focus camera transitions, and COSE iterations when reduced motion is preferred.
+  - Added CSS reset overrides disabling keyframes and transitions.
+- **Unit Testing Suite (`state.test.ts`, `ExpansionPreviewDialog.test.tsx`, `CytoscapeGraph.test.ts`):**
+  - Added 19 comprehensive unit tests covering undo/redo, removeNode, collapseNodeExpansion, preview dialog groups, direction tags, profile-driven shapes/colors, and dashed/solid edges.
+- **End-to-End Browser Subagent Verification:**
+  - Automated browser agent tested entity loading, profile shapes/colors, layout switching, pin node toggle, preview dialog, multi-hop controls, and undo/redo operations on `http://localhost:5173/`.
+
+### Test Counts After Batch 2C
+- **Frontend:** **54 passed** (vitest, 8 test files)
 - **Frontend build:** Clean (`tsc -b && vite build` passed)
 - **Backend:** **143 passed** (pytest), 9 deprecation warnings
 - **Git whitespace check:** Clean (`git diff --check` passed)
