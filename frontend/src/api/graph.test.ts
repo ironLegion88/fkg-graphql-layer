@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+﻿import { describe, expect, it, vi, beforeEach } from 'vitest'
 import {
   client,
   fetchProfile,
@@ -9,6 +9,7 @@ import {
   getResourceMetadata,
   getExpansionPreview,
   advancedSearch,
+  getBuildStatus,
 } from './graph'
 import type {
   ActiveProfile,
@@ -17,6 +18,7 @@ import type {
   ResourceMetadata,
   ExpansionPreview,
   SearchResult,
+  BuildStatus,
 } from '../interfaces/models'
 
 describe('GraphQL Client Queries', () => {
@@ -254,5 +256,34 @@ describe('GraphQL Client Queries', () => {
     )
     expect(result.total_matches).toBe(1)
     expect(result.entities[0].label).toBe('Cabernet Sauvignon')
+  })
+
+  it('getBuildStatus returns BuildStatus structure', async () => {
+    const mockStatus: BuildStatus = {
+      build_id: 'bld_98765',
+      status: 'ready',
+      consistency: 'consistent',
+      triple_count: 3500,
+      inferred_count: 700,
+      semantic_profile: 'wine-profile',
+      reasoner_status: 'completed',
+      reasoner_name: 'HermiT',
+      validation_summary: 'Passed',
+      unsatisfiable_classes: [],
+      unsupported_constructs: [],
+      findings: [
+        { severity: 'info', message: 'All constraints met', focus_node: null, source_shape: null },
+      ],
+    }
+
+    vi.spyOn(client, 'request').mockResolvedValueOnce({
+      get_build_status: mockStatus,
+    })
+
+    const result = await getBuildStatus()
+    expect(result.build_id).toBe('bld_98765')
+    expect(result.consistency).toBe('consistent')
+    expect(result.inferred_count).toBe(700)
+    expect(result.findings).toHaveLength(1)
   })
 })

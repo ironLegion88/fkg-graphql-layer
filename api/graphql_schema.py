@@ -6,7 +6,10 @@ contained behind the service and retrieval boundaries.
 
 from __future__ import annotations
 
+import json
+import os
 from enum import Enum
+from pathlib import Path
 from typing import NotRequired, TypedDict
 
 import strawberry
@@ -391,6 +394,30 @@ def _to_api_property_info(info: PropertyInfo | None) -> PropertyInfoType | None:
         usage_count=info.usage_count,
         annotations=[_to_api_annotation(a) for a in info.annotations],
     )
+
+
+@strawberry.type
+class ValidationFindingType:
+    severity: str
+    message: str
+    focus_node: str | None = None
+    source_shape: str | None = None
+
+
+@strawberry.type
+class BuildStatusType:
+    build_id: str | None
+    status: str
+    consistency: str
+    triple_count: int
+    inferred_count: int
+    semantic_profile: str | None
+    reasoner_status: str | None
+    reasoner_name: str | None
+    validation_summary: str | None
+    unsatisfiable_classes: list[str]
+    unsupported_constructs: list[str]
+    findings: list[ValidationFindingType]
 
 
 @strawberry.type
@@ -833,6 +860,60 @@ class Query:
             raise GraphQLError(msg, extensions={"code": error.code.value}) from None
         return _to_api_search_result(result)
 
+    @strawberry.field
+    async def get_build_status(
+        self,
+        info: Info[GraphQLContext, None],
+    ) -> BuildStatusType:
+        build_id = info.context.get("active_build_id")
+        output_root = Path(os.getenv("RDF_STORE_PATH", ".data/oxigraph"))
+        metadata: dict[str, object] = {}
+        if build_id and build_id != "unknown":
+            manifest_path = output_root / "builds" / str(build_id) / "store-manifest.json"
+            if manifest_path.exists():
+                try:
+                    metadata = json.loads(manifest_path.read_text(encoding="utf-8"))
+                except (json.JSONDecodeError, OSError):
+                    metadata = {}
+
+        profile = _graph_service(info).get_active_profile()
+        reasoner_name = profile.reasoning.profile_name if hasattr(profile, "reasoning") else None
+        triple_count = int(metadata.get("triple_count", 0))  # type: ignore[arg-type]
+        inferred_count = int(metadata.get("inferred_triple_count", 0))  # type: ignore[arg-type]
+        consistency = str(metadata.get("consistency", "consistent" if inferred_count > 0 else "unknown"))
+        validation_summary = str(metadata.get("validation_summary", "Passed" if consistency == "consistent" else "unknown"))
+        raw_unsatisfiable = metadata.get("unsatisfiable_classes", [])
+        unsatisfiable_classes = [str(c) for c in raw_unsatisfiable] if isinstance(raw_unsatisfiable, list) else []
+        raw_unsupported = metadata.get("unsupported_constructs", [])
+        unsupported_constructs = [str(c) for c in raw_unsupported] if isinstance(raw_unsupported, list) else []
+        raw_findings = metadata.get("validation_findings", [])
+        findings = [
+            ValidationFindingType(
+                severity=str(f.get("severity", "info")),
+                message=str(f.get("message", "")),
+                focus_node=f.get("focus_node"),
+                source_shape=f.get("source_shape"),
+            )
+            for f in raw_findings
+            if isinstance(f, dict)
+        ] if isinstance(raw_findings, list) else []
+
+        return BuildStatusType(
+            build_id=build_id,
+            status="ready",
+            consistency=consistency,
+            triple_count=triple_count,
+            inferred_count=inferred_count,
+            semantic_profile=profile.package_id,
+            reasoner_status="completed" if inferred_count > 0 else "none",
+            reasoner_name=reasoner_name,
+            validation_summary=validation_summary,
+            unsatisfiable_classes=unsatisfiable_classes,
+            unsupported_constructs=unsupported_constructs,
+            findings=findings,
+        )
+
+
 
 schema = strawberry.Schema(
     query=Query,
@@ -857,6 +938,8 @@ schema = strawberry.Schema(
         ExpansionPreviewType,
         PreviewGroupType,
         SearchResultType,
+        ValidationFindingType,
+        BuildStatusType,
     ],
 
     extensions=[GraphQLSafetyExtension],

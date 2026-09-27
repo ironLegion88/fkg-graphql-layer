@@ -1,0 +1,251 @@
+.class-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  font-size: 13px;
+  color: #173b37;
+}
+
+.class-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #dbe1d8;
+}
+
+.class-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.class-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #eef2ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+}
+
+.instance-counter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.class-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #173b37;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.class-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.action-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #287b73;
+  background: #287b73;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-btn-primary:hover {
+  background: #173b37;
+  border-color: #173b37;
+}
+
+.class-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #567069;
+}
+
+/* Hierarchy Lists & Cards */
+.hierarchy-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hierarchy-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #567069;
+}
+
+.hierarchy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hierarchy-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #ffffff;
+  border: 1px solid #dbe1d8;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.hierarchy-pill:hover {
+  background: #f4f8f4;
+  border-color: #287b73;
+}
+
+.hierarchy-pill-name {
+  font-weight: 600;
+  color: #173b37;
+  font-size: 12px;
+}
+
+.hierarchy-pill-iri {
+  font-family: monospace;
+  font-size: 10.5px;
+  color: #7c8e88;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Equivalents and Disjoints */
+.semantic-relation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 6px;
+  background: #f9fbf8;
+  border: 1px solid #dbe1d8;
+}
+
+.semantic-relation-card.disjoint {
+  border-left: 3px solid #f59e0b;
+  background: #fffbeb;
+}
+
+.semantic-relation-card.equivalent {
+  border-left: 3px solid #3b82f6;
+  background: #eff6ff;
+}
+
+/* Restrictions expressions */
+.restrictions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.restriction-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #dbe1d8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #1e293b;
+}
+
+.restriction-tag {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+/* Collapsible Ancestors / Descendants details */
+.details-toggle {
+  font-size: 11px;
+  color: #287b73;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 2px;
+  user-select: none;
+}
+
+.details-toggle:hover {
+  text-decoration: underline;
+}
+
+.ancestors-box {
+  margin-top: 4px;
+  padding: 8px;
+  background: #f4f7f3;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #4b5563;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ancestor-chip {
+  padding: 2px 6px;
+  background: #ffffff;
+  border: 1px solid #dbe1d8;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.ancestor-chip:hover {
+  background: #eef3ed;
+  border-color: #287b73;
+  color: #173b37;
+}

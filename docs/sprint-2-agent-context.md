@@ -3,9 +3,10 @@
 - **Document type:** Supplementary implementation context for LLM agent delegation
 - **Status:** Active — Phase 0 complete, Phase 1 in progress
 - **Created:** 2026-09-19
-- **Last Updated:** 2026-09-21 (Phase 0 complete)
+- **Last Updated:** 2026-09-27 (Batch 2B complete)
 - **Current Sprint:** Sprint 2 (Supported Application)
 - **Phase 0 Status:** ✅ COMPLETE (all 9 gaps resolved, 142 backend + 6 frontend tests passing)
+- **Phase 1 Progress:** Batch 2A (AppShell & Navigation) and Batch 2B (Semantic Inspector & Provenance) ✅ COMPLETE
 - **Sprint 2 Baseline Branch:** `sprint-2/cytoscape` (created from `sprint-1/core-platform`, with `sprint-2/gap-remediation` merged)
 - **Per-batch branches:** Each Phase 1 batch gets a dedicated branch from `sprint-2/cytoscape`, merged back upon completion
 - **Prerequisite reading:** Before beginning any batch, read these documents in order:
@@ -741,6 +742,7 @@ All of these are operational and tested. Frontend query strings and functions mu
 | `get_expansion_preview(id)` | → `ExpansionPreviewType` | 2C (Expansion Preview Dialog) |
 | `search(options: SearchInput)` | → `SearchResultType` | 2A (Search Panel) |
 | `get_active_profile()` | → `ActiveProfile` (with build_id) | 2A (Profile metadata) |
+| `get_build_status` | → `BuildStatusType` | 2B (Consistency Panel) |
 
 ### Frontend Dependencies Available
 
@@ -775,4 +777,28 @@ From `package.json`:
 - **Frontend:** **24 passed** (vitest, 5 test files)
 - **Frontend build:** Clean (`tsc -b && vite build` passed)
 - **Backend:** **142 passed** (pytest), 9 deprecation warnings
+- **Git whitespace check:** Clean (`git diff --check` passed)
+
+---
+
+## 17. Batch 2B Completion Summary
+*(Implemented on `batch-2b/semantic-inspector`, merged into `sprint-2/cytoscape`)*
+
+### What Changed
+- **Backend Build Status Query (`api/graphql_schema.py`):** Implemented `BuildStatusType`, `ValidationFindingType`, and the `get_build_status` query resolver reading active store manifest metadata and validation findings.
+- **Frontend Models & Query Client (`interfaces/models.ts`, `api/graph.ts`):** Added `BuildStatus` and `ValidationFinding` interfaces, and implemented typed `getBuildStatus()` client function.
+- **Resource Inspector (`inspector/ResourceInspector.tsx`, `ResourceInspector.css`):** Displays canonical IRI, compact prefix IRI with copy button, semantic kind badge, multilingual labels and descriptions, asserted vs. inferred types with redundant non-color cues, annotations table, and source graphs (`SM-005`, `GE-009`, `AC-104`, `AC-106`).
+- **Class Inspector (`inspector/ClassInspector.tsx`, `ClassInspector.css`):** Displays class hierarchy with navigable parent and child class chips, equivalent classes, disjoint classes, instance count with canvas selection, OWL class expressions / restrictions, and annotations (`SM-006`, `GE-010`).
+- **Property Inspector (`inspector/PropertyInspector.tsx`, `PropertyInspector.css`):** Displays property kind (Object / Datatype / Annotation), domain and range signatures (clickable and navigable), inverse property, logical characteristics badges, usage count, sub/super properties, and annotations (`SM-007`).
+- **Consistency Panel (`inspector/ConsistencyPanel.tsx`, `ConsistencyPanel.css`):** Displays build status card, reasoning profile, build ID, total vs. inferred triple volume metrics, unsatisfiable classes warning banner, and validation findings with severity chips (`GE-012`).
+- **Provenance Panel (`inspector/ProvenancePanel.tsx`, `ProvenancePanel.css`):** Displays relationship triple statements, asserted vs. inferred badges with non-color cues (icons, border styling, text tags), named source graph chip, build ID, reasoner identity, and explanation handle placeholder (`GE-011`, `AC-106`).
+- **Unified InspectorPanel Container (`inspector/InspectorPanel.tsx`, `InspectorPanel.css`):** Composite panel housing all 5 tabs with intelligent auto-switching based on selection type (entity, class, property, relationship), empty states with quick-action shortcuts, loading indicators, error handling, and integrated graph traversal controls.
+- **AppShell Right Panel Integration (`App.tsx`):** Connected `InspectorPanel` to the workspace, seamlessly synchronizing canvas node/edge selections with the semantic inspector.
+- **Unit Testing Suite (`inspector/inspector.test.tsx`):** Added 10 comprehensive unit tests covering all 5 inspector components, AC-106 non-color cues, empty/loading/error states, and tab navigation.
+- **End-to-End Browser Subagent Verification:** Verified the live application in the browser: initial empty state, build consistency metrics (3,648 total triples, 791 inferred), class tree navigation to `food:Wine`, entity search and selection (`Chateau Margaux`), resource metadata, and relationship provenance lineage.
+
+### Test Counts After Batch 2B
+- **Frontend:** **35 passed** (vitest, 6 test files)
+- **Frontend build:** Clean (`tsc -b && vite build` passed)
+- **Backend:** **143 passed** (pytest), 9 deprecation warnings
 - **Git whitespace check:** Clean (`git diff --check` passed)
