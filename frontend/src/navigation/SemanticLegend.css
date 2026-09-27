@@ -1,0 +1,62 @@
+/* SemanticLegend styling */
+.semantic-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #fffdf8;
+  border-top: 1px solid #dbe1d8;
+  font-size: 12px;
+  color: #567069;
+  flex-wrap: wrap;
+}
+
+.legend-label {
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6a827a;
+}
+
+.legend-items {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.legend-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid #dbe1d8;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #173b37;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.legend-pill:hover {
+  border-color: #287b73;
+  background: #f4f8f2;
+}
+
+.legend-pill.inactive {
+  opacity: 0.45;
+  border-style: dashed;
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-text {
+  font-weight: 500;
+}
