@@ -1,0 +1,202 @@
+.property-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  font-size: 13px;
+  color: #173b37;
+}
+
+.property-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #dbe1d8;
+}
+
+.property-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.property-kind-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #fdf2f8;
+  color: #9d174d;
+  border: 1px solid #fbcfe8;
+}
+
+.property-kind-badge.objectproperty {
+  background: #fdf2f8;
+  color: #9d174d;
+  border-color: #fbcfe8;
+}
+
+.property-kind-badge.datatypeproperty {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.property-kind-badge.annotationproperty {
+  background: #fefce8;
+  color: #854d0e;
+  border-color: #fef08a;
+}
+
+.usage-counter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.property-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #173b37;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.property-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #567069;
+}
+
+/* Domain and Range Cards */
+.domain-range-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.domain-range-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #dbe1d8;
+}
+
+.domain-card {
+  border-left: 3px solid #287b73;
+}
+
+.range-card {
+  border-left: 3px solid #7c3aed;
+}
+
+.dr-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #567069;
+}
+
+.dr-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dr-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: #f4f7f3;
+  border: 1px solid #e2e8e0;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.dr-pill:hover {
+  background: #eef3ed;
+  border-color: #287b73;
+}
+
+.dr-pill-name {
+  font-weight: 600;
+  color: #173b37;
+  font-size: 12px;
+}
+
+/* Characteristics Badges */
+.characteristics-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.characteristic-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* Inverse Property Card */
+.inverse-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fdf2f8;
+  border: 1px solid #fbcfe8;
+  cursor: pointer;
+}
+
+.inverse-card:hover {
+  background: #fce7f3;
+  border-color: #f472b6;
+}
+
+.inverse-title {
+  font-weight: 600;
+  color: #9d174d;
+  font-size: 12px;
+}
