@@ -409,16 +409,16 @@ A batch is complete only when:
 
 ## 7. Phase 1 Batch Sequencing
 
-| Batch | Name | Depends On | Focus |
-|---|---|---|---|
-| **2A** | App Shell & Navigation | Phase 0 | Three-panel layout, class tree, search, command palette |
-| **2B** | Semantic Inspector | 2A | Resource, class, property, consistency, provenance panels |
-| **2C** | Cytoscape Detail | 2A | Preview, undo/redo, multi-hop, layouts |
-| **2D** | Accessible Views | 2A | Table, trees, ARIA, responsive, reduced motion |
-| **2E** | Paths/Comparison/Explanation UI | 2B | Path builder, comparison, "Why?" panel |
-| **2F** | Sessions | 2B, 2C | Save/restore, compatibility, deep links |
-| **2G** | cosmos.gl Overview | 2A | Class-based clusters, GPU fallback, drill-down |
-| **2H** | E2E Testing | 2A–2G | Playwright, accessibility, performance, memory |
+| Batch | Name | Depends On | Status | Focus |
+|---|---|---|---|---|
+| **2A** | App Shell & Navigation | Phase 0 | ✅ DONE | Three-panel layout, class tree, search, command palette |
+| **2B** | Semantic Inspector | 2A | Pending | Resource, class, property, consistency, provenance panels |
+| **2C** | Cytoscape Detail | 2A | Pending | Preview, undo/redo, multi-hop, layouts |
+| **2D** | Accessible Views | 2A | Pending | Table, trees, ARIA, responsive, reduced motion |
+| **2E** | Paths/Comparison/Explanation UI | 2B | Pending | Path builder, comparison, "Why?" panel |
+| **2F** | Sessions | 2B, 2C | Pending | Save/restore, compatibility, deep links |
+| **2G** | cosmos.gl Overview | 2A | Pending | Class-based clusters, GPU fallback, drill-down |
+| **2H** | E2E Testing | 2A–2G | Pending | Playwright, accessibility, performance, memory |
 
 ---
 
@@ -754,3 +754,25 @@ From `package.json`:
 - `vitest@^4.1.10` (testing)
 - TypeScript `~6.0.2`, Vite `^8.1.1`
 
+---
+
+## 16. Batch 2A Completion Summary
+*(Implemented on `batch-2a/app-shell`, merged into `sprint-2/cytoscape`)*
+
+### What Changed
+- **Updated TypeScript Models (`interfaces/models.ts`):** Added provenance fields (`predicate_iri`, `predicate_label`, `is_inferred`, `source_graph`, `explanation_handle`) to `GraphRelationship`. Expanded `ActiveProfile` with `prefixes`, `limits`, `languages`, `reasoning_profile`, `build_id`, and full `ProfileMetadata`. Added all semantic model types: `CompactIRI`, `MultilingualLabel`, `Annotation`, `ResourceMetadata`, `ClassInfo`, `PropertyInfo`, `PreviewGroup`, `ExpansionPreview`, `SearchResult`, `SearchOptions`.
+- **Added GraphQL Query Functions (`api/graph.ts`):** Implemented typed wrappers for `listClasses`, `listProperties`, `getClassInfo`, `getPropertyInfo`, `getResourceMetadata`, `getExpansionPreview`, and `advancedSearch`. Updated `fetchProfile` to request all profile fields and `expandGraph` to include provenance fields.
+- **Created Three-Panel AppShell (`shell/AppShell.tsx`, `AppShell.css`):** Built responsive layout shell with resizable Navigation, Canvas, and Inspector panels, drag handles, panel collapse/expand toggles, header bar with title, build ID badge, reasoning profile, and stats, plus loading and error card fallback states.
+- **Created ClassTree Navigation (`navigation/ClassTree.tsx`, `ClassTree.css`):** Hierarchical tree using `direct_parents`/`direct_children` with cycle prevention, expandable/collapsible nodes, instance count badges, text filter, and namespace selector.
+- **Created PropertyBrowser Navigation (`navigation/PropertyBrowser.tsx`, `PropertyBrowser.css`):** Filterable list showing property kinds (Object, Datatype, Annotation), domain/range signatures, characteristics badges, and usage counts.
+- **Created SearchPanel Navigation (`navigation/SearchPanel.tsx`, `SearchPanel.css`):** Advanced search with semantic kind filter pills, namespace selection, description toggle, paginated results, and entity cards.
+- **Created CommandPalette (`navigation/CommandPalette.tsx`, `CommandPalette.css`):** Keyboard accessible (`Ctrl+K` / `Cmd+K`) modal dialog with live search and quick actions.
+- **Created SemanticLegend & LanguageSelector (`navigation/SemanticLegend.tsx`, `navigation/LanguageSelector.tsx`):** Profile-driven dynamic category legend and multilingual display selector.
+- **Decomposed `App.tsx`:** Refactored into three-panel shell layout with tabbed navigation (`Search`, `Classes`, `Properties`), center canvas, and right inspector panel, preserving 100% of Cytoscape state, limits, and traversal operations.
+- **Created Comprehensive Unit Tests:** Added 18 new automated tests across `graph.test.ts`, `AppShell.test.tsx`, and `navigation.test.tsx` (bringing frontend test suite to 24 tests).
+
+### Test Counts After Batch 2A
+- **Frontend:** **24 passed** (vitest, 5 test files)
+- **Frontend build:** Clean (`tsc -b && vite build` passed)
+- **Backend:** **142 passed** (pytest), 9 deprecation warnings
+- **Git whitespace check:** Clean (`git diff --check` passed)
