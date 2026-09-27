@@ -582,6 +582,9 @@ function App() {
       onShowInstances={(_classIri) => {
         setActiveNavTab('search')
       }}
+      onShowSubclasses={(_classIri) => {
+        setActiveNavTab('classes')
+      }}
       onFilterByProperty={(propIri) => {
         const propName = propIri.includes('#') ? propIri.split('#')[1] : propIri.split('/').pop() || propIri
         toggleRelation(propName)

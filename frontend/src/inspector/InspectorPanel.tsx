@@ -36,6 +36,7 @@ export interface InspectorPanelProps {
   onNavigate?: (iri: string) => void
   onExpand?: (iri: string) => void
   onShowInstances?: (iri: string) => void
+  onShowSubclasses?: (iri: string) => void
   onWhyClick?: (handle: string) => void
   onFilterByProperty?: (iri: string) => void
   traversalControls?: React.ReactNode
@@ -50,6 +51,7 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
   onNavigate,
   onExpand,
   onShowInstances,
+  onShowSubclasses,
   onWhyClick,
   onFilterByProperty,
   traversalControls,
@@ -311,6 +313,7 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
                 classInfo={classInfo}
                 onNavigate={onNavigate}
                 onShowInstances={onShowInstances}
+                onShowSubclasses={onShowSubclasses}
                 onExpand={onExpand}
               />
             ) : (
