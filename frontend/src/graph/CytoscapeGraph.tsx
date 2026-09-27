@@ -10,6 +10,7 @@ import dagre from 'cytoscape-dagre'
 
 import { entityKind } from '../api/graph'
 import { relationshipKey } from './state'
+import { usePrefersReducedMotion } from './usePrefersReducedMotion'
 import type { DetailGraphRenderer } from '../interfaces/renderers'
 import type { GraphEntity, SemanticCategory } from '../interfaces/models'
 
@@ -136,9 +137,7 @@ const CytoscapeGraph = forwardRef<GraphRendererHandle, CytoscapeGraphProps>(
     const edgeCount = Object.keys(graph.relationships).length
     const showEdgeLabels = edgeCount <= 200
 
-    const prefersReducedMotion =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const prefersReducedMotion = usePrefersReducedMotion()
 
     const elements: ElementDefinition[] = [
       ...Object.values(graph.entities).map((entity) => {

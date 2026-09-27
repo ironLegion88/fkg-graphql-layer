@@ -344,3 +344,12 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .expansion-dialog-backdrop {
+    animation: none !important;
+  }
+  .dialog-btn {
+    transition: none !important;
+  }
+}
