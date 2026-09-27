@@ -2,34 +2,95 @@ import { GraphQLClient } from 'graphql-request'
 import type {
   SemanticCategory,
   PredicateInfo,
+  PrefixEntry,
+  ProfileLimits,
+  LanguageInfo,
+  ProfileMetadata,
   ActiveProfile,
   GraphEntity,
   GraphRelationship,
   GraphExpansion,
   TraversalDirection,
   ExpansionRequest,
+  CompactIRI,
+  MultilingualLabel,
+  Annotation,
+  ResourceMetadata,
+  ClassInfo,
+  PropertyInfo,
+  PreviewGroup,
+  ExpansionPreview,
+  SearchResult,
+  SearchOptions,
 } from '../interfaces/models'
 
 export type {
   SemanticCategory,
   PredicateInfo,
+  PrefixEntry,
+  ProfileLimits,
+  LanguageInfo,
+  ProfileMetadata,
   ActiveProfile,
   GraphEntity,
   GraphRelationship,
   GraphExpansion,
   TraversalDirection,
   ExpansionRequest,
+  CompactIRI,
+  MultilingualLabel,
+  Annotation,
+  ResourceMetadata,
+  ClassInfo,
+  PropertyInfo,
+  PreviewGroup,
+  ExpansionPreview,
+  SearchResult,
+  SearchOptions,
 }
-const client = new GraphQLClient(
+
+export const client = new GraphQLClient(
   import.meta.env.VITE_GRAPHQL_URL ?? 'http://localhost:8000/graphql',
 )
 
 const activeProfileQuery = `
   query GetActiveProfile {
     get_active_profile {
-      metadata { title description }
-      categories { name class_iris color icon label }
-      predicates { name iri label traversable hidden }
+      metadata {
+        package_id
+        version
+        title
+        description
+        ontology_iris
+      }
+      prefixes {
+        prefix
+        iri
+      }
+      categories {
+        name
+        class_iris
+        color
+        icon
+        label
+      }
+      predicates {
+        name
+        iri
+        label
+        traversable
+        hidden
+      }
+      limits {
+        max_depth
+        max_nodes
+        max_edges
+      }
+      languages {
+        preferred_languages
+      }
+      reasoning_profile
+      build_id
     }
   }
 `
@@ -71,8 +132,139 @@ const expansionQuery = `
         relation
         source { __typename id label description ... on OntologyEntity { kind } }
         target { __typename id label description ... on OntologyEntity { kind } }
+        predicate_iri
+        predicate_label
+        is_inferred
+        source_graph
+        explanation_handle
       }
       page_info { truncated next_cursor }
+    }
+  }
+`
+
+const listClassesQuery = `
+  query ListClasses($limit: Int, $offset: Int) {
+    list_classes(limit: $limit, offset: $offset) {
+      iri
+      compact_iri { full_iri prefix local_name namespace }
+      label
+      direct_parents
+      all_ancestors
+      direct_children
+      all_descendants
+      equivalent_classes
+      disjoint_classes
+      instance_count
+      annotations { predicate_iri value language }
+      restrictions
+    }
+  }
+`
+
+const listPropertiesQuery = `
+  query ListProperties($limit: Int, $offset: Int) {
+    list_properties(limit: $limit, offset: $offset) {
+      iri
+      compact_iri { full_iri prefix local_name namespace }
+      label
+      property_kind
+      domains
+      ranges
+      inverse_of
+      equivalent_properties
+      sub_properties
+      super_properties
+      characteristics
+      usage_count
+      annotations { predicate_iri value language }
+    }
+  }
+`
+
+const getClassInfoQuery = `
+  query GetClassInfo($iri: String!) {
+    get_class_info(iri: $iri) {
+      iri
+      compact_iri { full_iri prefix local_name namespace }
+      label
+      direct_parents
+      all_ancestors
+      direct_children
+      all_descendants
+      equivalent_classes
+      disjoint_classes
+      instance_count
+      annotations { predicate_iri value language }
+      restrictions
+    }
+  }
+`
+
+const getPropertyInfoQuery = `
+  query GetPropertyInfo($iri: String!) {
+    get_property_info(iri: $iri) {
+      iri
+      compact_iri { full_iri prefix local_name namespace }
+      label
+      property_kind
+      domains
+      ranges
+      inverse_of
+      equivalent_properties
+      sub_properties
+      super_properties
+      characteristics
+      usage_count
+      annotations { predicate_iri value language }
+    }
+  }
+`
+
+const getResourceMetadataQuery = `
+  query GetResourceMetadata($iri: String!) {
+    get_resource_metadata(iri: $iri) {
+      iri
+      compact_iri { full_iri prefix local_name namespace }
+      semantic_kind
+      asserted_types
+      inferred_types
+      labels { value language datatype predicate_iri }
+      preferred_label
+      descriptions { value language datatype predicate_iri }
+      aliases { value language datatype predicate_iri }
+      annotations { predicate_iri value language }
+      source_graphs
+      build_id
+    }
+  }
+`
+
+const getExpansionPreviewQuery = `
+  query GetExpansionPreview($id: ID!) {
+    get_expansion_preview(id: $id) {
+      entity_id
+      total_count
+      groups {
+        relation
+        direction
+        count
+      }
+    }
+  }
+`
+
+const advancedSearchQuery = `
+  query AdvancedSearch($options: SearchInput!) {
+    search(options: $options) {
+      entities {
+        __typename
+        id
+        label
+        description
+        ... on OntologyEntity { kind }
+      }
+      total_matches
     }
   }
 `
@@ -113,4 +305,65 @@ export async function expandGraph(
     },
   )
   return response.expand_graph
+}
+
+export async function listClasses(limit = 100, offset = 0): Promise<ClassInfo[]> {
+  const response = await client.request<{ list_classes: ClassInfo[] }>(listClassesQuery, {
+    limit,
+    offset,
+  })
+  return response.list_classes
+}
+
+export async function listProperties(limit = 100, offset = 0): Promise<PropertyInfo[]> {
+  const response = await client.request<{ list_properties: PropertyInfo[] }>(
+    listPropertiesQuery,
+    { limit, offset },
+  )
+  return response.list_properties
+}
+
+export async function getClassInfo(iri: string): Promise<ClassInfo | null> {
+  const response = await client.request<{ get_class_info: ClassInfo | null }>(
+    getClassInfoQuery,
+    { iri },
+  )
+  return response.get_class_info
+}
+
+export async function getPropertyInfo(iri: string): Promise<PropertyInfo | null> {
+  const response = await client.request<{ get_property_info: PropertyInfo | null }>(
+    getPropertyInfoQuery,
+    { iri },
+  )
+  return response.get_property_info
+}
+
+export async function getResourceMetadata(iri: string): Promise<ResourceMetadata | null> {
+  const response = await client.request<{ get_resource_metadata: ResourceMetadata | null }>(
+    getResourceMetadataQuery,
+    { iri },
+  )
+  return response.get_resource_metadata
+}
+
+export async function getExpansionPreview(id: string): Promise<ExpansionPreview> {
+  const response = await client.request<{ get_expansion_preview: ExpansionPreview }>(
+    getExpansionPreviewQuery,
+    { id },
+  )
+  return response.get_expansion_preview
+}
+
+export async function advancedSearch(options: SearchOptions): Promise<SearchResult> {
+  const response = await client.request<{ search: SearchResult }>(advancedSearchQuery, {
+    options: {
+      query: options.query,
+      limit: options.limit ?? 100,
+      offset: options.offset ?? 0,
+      kinds: options.kinds && options.kinds.length > 0 ? options.kinds : null,
+      require_description: options.require_description ?? false,
+    },
+  })
+  return response.search
 }
