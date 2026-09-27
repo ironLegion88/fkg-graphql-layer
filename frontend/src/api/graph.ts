@@ -1,4 +1,4 @@
-import { GraphQLClient } from 'graphql-request'
+﻿import { GraphQLClient } from 'graphql-request'
 import type {
   SemanticCategory,
   PredicateInfo,
@@ -22,6 +22,8 @@ import type {
   ExpansionPreview,
   SearchResult,
   SearchOptions,
+  ValidationFinding,
+  BuildStatus,
 } from '../interfaces/models'
 
 export type {
@@ -47,6 +49,8 @@ export type {
   ExpansionPreview,
   SearchResult,
   SearchOptions,
+  ValidationFinding,
+  BuildStatus,
 }
 
 export const client = new GraphQLClient(
@@ -269,6 +273,30 @@ const advancedSearchQuery = `
   }
 `
 
+const getBuildStatusQuery = `
+  query GetBuildStatus {
+    get_build_status {
+      build_id
+      status
+      consistency
+      triple_count
+      inferred_count
+      semantic_profile
+      reasoner_status
+      reasoner_name
+      validation_summary
+      unsatisfiable_classes
+      unsupported_constructs
+      findings {
+        severity
+        message
+        focus_node
+        source_shape
+      }
+    }
+  }
+`
+
 export function entityKind(entity: GraphEntity): string {
   if (entity.kind) {
     return entity.kind
@@ -366,4 +394,9 @@ export async function advancedSearch(options: SearchOptions): Promise<SearchResu
     },
   })
   return response.search
+}
+
+export async function getBuildStatus(): Promise<BuildStatus> {
+  const response = await client.request<{ get_build_status: BuildStatus }>(getBuildStatusQuery)
+  return response.get_build_status
 }

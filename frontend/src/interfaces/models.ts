@@ -1,4 +1,4 @@
-export interface SemanticCategory {
+﻿export interface SemanticCategory {
   name: string
   class_iris: string[]
   color: string | null
@@ -182,4 +182,26 @@ export interface SearchOptions {
   offset?: number
   kinds?: string[]
   require_description?: boolean
+}
+
+export interface ValidationFinding {
+  severity: string
+  message: string
+  focus_node: string | null
+  source_shape: string | null
+}
+
+export interface BuildStatus {
+  build_id: string | null
+  status: string
+  consistency: string
+  triple_count: number
+  inferred_count: number
+  semantic_profile: string | null
+  reasoner_status: string | null
+  reasoner_name: string | null
+  validation_summary: string | null
+  unsatisfiable_classes: string[]
+  unsupported_constructs: string[]
+  findings: ValidationFinding[]
 }
