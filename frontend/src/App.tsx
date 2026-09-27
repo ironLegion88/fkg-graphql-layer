@@ -18,8 +18,10 @@ import {
   Focus,
   Pin,
   PinOff,
+  Table,
 } from 'lucide-react'
 import './App.css'
+import { VisibleGraphTable } from './views/VisibleGraphTable'
 import {
   type GraphEntity,
   type GraphExpansion,
@@ -89,6 +91,7 @@ function App() {
   const multiHopAbortController = useRef<AbortController | null>(null)
   const [layoutName, setLayoutName] = useState<string>('breadthfirst')
   const [pinnedNodeIds, setPinnedNodeIds] = useState<string[]>([])
+  const [centerViewMode, setCenterViewMode] = useState<'canvas' | 'table'>('canvas')
 
   const rendererRef = useRef<GraphRendererHandle | null>(null)
 
@@ -752,24 +755,48 @@ function App() {
             <p className="eyebrow">Explore</p>
             <h2>Relationship map</h2>
           </div>
-          <select
-            id="layout-select"
-            value={layoutName}
-            onChange={(e) => {
-              const newLayout = e.target.value
-              setLayoutName(newLayout)
-              rendererRef.current?.runLayout(newLayout)
-            }}
-            className="layout-select"
-            aria-label="Select layout algorithm"
-            title="Choose layout algorithm (RC-007)"
-          >
-            <option value="breadthfirst">Breadthfirst (Tree)</option>
-            <option value="cose">CoSE (Force-Directed)</option>
-            <option value="dagre">Dagre (Hierarchical DAG)</option>
-            <option value="circle">Circle</option>
-            <option value="concentric">Concentric</option>
-          </select>
+          <div className="view-mode-selector" role="group" aria-label="Center view mode">
+            <button
+              type="button"
+              className={`view-mode-btn ${centerViewMode === 'canvas' ? 'active' : ''}`}
+              onClick={() => setCenterViewMode('canvas')}
+              aria-pressed={centerViewMode === 'canvas'}
+              title="Interactive Cytoscape Canvas View"
+            >
+              <Network size={14} aria-hidden="true" />
+              <span>Canvas</span>
+            </button>
+            <button
+              type="button"
+              className={`view-mode-btn ${centerViewMode === 'table' ? 'active' : ''}`}
+              onClick={() => setCenterViewMode('table')}
+              aria-pressed={centerViewMode === 'table'}
+              title={`Textual Whole-Graph Table (${edgeCount} relationships)`}
+            >
+              <Table size={14} aria-hidden="true" />
+              <span>Table ({edgeCount})</span>
+            </button>
+          </div>
+          {centerViewMode === 'canvas' && (
+            <select
+              id="layout-select"
+              value={layoutName}
+              onChange={(e) => {
+                const newLayout = e.target.value
+                setLayoutName(newLayout)
+                rendererRef.current?.runLayout(newLayout)
+              }}
+              className="layout-select"
+              aria-label="Select layout algorithm"
+              title="Choose layout algorithm (RC-007)"
+            >
+              <option value="breadthfirst">Breadthfirst (Tree)</option>
+              <option value="cose">CoSE (Force-Directed)</option>
+              <option value="dagre">Dagre (Hierarchical DAG)</option>
+              <option value="circle">Circle</option>
+              <option value="concentric">Concentric</option>
+            </select>
+          )}
         </div>
         <div className="icon-actions">
           <button
@@ -863,32 +890,63 @@ function App() {
         </div>
       )}
 
-      <div className="graph-canvas">
-        {nodeCount === 0 && (
-          <div className="empty-graph">
-            <Network size={34} aria-hidden="true" />
-            <h3>Start with an entity, class, or property</h3>
-            <p>
-              Search or browse on the left, then select an item to reveal its connected graph.
-            </p>
-          </div>
-        )}
-        <CytoscapeGraph
-          ref={rendererRef}
+      {centerViewMode === 'table' ? (
+        <VisibleGraphTable
           graph={graph}
-          selectedId={selectedId}
-          categories={profile?.categories}
-          categoryColors={categoryColors}
-          layoutName={layoutName}
-          pinnedNodeIds={pinnedNodeIds}
-          onSelectEntity={setSelectedId}
+          selectedEntityId={selectedId}
+          selectedRelationship={selectedRelationship}
+          profile={profile}
+          onSelectEntity={(id) => {
+            setSelectedId(id)
+            setSelectedRelationship(null)
+          }}
+          onSelectRelationship={(rel) => {
+            setSelectedRelationship(rel)
+            setSelectedId(rel.source.id)
+          }}
+          onExpandEntity={(entity) => void inspectEntity(entity)}
+          onRemoveEntity={(id) => {
+            setGraph((current) => removeNode(current, id))
+          }}
+          onRemoveRelationship={(rel) => {
+            const key = `${rel.source.id}|${rel.relation}|${rel.target.id}`
+            setGraph((current) => {
+              const nextRelationships = { ...current.relationships }
+              delete nextRelationships[key]
+              return { ...current, relationships: nextRelationships }
+            })
+          }}
         />
-      </div>
+      ) : (
+        <>
+          <div className="graph-canvas">
+            {nodeCount === 0 && (
+              <div className="empty-graph">
+                <Network size={34} aria-hidden="true" />
+                <h3>Start with an entity, class, or property</h3>
+                <p>
+                  Search or browse on the left, then select an item to reveal its connected graph.
+                </p>
+              </div>
+            )}
+            <CytoscapeGraph
+              ref={rendererRef}
+              graph={graph}
+              selectedId={selectedId}
+              categories={profile?.categories}
+              categoryColors={categoryColors}
+              layoutName={layoutName}
+              pinnedNodeIds={pinnedNodeIds}
+              onSelectEntity={setSelectedId}
+            />
+          </div>
 
-      {profile && (
-        <SemanticLegend
-          categories={profile.categories}
-        />
+          {profile && (
+            <SemanticLegend
+              categories={profile.categories}
+            />
+          )}
+        </>
       )}
     </div>
   )
