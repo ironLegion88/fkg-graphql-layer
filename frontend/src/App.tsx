@@ -8,6 +8,8 @@ import {
   RotateCcw,
   Undo2,
   Redo2,
+  Minimize2,
+  Trash2,
   Search,
   FolderTree,
   Binary,
@@ -39,6 +41,8 @@ import {
   pushUndoExpansion,
   applyUndo,
   applyRedo,
+  removeNode,
+  collapseNodeExpansion,
   type ExplorerGraph,
   type UndoRedoStack,
 } from './graph/state'
@@ -296,6 +300,35 @@ function App() {
     setNotice(null)
   }
 
+  function handleCollapseSelectedExpansion() {
+    if (!selectedId) return
+    const { graph: newGraph, stack: newStack, collapsedRecord } = collapseNodeExpansion(
+      graph,
+      selectedId,
+      undoRedoStack,
+    )
+    if (collapsedRecord) {
+      setGraph(newGraph)
+      setUndoRedoStack(newStack)
+      if (!newGraph.entities[selectedId]) {
+        setSelectedId(null)
+      }
+      setNotice('Collapsed expansion involving selected node.')
+    } else {
+      setNotice('No expansions found to collapse for the selected node.')
+    }
+  }
+
+  function handleRemoveSelectedNode() {
+    if (!selectedId) return
+    const label = selectedEntity?.label || selectedId
+    const newGraph = removeNode(graph, selectedId)
+    setGraph(newGraph)
+    setSelectedId(null)
+    setSelectedRelationship(null)
+    setNotice(`Removed "${label}" and connected edges from canvas.`)
+  }
+
   // Keyboard shortcut listener for Undo (Ctrl+Z) and Redo (Ctrl+Shift+Z / Ctrl+Y)
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -397,6 +430,18 @@ function App() {
             subtitle: `Load relationships for ${selectedEntity.id}`,
             shortcut: 'E',
             onSelect: () => void expandSelected(),
+          },
+          {
+            id: 'graph-collapse-selected',
+            title: `Collapse "${selectedEntity.label}" expansion`,
+            subtitle: 'Undo the latest expansion involving this node',
+            onSelect: handleCollapseSelectedExpansion,
+          },
+          {
+            id: 'graph-remove-node',
+            title: `Remove "${selectedEntity.label}"`,
+            subtitle: 'Remove node and its incident edges from canvas',
+            onSelect: handleRemoveSelectedNode,
           },
         ]
       : []),
@@ -521,6 +566,26 @@ function App() {
           >
             <Redo2 size={18} />
           </button>
+          {selectedEntity && (
+            <>
+              <button
+                type="button"
+                title={`Collapse expansion for ${selectedEntity.label}`}
+                aria-label="Collapse selected expansion"
+                onClick={handleCollapseSelectedExpansion}
+              >
+                <Minimize2 size={18} />
+              </button>
+              <button
+                type="button"
+                title={`Remove ${selectedEntity.label} from canvas`}
+                aria-label="Remove selected node"
+                onClick={handleRemoveSelectedNode}
+              >
+                <Trash2 size={18} />
+              </button>
+            </>
+          )}
           <button
             type="button"
             title="Fit graph"
