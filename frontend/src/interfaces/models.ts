@@ -32,6 +32,11 @@ export interface GraphRelationship {
   relation: string
   source: GraphEntity
   target: GraphEntity
+  predicate_iri: string | null
+  predicate_label: string | null
+  is_inferred: boolean
+  source_graph: string | null
+  explanation_handle: string | null
 }
 
 export interface GraphExpansion {
