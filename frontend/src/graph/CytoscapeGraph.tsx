@@ -2,6 +2,7 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
 } from 'react'
 import CytoscapeComponent from 'react-cytoscapejs'
@@ -9,7 +10,7 @@ import cytoscape, { type Core, type ElementDefinition } from 'cytoscape'
 import dagre from 'cytoscape-dagre'
 
 import { entityKind } from '../api/graph'
-import { relationshipKey } from './state'
+import { relationshipKey, type ExplorerGraph } from './state'
 import { usePrefersReducedMotion } from './usePrefersReducedMotion'
 import type { DetailGraphRenderer } from '../interfaces/renderers'
 import type { GraphEntity, SemanticCategory } from '../interfaces/models'
@@ -119,6 +120,60 @@ export function getNodeStyling(
   }
 }
 
+/**
+ * Builds Cytoscape element definitions with profile styling, icons, and dashed/solid edges.
+ * Requirements: RC-001, RC-002, GE-002
+ */
+export function buildCytoscapeElements(
+  graph: ExplorerGraph,
+  categories?: SemanticCategory[],
+  categoryColors?: Record<string, string>,
+  pinnedNodeIds: string[] = [],
+): ElementDefinition[] {
+  return [
+    ...Object.values(graph.entities).map((entity) => {
+      const styling = getNodeStyling(entity, categories, categoryColors)
+      const isPinned = pinnedNodeIds.includes(entity.id)
+      return {
+        data: {
+          id: entity.id,
+          label: entity.label,
+          category: styling.categoryName,
+          shape: styling.shape,
+          color: styling.color,
+          icon: styling.icon || '',
+          displayLabel: styling.icon ? `${styling.icon} ${entity.label}` : entity.label,
+        },
+        classes: [
+          styling.categoryName.toLowerCase(),
+          `shape-${styling.shape}`,
+          entityKind(entity).toLowerCase(),
+          isPinned ? 'pinned' : '',
+        ]
+          .filter(Boolean)
+          .join(' '),
+      }
+    }),
+    ...Object.values(graph.relationships).map((relationship) => {
+      const isInferred = Boolean(relationship.is_inferred)
+      const label = relationship.predicate_label || relationship.relation
+      return {
+        data: {
+          id: relationshipKey(relationship),
+          source: relationship.source.id,
+          target: relationship.target.id,
+          label,
+          predicateLabel: relationship.predicate_label || '',
+          relation: relationship.relation,
+          isInferred,
+          lineStyle: isInferred ? 'dashed' : 'solid',
+        },
+        classes: isInferred ? 'inferred-edge' : 'asserted-edge',
+      }
+    }),
+  ]
+}
+
 const CytoscapeGraph = forwardRef<GraphRendererHandle, CytoscapeGraphProps>(
   function CytoscapeGraph(
     {
@@ -139,48 +194,10 @@ const CytoscapeGraph = forwardRef<GraphRendererHandle, CytoscapeGraphProps>(
 
     const prefersReducedMotion = usePrefersReducedMotion()
 
-    const elements: ElementDefinition[] = [
-      ...Object.values(graph.entities).map((entity) => {
-        const styling = getNodeStyling(entity, categories, categoryColors)
-        const isPinned = pinnedNodeIds.includes(entity.id)
-        return {
-          data: {
-            id: entity.id,
-            label: entity.label,
-            category: styling.categoryName,
-            shape: styling.shape,
-            color: styling.color,
-            icon: styling.icon || '',
-            displayLabel: styling.icon ? `${styling.icon} ${entity.label}` : entity.label,
-          },
-          classes: [
-            styling.categoryName.toLowerCase(),
-            `shape-${styling.shape}`,
-            entityKind(entity).toLowerCase(),
-            isPinned ? 'pinned' : '',
-          ]
-            .filter(Boolean)
-            .join(' '),
-        }
-      }),
-      ...Object.values(graph.relationships).map((relationship) => {
-        const isInferred = Boolean(relationship.is_inferred)
-        const label = relationship.predicate_label || relationship.relation
-        return {
-          data: {
-            id: relationshipKey(relationship),
-            source: relationship.source.id,
-            target: relationship.target.id,
-            label,
-            predicateLabel: relationship.predicate_label || '',
-            relation: relationship.relation,
-            isInferred,
-            lineStyle: isInferred ? 'dashed' : 'solid',
-          },
-          classes: isInferred ? 'inferred-edge' : 'asserted-edge',
-        }
-      }),
-    ]
+    const elements = useMemo(
+      () => buildCytoscapeElements(graph, categories, categoryColors, pinnedNodeIds),
+      [graph, categories, categoryColors, pinnedNodeIds],
+    )
 
     const runLayoutInternal = (name: string = layoutName) => {
       const cy = cyRef.current

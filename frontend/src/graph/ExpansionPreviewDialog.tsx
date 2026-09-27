@@ -250,8 +250,9 @@ export function ExpansionPreviewDialog({
   )
 }
 
-function getDirectionIcon(direction: TraversalDirection) {
-  switch (direction) {
+function getDirectionIcon(direction: TraversalDirection | string) {
+  const normalized = (direction || '').toUpperCase()
+  switch (normalized) {
     case 'OUTGOING':
       return <ArrowRight size={13} aria-hidden="true" />
     case 'INCOMING':
@@ -262,8 +263,9 @@ function getDirectionIcon(direction: TraversalDirection) {
   }
 }
 
-function getDirectionLabel(direction: TraversalDirection): string {
-  switch (direction) {
+function getDirectionLabel(direction: TraversalDirection | string): string {
+  const normalized = (direction || '').toUpperCase()
+  switch (normalized) {
     case 'OUTGOING':
       return 'Outgoing'
     case 'INCOMING':
