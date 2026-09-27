@@ -12,6 +12,7 @@ import {
   Cpu,
 } from 'lucide-react'
 import type { ActiveProfile } from '../interfaces/models'
+import { SkipLinks } from '../accessibility/FocusManager'
 import './AppShell.css'
 
 export interface AppShellProps {
@@ -126,6 +127,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   return (
     <div className="explorer-shell">
+      <SkipLinks />
       {profile && (
         <style>
           {profile.categories
@@ -225,6 +227,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       <div className="explorer-layout-container" style={gridStyle}>
         {/* Left Navigation Panel */}
         <aside
+          id="navigation-panel"
           className={`shell-panel nav-panel ${isNavOpen ? 'open' : 'collapsed'}`}
           aria-label="Ontology Navigation"
           aria-hidden={!isNavOpen}
@@ -246,7 +249,12 @@ export const AppShell: React.FC<AppShellProps> = ({
         {!isNavOpen && <div className="resizer-placeholder" />}
 
         {/* Center Canvas Panel */}
-        <main className="shell-panel canvas-panel-wrapper" role="main" aria-label="Graph Canvas">
+        <main
+          id="main-canvas"
+          className="shell-panel canvas-panel-wrapper"
+          role="main"
+          aria-label="Graph Canvas"
+        >
           {canvasContent}
         </main>
 
@@ -265,6 +273,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
         {/* Right Inspector Panel */}
         <aside
+          id="inspector-panel"
           className={`shell-panel inspector-panel ${isInspectorOpen ? 'open' : 'collapsed'}`}
           aria-label="Semantic Inspector"
           aria-hidden={!isInspectorOpen}

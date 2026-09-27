@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import {
   X,
   Network,
@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import type { ExpansionPreview, PreviewGroup, TraversalDirection } from '../interfaces/models'
+import { useFocusTrap } from '../accessibility/useFocusTrap'
 import './ExpansionPreviewDialog.css'
 
 export interface ExpansionPreviewDialogProps {
@@ -49,17 +50,12 @@ export function ExpansionPreviewDialog({
     setSelectedKeys(new Set(preview?.groups ? preview.groups.map(getGroupKey) : []))
   }
 
-  // Close on Escape key
-  useEffect(() => {
-    if (!isOpen) return
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onCancel()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onCancel])
+  // Use focus trap for dialog focus management and Escape key handling (AX-001, AX-003)
+  const dialogRef = useFocusTrap<HTMLDivElement>({
+    isActive: isOpen,
+    onEscape: onCancel,
+    initialFocusSelector: '.dialog-close-btn',
+  })
 
   const groups = useMemo(() => preview?.groups || [], [preview])
 
@@ -108,6 +104,7 @@ export function ExpansionPreviewDialog({
       }}
     >
       <div
+        ref={dialogRef}
         className="expansion-dialog"
         role="dialog"
         aria-modal="true"

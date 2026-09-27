@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { searchEntities, entityKind } from '../api/graph'
 import type { GraphEntity } from '../interfaces/models'
+import { useFocusTrap } from '../accessibility/useFocusTrap'
 import './CommandPalette.css'
 
 export interface CommandPaletteAction {
@@ -38,6 +39,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+
+  const modalRef = useFocusTrap<HTMLDivElement>({
+    isActive: isOpen,
+    onEscape: onClose,
+    initialFocusSelector: '.palette-input',
+  })
 
   const deferredQuery = useDeferredValue(query.trim())
 
@@ -170,6 +177,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       aria-label="Command Palette"
     >
       <div
+        ref={modalRef}
         className="palette-modal"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}

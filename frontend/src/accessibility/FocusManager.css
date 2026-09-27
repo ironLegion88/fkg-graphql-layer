@@ -1,0 +1,48 @@
+/* FocusManager.css — Visible focus rings, skip links, and focus trap styles (AX-001, AX-003) */
+
+/* Skip links: hidden visually until focused via keyboard */
+.skip-links-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.skip-link-item {
+  position: absolute;
+  top: -100px;
+  left: 12px;
+  padding: 10px 16px;
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: top 0.15s ease-out;
+  pointer-events: auto;
+  z-index: 10001;
+}
+
+.skip-link-item:focus {
+  top: 0;
+  outline: 3px solid #facc15;
+  outline-offset: 2px;
+}
+
+/* Global visible focus ring indicator (AX-001) */
+:focus-visible {
+  outline: 2px solid #0284c7 !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.35) !important;
+}
+
+/* Focus Trap Modal Container */
+.focus-trap-container {
+  outline: none;
+}
