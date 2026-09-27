@@ -108,6 +108,32 @@ button { font: inherit; }
   outline-offset: 1px;
 }
 
+.manual-layout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  border: 1px solid #c6d4cb;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.manual-layout-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.manual-layout-btn:focus-visible {
+  outline: 2px solid #0284c7;
+  outline-offset: 1px;
+}
+
 .icon-actions {
   display: flex;
   align-items: center;

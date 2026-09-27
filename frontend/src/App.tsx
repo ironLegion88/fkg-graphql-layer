@@ -19,10 +19,12 @@ import {
   Pin,
   PinOff,
   Table,
+  Play,
 } from 'lucide-react'
 import './App.css'
 import { VisibleGraphTable } from './views/VisibleGraphTable'
 import { GraphSummary } from './accessibility/GraphSummary'
+import { ReducedMotionProvider, ReducedMotionToggle } from './accessibility/ReducedMotion'
 import {
   type GraphEntity,
   type GraphExpansion,
@@ -782,24 +784,36 @@ function App() {
             </button>
           </div>
           {centerViewMode === 'canvas' && (
-            <select
-              id="layout-select"
-              value={layoutName}
-              onChange={(e) => {
-                const newLayout = e.target.value
-                setLayoutName(newLayout)
-                rendererRef.current?.runLayout(newLayout)
-              }}
-              className="layout-select"
-              aria-label="Select layout algorithm"
-              title="Choose layout algorithm (RC-007)"
-            >
-              <option value="breadthfirst">Breadthfirst (Tree)</option>
-              <option value="cose">CoSE (Force-Directed)</option>
-              <option value="dagre">Dagre (Hierarchical DAG)</option>
-              <option value="circle">Circle</option>
-              <option value="concentric">Concentric</option>
-            </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <select
+                id="layout-select"
+                value={layoutName}
+                onChange={(e) => {
+                  const newLayout = e.target.value
+                  setLayoutName(newLayout)
+                  rendererRef.current?.runLayout(newLayout)
+                }}
+                className="layout-select"
+                aria-label="Select layout algorithm"
+                title="Choose layout algorithm (RC-007)"
+              >
+                <option value="breadthfirst">Breadthfirst (Tree)</option>
+                <option value="cose">CoSE (Force-Directed)</option>
+                <option value="dagre">Dagre (Hierarchical DAG)</option>
+                <option value="circle">Circle</option>
+                <option value="concentric">Concentric</option>
+              </select>
+              <button
+                type="button"
+                className="manual-layout-btn"
+                onClick={() => rendererRef.current?.runLayout(layoutName)}
+                title="Run layout manually without auto-animation (AX-006)"
+                aria-label="Run layout calculation"
+              >
+                <Play size={12} aria-hidden="true" />
+                <span>Relayout</span>
+              </button>
+            </div>
           )}
         </div>
         <div className="icon-actions">
@@ -1268,15 +1282,18 @@ function App() {
   )
 
   const headerActions = (
-    <LanguageSelector
-      preferredLanguages={profile?.languages?.preferred_languages}
-      currentLanguage={currentLanguage}
-      onLanguageChange={setCurrentLanguage}
-    />
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <ReducedMotionToggle />
+      <LanguageSelector
+        preferredLanguages={profile?.languages?.preferred_languages}
+        currentLanguage={currentLanguage}
+        onLanguageChange={setCurrentLanguage}
+      />
+    </div>
   )
 
   return (
-    <>
+    <ReducedMotionProvider>
       <AppShell
         profile={profile}
         isLoading={isProfileLoading}
@@ -1310,7 +1327,7 @@ function App() {
           setExpansionPreview(null)
         }}
       />
-    </>
+    </ReducedMotionProvider>
   )
 }
 
