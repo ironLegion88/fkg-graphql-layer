@@ -14,6 +14,7 @@ import {
   FolderTree,
   Binary,
   Layers,
+  X,
 } from 'lucide-react'
 import './App.css'
 import {
@@ -43,6 +44,7 @@ import {
   applyRedo,
   removeNode,
   collapseNodeExpansion,
+  type ExpansionRecord,
   type ExplorerGraph,
   type UndoRedoStack,
 } from './graph/state'
@@ -73,6 +75,15 @@ function App() {
   const [expansionPreview, setExpansionPreview] = useState<ExpansionPreview | null>(null)
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [previewTargetEntity, setPreviewTargetEntity] = useState<GraphEntity | null>(null)
+  const [isMultiHopMode, setIsMultiHopMode] = useState(false)
+  const [traversalDepth, setTraversalDepth] = useState<number>(2)
+  const [isMultiHopExpanding, setIsMultiHopExpanding] = useState(false)
+  const [multiHopProgress, setMultiHopProgress] = useState<{
+    currentHop: number
+    totalHops: number
+    visitedCount: number
+  } | null>(null)
+  const multiHopAbortController = useRef<AbortController | null>(null)
 
   const rendererRef = useRef<GraphRendererHandle | null>(null)
 
@@ -253,6 +264,127 @@ function App() {
     )
     setPreviewTargetEntity(null)
     setExpansionPreview(null)
+  }
+
+  function cancelMultiHop() {
+    if (multiHopAbortController.current) {
+      multiHopAbortController.current.abort()
+      multiHopAbortController.current = null
+    }
+    setIsMultiHopExpanding(false)
+    setMultiHopProgress(null)
+    setNotice('Multi-hop traversal cancelled by user.')
+  }
+
+  async function executeMultiHopExpansion(rootEntity: GraphEntity, depth: number) {
+    if (depth <= 1) {
+      await expandSelected(false)
+      return
+    }
+
+    const controller = new AbortController()
+    multiHopAbortController.current = controller
+    setIsMultiHopExpanding(true)
+    setNotice(null)
+
+    let currentGraph = graph
+    const visited = new Set<string>([rootEntity.id])
+    let frontier = [rootEntity.id]
+    const allAddedNodeIds: string[] = []
+    const allAddedRelationshipIds: string[] = []
+    const allAddedEntities: Record<string, GraphEntity> = {}
+    const allAddedRelationships: Record<string, GraphRelationship> = {}
+
+    try {
+      for (let hop = 1; hop <= depth; hop++) {
+        if (controller.signal.aborted) break
+        if (frontier.length === 0) break
+
+        setMultiHopProgress({
+          currentHop: hop,
+          totalHops: depth,
+          visitedCount: visited.size,
+        })
+
+        const nextFrontier: string[] = []
+
+        for (const nodeId of frontier) {
+          if (controller.signal.aborted) break
+
+          // AC-105: Hard visible limits check before expanding
+          if (
+            Object.keys(currentGraph.entities).length >= DEFAULT_VISIBLE_LIMITS.maxNodes ||
+            Object.keys(currentGraph.relationships).length >= DEFAULT_VISIBLE_LIMITS.maxEdges
+          ) {
+            setNotice(
+              `Visible graph limit reached (${DEFAULT_VISIBLE_LIMITS.maxNodes} nodes / ${DEFAULT_VISIBLE_LIMITS.maxEdges} edges). Multi-hop stopped.`,
+            )
+            break
+          }
+
+          const expansion = await expandGraph({
+            id: nodeId,
+            direction,
+            relations: selectedRelations.length > 0 ? selectedRelations : undefined,
+            includeInferred,
+          })
+
+          if (controller.signal.aborted) break
+
+          const result = mergeGraphExpansion(currentGraph, expansion, DEFAULT_VISIBLE_LIMITS)
+          currentGraph = result.graph
+
+          allAddedNodeIds.push(...result.record.addedNodeIds)
+          allAddedRelationshipIds.push(...result.record.addedRelationshipIds)
+          if (result.record.addedEntities) {
+            Object.assign(allAddedEntities, result.record.addedEntities)
+          }
+          if (result.record.addedRelationships) {
+            Object.assign(allAddedRelationships, result.record.addedRelationships)
+          }
+
+          for (const neighborId of result.record.addedNodeIds) {
+            if (!visited.has(neighborId)) {
+              visited.add(neighborId)
+              nextFrontier.push(neighborId)
+            }
+          }
+
+          setGraph(currentGraph)
+
+          if (result.limitReached) {
+            setNotice(
+              `Visible graph limit reached (${DEFAULT_VISIBLE_LIMITS.maxNodes} nodes / ${DEFAULT_VISIBLE_LIMITS.maxEdges} edges). Multi-hop traversal truncated.`,
+            )
+            break
+          }
+        }
+
+        frontier = nextFrontier
+      }
+
+      if (
+        !controller.signal.aborted &&
+        (allAddedNodeIds.length > 0 || allAddedRelationshipIds.length > 0)
+      ) {
+        const consolidatedRecord: ExpansionRecord = {
+          centerId: rootEntity.id,
+          addedNodeIds: Array.from(new Set(allAddedNodeIds)),
+          addedRelationshipIds: Array.from(new Set(allAddedRelationshipIds)),
+          addedEntities: allAddedEntities,
+          addedRelationships: allAddedRelationships,
+        }
+        setUndoRedoStack((current) => pushUndoExpansion(current, consolidatedRecord))
+      }
+    } catch {
+      if (!controller.signal.aborted) {
+        setNotice('Multi-hop traversal encountered an error.')
+      }
+    } finally {
+      setIsMultiHopExpanding(false)
+      setMultiHopProgress(null)
+      multiHopAbortController.current = null
+    }
   }
 
   function resetGraph() {
@@ -644,6 +776,68 @@ function App() {
 
   const traversalControlsBlock = selectedEntity ? (
     <div className="traversal-controls">
+      <div className="traversal-mode-toggle" style={{ marginBottom: 10 }}>
+        <p className="eyebrow">Exploration mode</p>
+        <div className="direction-control" role="group" aria-label="Exploration hop mode">
+          <button
+            type="button"
+            className={!isMultiHopMode ? 'active' : ''}
+            aria-pressed={!isMultiHopMode}
+            onClick={() => setIsMultiHopMode(false)}
+          >
+            1-Hop
+          </button>
+          <button
+            type="button"
+            className={isMultiHopMode ? 'active' : ''}
+            aria-pressed={isMultiHopMode}
+            onClick={() => setIsMultiHopMode(true)}
+          >
+            Multi-Hop
+          </button>
+        </div>
+      </div>
+
+      {isMultiHopMode && (
+        <div className="depth-slider-control" style={{ marginBottom: 12 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: '0.8125rem',
+              marginBottom: 4,
+            }}
+          >
+            <span style={{ fontWeight: 600, color: '#334155' }}>Depth:</span>
+            <span style={{ color: '#0284c7', fontWeight: 700 }}>
+              {traversalDepth} {traversalDepth === 1 ? 'hop' : 'hops'}
+            </span>
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="3"
+            step="1"
+            value={traversalDepth}
+            onChange={(e) => setTraversalDepth(Number(e.target.value))}
+            style={{ width: '100%', accentColor: '#0284c7', cursor: 'pointer' }}
+            aria-label="Multi-hop traversal depth (1 to 3 hops)"
+          />
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: '0.7rem',
+              color: '#64748b',
+            }}
+          >
+            <span>1 hop</span>
+            <span>2 hops</span>
+            <span>3 hops</span>
+          </div>
+        </div>
+      )}
+
       <p className="eyebrow">Traversal filters</p>
       <div className="direction-control" role="group" aria-label="Relationship direction">
         {(['BOTH', 'OUTGOING', 'INCOMING'] as TraversalDirection[]).map((value) => (
@@ -680,28 +874,81 @@ function App() {
         Include inferred relationships
       </label>
 
+      {isMultiHopExpanding && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: '#e0f2fe',
+            border: '1px solid #7dd3fc',
+            borderRadius: '8px',
+            padding: '8px 12px',
+            marginTop: 8,
+            marginBottom: 8,
+            fontSize: '0.8125rem',
+            color: '#0369a1',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <LoaderCircle size={15} className="spin" />
+            <span>
+              Hop {multiHopProgress?.currentHop} of {multiHopProgress?.totalHops} ({multiHopProgress?.visitedCount} visited)
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={cancelMultiHop}
+            style={{
+              background: '#fee2e2',
+              color: '#b91c1c',
+              border: '1px solid #fecaca',
+              borderRadius: '6px',
+              padding: '3px 8px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <X size={13} />
+            Cancel
+          </button>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: '8px', marginTop: 8 }}>
         <button
           type="button"
           className="primary-action"
-          onClick={() => void expandSelected(false)}
-          disabled={relationshipsMutation.isPending || isPreviewLoading}
+          onClick={() => {
+            if (isMultiHopMode && traversalDepth > 1) {
+              void executeMultiHopExpansion(selectedEntity, traversalDepth)
+            } else {
+              void expandSelected(false)
+            }
+          }}
+          disabled={relationshipsMutation.isPending || isPreviewLoading || isMultiHopExpanding}
           style={{ flex: 1 }}
         >
-          {relationshipsMutation.isPending || isPreviewLoading ? (
+          {relationshipsMutation.isPending || isPreviewLoading || isMultiHopExpanding ? (
             <LoaderCircle size={17} className="spin" />
           ) : (
             <Network size={17} />
           )}
-          {nextCursorByEntity[selectedEntity.id]
-            ? 'Load more'
-            : 'Expand'}
+          {isMultiHopMode && traversalDepth > 1
+            ? `Expand (${traversalDepth} hops)`
+            : nextCursorByEntity[selectedEntity.id]
+              ? 'Load more'
+              : 'Expand'}
         </button>
         <button
           type="button"
           className="secondary-btn"
           onClick={() => void expandSelected(true)}
-          disabled={relationshipsMutation.isPending || isPreviewLoading}
+          disabled={relationshipsMutation.isPending || isPreviewLoading || isMultiHopExpanding}
           title="Preview and select predicate groups before expanding"
           style={{
             padding: '0.6rem 0.8rem',
