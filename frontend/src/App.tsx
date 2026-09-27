@@ -18,8 +18,13 @@ import {
   Focus,
   Pin,
   PinOff,
+  Table,
+  Play,
 } from 'lucide-react'
 import './App.css'
+import { VisibleGraphTable } from './views/VisibleGraphTable'
+import { GraphSummary } from './accessibility/GraphSummary'
+import { ReducedMotionProvider, ReducedMotionToggle } from './accessibility/ReducedMotion'
 import {
   type GraphEntity,
   type GraphExpansion,
@@ -89,6 +94,28 @@ function App() {
   const multiHopAbortController = useRef<AbortController | null>(null)
   const [layoutName, setLayoutName] = useState<string>('breadthfirst')
   const [pinnedNodeIds, setPinnedNodeIds] = useState<string[]>([])
+  // On mobile (<768px), textual VisibleGraphTable is the primary accessible view (AX-007)
+  const [centerViewMode, setCenterViewMode] = useState<'canvas' | 'table'>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return 'table'
+    }
+    return 'canvas'
+  })
+
+  // Switch to table view when entering mobile breakpoint (AX-007)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mql = window.matchMedia('(max-width: 767px)')
+    const handleMediaChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        setCenterViewMode('table')
+      }
+    }
+    if (mql.addEventListener) {
+      mql.addEventListener('change', handleMediaChange)
+      return () => mql.removeEventListener('change', handleMediaChange)
+    }
+  }, [])
 
   const rendererRef = useRef<GraphRendererHandle | null>(null)
 
@@ -121,6 +148,9 @@ function App() {
   const selectedEntity = selectedId ? graph.entities[selectedId] : undefined
   const nodeCount = Object.keys(graph.entities).length
   const edgeCount = Object.keys(graph.relationships).length
+  const inferredCount = useMemo(() => {
+    return Object.values(graph.relationships).filter((rel) => rel.is_inferred).length
+  }, [graph.relationships])
   const visibleRelationships = selectedEntity
     ? relationshipsForEntity(graph, selectedEntity.id)
     : []
@@ -752,24 +782,60 @@ function App() {
             <p className="eyebrow">Explore</p>
             <h2>Relationship map</h2>
           </div>
-          <select
-            id="layout-select"
-            value={layoutName}
-            onChange={(e) => {
-              const newLayout = e.target.value
-              setLayoutName(newLayout)
-              rendererRef.current?.runLayout(newLayout)
-            }}
-            className="layout-select"
-            aria-label="Select layout algorithm"
-            title="Choose layout algorithm (RC-007)"
-          >
-            <option value="breadthfirst">Breadthfirst (Tree)</option>
-            <option value="cose">CoSE (Force-Directed)</option>
-            <option value="dagre">Dagre (Hierarchical DAG)</option>
-            <option value="circle">Circle</option>
-            <option value="concentric">Concentric</option>
-          </select>
+          <div className="view-mode-selector" role="group" aria-label="Center view mode">
+            <button
+              type="button"
+              className={`view-mode-btn ${centerViewMode === 'canvas' ? 'active' : ''}`}
+              onClick={() => setCenterViewMode('canvas')}
+              aria-pressed={centerViewMode === 'canvas'}
+              title="Interactive Cytoscape Canvas View"
+            >
+              <Network size={14} aria-hidden="true" />
+              <span>Canvas</span>
+            </button>
+            <button
+              type="button"
+              className={`view-mode-btn ${centerViewMode === 'table' ? 'active' : ''}`}
+              onClick={() => setCenterViewMode('table')}
+              aria-pressed={centerViewMode === 'table'}
+              title={`Textual Whole-Graph Table (${edgeCount} relationships)`}
+            >
+              <Table size={14} aria-hidden="true" />
+              <span>Table ({edgeCount})</span>
+            </button>
+          </div>
+          {centerViewMode === 'canvas' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <select
+                id="layout-select"
+                value={layoutName}
+                onChange={(e) => {
+                  const newLayout = e.target.value
+                  setLayoutName(newLayout)
+                  rendererRef.current?.runLayout(newLayout)
+                }}
+                className="layout-select"
+                aria-label="Select layout algorithm"
+                title="Choose layout algorithm (RC-007)"
+              >
+                <option value="breadthfirst">Breadthfirst (Tree)</option>
+                <option value="cose">CoSE (Force-Directed)</option>
+                <option value="dagre">Dagre (Hierarchical DAG)</option>
+                <option value="circle">Circle</option>
+                <option value="concentric">Concentric</option>
+              </select>
+              <button
+                type="button"
+                className="manual-layout-btn"
+                onClick={() => rendererRef.current?.runLayout(layoutName)}
+                title="Run layout manually without auto-animation (AX-006)"
+                aria-label="Run layout calculation"
+              >
+                <Play size={12} aria-hidden="true" />
+                <span>Relayout</span>
+              </button>
+            </div>
+          )}
         </div>
         <div className="icon-actions">
           <button
@@ -863,32 +929,81 @@ function App() {
         </div>
       )}
 
-      <div className="graph-canvas">
-        {nodeCount === 0 && (
-          <div className="empty-graph">
-            <Network size={34} aria-hidden="true" />
-            <h3>Start with an entity, class, or property</h3>
-            <p>
-              Search or browse on the left, then select an item to reveal its connected graph.
-            </p>
-          </div>
-        )}
-        <CytoscapeGraph
-          ref={rendererRef}
-          graph={graph}
-          selectedId={selectedId}
-          categories={profile?.categories}
-          categoryColors={categoryColors}
-          layoutName={layoutName}
-          pinnedNodeIds={pinnedNodeIds}
-          onSelectEntity={setSelectedId}
-        />
-      </div>
+      <GraphSummary
+        nodeCount={nodeCount}
+        edgeCount={edgeCount}
+        inferredCount={inferredCount}
+        selectedEntity={selectedEntity}
+        selectedRelationship={selectedRelationship}
+        filters={{
+          direction,
+          selectedRelations,
+          totalAvailableRelations: RELATION_OPTIONS.length,
+          includeInferred,
+          layoutName,
+        }}
+        limitReached={Boolean(notice?.includes('limit reached'))}
+        isTruncated={Boolean(selectedEntity && nextCursorByEntity[selectedEntity.id])}
+        viewMode={centerViewMode}
+      />
 
-      {profile && (
-        <SemanticLegend
-          categories={profile.categories}
+      {centerViewMode === 'table' ? (
+        <VisibleGraphTable
+          graph={graph}
+          selectedEntityId={selectedId}
+          selectedRelationship={selectedRelationship}
+          profile={profile}
+          onSelectEntity={(id) => {
+            setSelectedId(id)
+            setSelectedRelationship(null)
+          }}
+          onSelectRelationship={(rel) => {
+            setSelectedRelationship(rel)
+            setSelectedId(rel.source.id)
+          }}
+          onExpandEntity={(entity) => void inspectEntity(entity)}
+          onRemoveEntity={(id) => {
+            setGraph((current) => removeNode(current, id))
+          }}
+          onRemoveRelationship={(rel) => {
+            const key = `${rel.source.id}|${rel.relation}|${rel.target.id}`
+            setGraph((current) => {
+              const nextRelationships = { ...current.relationships }
+              delete nextRelationships[key]
+              return { ...current, relationships: nextRelationships }
+            })
+          }}
         />
+      ) : (
+        <>
+          <div className="graph-canvas">
+            {nodeCount === 0 && (
+              <div className="empty-graph">
+                <Network size={34} aria-hidden="true" />
+                <h3>Start with an entity, class, or property</h3>
+                <p>
+                  Search or browse on the left, then select an item to reveal its connected graph.
+                </p>
+              </div>
+            )}
+            <CytoscapeGraph
+              ref={rendererRef}
+              graph={graph}
+              selectedId={selectedId}
+              categories={profile?.categories}
+              categoryColors={categoryColors}
+              layoutName={layoutName}
+              pinnedNodeIds={pinnedNodeIds}
+              onSelectEntity={setSelectedId}
+            />
+          </div>
+
+          {profile && (
+            <SemanticLegend
+              categories={profile.categories}
+            />
+          )}
+        </>
       )}
     </div>
   )
@@ -1188,15 +1303,18 @@ function App() {
   )
 
   const headerActions = (
-    <LanguageSelector
-      preferredLanguages={profile?.languages?.preferred_languages}
-      currentLanguage={currentLanguage}
-      onLanguageChange={setCurrentLanguage}
-    />
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <ReducedMotionToggle />
+      <LanguageSelector
+        preferredLanguages={profile?.languages?.preferred_languages}
+        currentLanguage={currentLanguage}
+        onLanguageChange={setCurrentLanguage}
+      />
+    </div>
   )
 
   return (
-    <>
+    <ReducedMotionProvider>
       <AppShell
         profile={profile}
         isLoading={isProfileLoading}
@@ -1230,7 +1348,7 @@ function App() {
           setExpansionPreview(null)
         }}
       />
-    </>
+    </ReducedMotionProvider>
   )
 }
 

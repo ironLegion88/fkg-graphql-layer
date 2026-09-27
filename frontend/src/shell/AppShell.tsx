@@ -12,6 +12,7 @@ import {
   Cpu,
 } from 'lucide-react'
 import type { ActiveProfile } from '../interfaces/models'
+import { SkipLinks } from '../accessibility/FocusManager'
 import './AppShell.css'
 
 export interface AppShellProps {
@@ -41,8 +42,18 @@ export const AppShell: React.FC<AppShellProps> = ({
 }) => {
   const [navWidth, setNavWidth] = useState(320)
   const [inspectorWidth, setInspectorWidth] = useState(340)
-  const [isNavOpen, setIsNavOpen] = useState(true)
-  const [isInspectorOpen, setIsInspectorOpen] = useState(true)
+  const [isNavOpen, setIsNavOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth > 1024
+    }
+    return true
+  })
+  const [isInspectorOpen, setIsInspectorOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth > 1024
+    }
+    return true
+  })
 
   // Resizing state
   const isResizingNav = useRef(false)
@@ -126,6 +137,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   return (
     <div className="explorer-shell">
+      <SkipLinks />
       {profile && (
         <style>
           {profile.categories
@@ -223,13 +235,41 @@ export const AppShell: React.FC<AppShellProps> = ({
 
       {/* Three-Panel Layout Workspace */}
       <div className="explorer-layout-container" style={gridStyle}>
+        {/* Tablet drawer backdrop (closes open sidebar/slide-over on tap) */}
+        {(isNavOpen || isInspectorOpen) && (
+          <div
+            className="tablet-drawer-backdrop"
+            aria-hidden="true"
+            onClick={() => {
+              setIsNavOpen(false)
+              setIsInspectorOpen(false)
+            }}
+          />
+        )}
+
         {/* Left Navigation Panel */}
         <aside
+          id="navigation-panel"
           className={`shell-panel nav-panel ${isNavOpen ? 'open' : 'collapsed'}`}
           aria-label="Ontology Navigation"
           aria-hidden={!isNavOpen}
         >
-          {isNavOpen && <div className="panel-content-scroll">{navigationContent}</div>}
+          {isNavOpen && (
+            <>
+              <div className="drawer-header-mobile">
+                <span className="drawer-title">Navigation</span>
+                <button
+                  type="button"
+                  className="drawer-close-btn"
+                  onClick={() => setIsNavOpen(false)}
+                  aria-label="Close Navigation"
+                >
+                  <PanelLeftClose size={18} />
+                </button>
+              </div>
+              <div className="panel-content-scroll">{navigationContent}</div>
+            </>
+          )}
         </aside>
 
         {/* Left Resizer Handle */}
@@ -246,7 +286,12 @@ export const AppShell: React.FC<AppShellProps> = ({
         {!isNavOpen && <div className="resizer-placeholder" />}
 
         {/* Center Canvas Panel */}
-        <main className="shell-panel canvas-panel-wrapper" role="main" aria-label="Graph Canvas">
+        <main
+          id="main-canvas"
+          className="shell-panel canvas-panel-wrapper"
+          role="main"
+          aria-label="Graph Canvas"
+        >
           {canvasContent}
         </main>
 
@@ -265,11 +310,27 @@ export const AppShell: React.FC<AppShellProps> = ({
 
         {/* Right Inspector Panel */}
         <aside
+          id="inspector-panel"
           className={`shell-panel inspector-panel ${isInspectorOpen ? 'open' : 'collapsed'}`}
           aria-label="Semantic Inspector"
           aria-hidden={!isInspectorOpen}
         >
-          {isInspectorOpen && <div className="panel-content-scroll">{inspectorContent}</div>}
+          {isInspectorOpen && (
+            <>
+              <div className="drawer-header-mobile">
+                <span className="drawer-title">Inspector</span>
+                <button
+                  type="button"
+                  className="drawer-close-btn"
+                  onClick={() => setIsInspectorOpen(false)}
+                  aria-label="Close Inspector"
+                >
+                  <PanelRightClose size={18} />
+                </button>
+              </div>
+              <div className="panel-content-scroll">{inspectorContent}</div>
+            </>
+          )}
         </aside>
       </div>
     </div>

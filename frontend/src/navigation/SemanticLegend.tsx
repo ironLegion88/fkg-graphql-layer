@@ -25,6 +25,12 @@ export const SemanticLegend: React.FC<SemanticLegendProps> = ({
             activeCategories === undefined || activeCategories.includes(cat.name)
           const displayLabel = cat.label || cat.name
 
+          const shapeCue = catNameLower.includes('class')
+            ? '◇'
+            : catNameLower.includes('property')
+            ? '□'
+            : '○'
+
           return (
             <button
               key={cat.name}
@@ -39,6 +45,15 @@ export const SemanticLegend: React.FC<SemanticLegendProps> = ({
                 style={cat.color ? { backgroundColor: cat.color } : undefined}
                 aria-hidden="true"
               />
+              {cat.icon ? (
+                <span className="legend-category-icon" aria-hidden="true">
+                  {cat.icon}
+                </span>
+              ) : (
+                <span className="legend-shape-cue" aria-hidden="true">
+                  {shapeCue}
+                </span>
+              )}
               <span className="legend-text">{displayLabel}</span>
             </button>
           )

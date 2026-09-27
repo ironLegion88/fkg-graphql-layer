@@ -3,10 +3,10 @@
 - **Document type:** Supplementary implementation context for LLM agent delegation
 - **Status:** Active — Phase 0 complete, Phase 1 in progress
 - **Created:** 2026-09-19
-- **Last Updated:** 2026-09-27 (Batch 2C complete)
+- **Last Updated:** 2026-09-28 (Batch 2D complete)
 - **Current Sprint:** Sprint 2 (Supported Application)
 - **Phase 0 Status:** ✅ COMPLETE (all 9 gaps resolved, 142 backend + 6 frontend tests passing)
-- **Phase 1 Progress:** Batch 2A (AppShell & Navigation), Batch 2B (Semantic Inspector & Provenance), and Batch 2C (Cytoscape Detail Exploration) ✅ COMPLETE
+- **Phase 1 Progress:** Batch 2A (AppShell & Navigation), Batch 2B (Semantic Inspector & Provenance), Batch 2C (Cytoscape Detail Exploration), and Batch 2D (Textual & Accessible Views) ✅ COMPLETE
 - **Sprint 2 Baseline Branch:** `sprint-2/cytoscape` (created from `sprint-1/core-platform`, with `sprint-2/gap-remediation` merged)
 - **Per-batch branches:** Each Phase 1 batch gets a dedicated branch from `sprint-2/cytoscape`, merged back upon completion
 - **Prerequisite reading:** Before beginning any batch, read these documents in order:
@@ -843,5 +843,53 @@ From `package.json`:
 ### Test Counts After Batch 2C
 - **Frontend:** **54 passed** (vitest, 8 test files)
 - **Frontend build:** Clean (`tsc -b && vite build` passed)
+- **Backend:** **143 passed** (pytest), 9 deprecation warnings
+- **Git whitespace check:** Clean (`git diff --check` passed)
+
+---
+
+## 19. Batch 2D Completion Summary
+*(Implemented on `batch-2d/accessible-views`, merged into `sprint-2/cytoscape`)*
+
+### What Changed
+- **Whole-Visible-Graph Table (`VisibleGraphTable.tsx`, `VisibleGraphTable.css`):**
+  - Interactive, sortable, filterable, and paginated table showing every visible relationship in the graph state (`GE-008`, `AX-002`, `AC-113`).
+  - Columns: Source Entity, Predicate, Target Entity, Direction, Origin (Asserted vs Inferred with non-color cues), Source Graph, and Actions.
+  - Full keyboard sorting with ARIA announcements, text search filtering, predicate dropdown filtering, and origin filtering.
+  - Seamless two-way synchronization with the Cytoscape graph canvas: row selection highlights canvas nodes, and row action buttons allow Inspect, Expand, Remove Relationship, and Remove Entity.
+  - Canvas toolbar toggle allowing switching between `Canvas` and `Table (N)` views.
+- **Hierarchy Tree Views (`HierarchyTreeView.tsx`, `treeBuilders.tsx`, `HierarchyTreeView.css`):**
+  - Reusable, accessible tree component adhering to the WAI-ARIA Tree View pattern with roving tabindex, arrow navigation, Enter/Space selection, and expand/collapse (`AX-001`, `AX-002`).
+  - Semantic ARIA roles (`tree`, `treeitem`, `group`) with `aria-expanded`, `aria-level`, and `aria-selected`.
+  - Search filter with automatic expansion of ancestor nodes.
+  - Modular tree builders: `buildClassHierarchyTree` (class hierarchy from `ClassInfo`), `buildPathTree` (path sequences), `buildComparisonTree` (comparison shared/unique facts), and `buildProofTree` (proof steps).
+- **Focus Management & Skip Links (`FocusManager.tsx`, `useFocusTrap.ts`, `FocusManager.css`):**
+  - `SkipLinks` component in `AppShell` providing direct bypass links to `#main-canvas`, `#visible-graph-table`, `#navigation-panel`, and `#inspector-panel` (`AX-001`, `AX-003`).
+  - `useFocusTrap` hook and `FocusTrap` wrapper containing keyboard focus within `CommandPalette` and `ExpansionPreviewDialog` with Escape key handling and focus restoration to trigger elements.
+  - Enforced high-contrast visible focus rings (`:focus-visible`) across all interactive components.
+- **Screen-Reader Graph Summary (`GraphSummary.tsx`, `GraphSummary.css`):**
+  - Polite ARIA live region (`aria-live="polite"`, `role="status"`, `aria-atomic="true"`) announcing graph state changes, node/edge counts, inferred counts, selected entity, active filters, and limit warnings (`AX-004`, `AX-005`).
+- **Non-Color Semantic Cues (`AX-005`, `AC-106`):**
+  - Redundant cues for asserted vs inferred (✓ solid vs ⚡ dashed), category shapes (diamond `◇`, square `□`, circle `○`), consistency severity icons (`AlertOctagon`, `AlertTriangle`, `Info`), and canvas node selection halos.
+- **Prefers-Reduced-Motion Support (`ReducedMotion.tsx`, `ReducedMotionContext.ts`, `ReducedMotion.css`):**
+  - Global `prefers-reduced-motion` CSS overrides disabling animations, transitions, and keyframes (`AX-006`, `RC-008`).
+  - Header `ReducedMotionToggle` button allowing users to force-reduce motion regardless of system preference.
+  - Manual canvas `Relayout` button to run layout calculations on-demand without auto-animation.
+- **Responsive Layout Design (`AppShell.tsx`, `AppShell.css`, `App.css`):**
+  - Desktop (>1024px): Three-panel side-by-side workspace with drag resizers.
+  - Tablet (768px–1024px): Navigation collapses to a sliding sidebar drawer and Inspector to a slide-over drawer with backdrop overlay dismiss.
+  - Mobile (<768px): Vertical stacking of panels with `VisibleGraphTable` defaulting as the primary view on small viewports.
+  - Touch targets: Minimum dimension >= 44px on all interactive controls.
+- **Testing & Quality Assurance:**
+  - Added 33 new frontend unit tests across 6 test files (`VisibleGraphTable.test.tsx`, `HierarchyTreeView.test.tsx`, `FocusManager.test.tsx`, `GraphSummary.test.tsx`, `ReducedMotion.test.tsx`, `KeyboardNavigation.test.tsx`).
+  - Total frontend tests increased from 54 to **87 passed (100%)**.
+  - All 143 backend pytest tests pass.
+  - ESLint passes cleanly with 0 errors and 0 warnings.
+  - Production build `tsc -b && vite build` succeeds.
+
+### Test Counts After Batch 2D
+- **Frontend:** **87 passed** (vitest, 14 test files)
+- **Frontend build:** Clean (`tsc -b && vite build` passed)
+- **ESLint:** Clean (`0 errors, 0 warnings`)
 - **Backend:** **143 passed** (pytest), 9 deprecation warnings
 - **Git whitespace check:** Clean (`git diff --check` passed)

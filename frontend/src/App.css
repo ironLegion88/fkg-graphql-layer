@@ -65,6 +65,73 @@ button { font: inherit; }
   align-items: center;
   justify-content: space-between;
   padding: 0 4px 12px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.view-mode-selector {
+  display: inline-flex;
+  align-items: center;
+  background: #e2e8f0;
+  padding: 2px;
+  border-radius: 6px;
+  gap: 2px;
+}
+
+.view-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-mode-btn:hover {
+  color: #0f172a;
+}
+
+.view-mode-btn.active {
+  background: #ffffff;
+  color: #0369a1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.view-mode-btn:focus-visible {
+  outline: 2px solid #0284c7;
+  outline-offset: 1px;
+}
+
+.manual-layout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  border: 1px solid #c6d4cb;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.manual-layout-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.manual-layout-btn:focus-visible {
+  outline: 2px solid #0284c7;
+  outline-offset: 1px;
 }
 
 .icon-actions {
@@ -433,6 +500,66 @@ button { font: inherit; }
 }
 .spin {
   animation: spin 0.9s linear infinite;
+}
+
+/* ==========================================================================
+   Mobile (<768px) and Touch Accessibility (AX-007, AC-113)
+   Ensures touch targets >= 44px and responsive controls
+   ========================================================================== */
+@media (max-width: 767px) {
+  .canvas-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 8px 4px;
+  }
+
+  .view-mode-selector {
+    display: flex;
+    width: 100%;
+  }
+
+  .view-mode-btn {
+    flex: 1;
+    min-height: 44px;
+    justify-content: center;
+    font-size: 0.8125rem;
+    padding: 10px 14px;
+  }
+
+  .layout-select {
+    min-height: 44px;
+    font-size: 0.875rem;
+    flex: 1;
+  }
+
+  .manual-layout-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 0.8125rem;
+  }
+
+  .icon-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .icon-actions button {
+    min-width: 44px;
+    min-height: 44px;
+    flex: 1;
+  }
+
+  .nav-tab-btn {
+    min-height: 44px;
+    font-size: 13px;
+  }
+
+  .command-palette-trigger {
+    min-height: 44px;
+  }
 }
 
 /* RC-008, AX-004: Respect prefers-reduced-motion */

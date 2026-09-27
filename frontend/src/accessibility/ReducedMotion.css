@@ -1,0 +1,54 @@
+/* ReducedMotion.css — Comprehensive prefers-reduced-motion overrides (AX-004, AX-006) */
+
+/* When OS preference or manual toggle is active, disable all CSS animations and transitions */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+body.reduced-motion *,
+body.reduced-motion *::before,
+body.reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Reduced Motion Toggle Button */
+.reduced-motion-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.reduced-motion-toggle-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.reduced-motion-toggle-btn.active {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #86efac;
+}
+
+.reduced-motion-toggle-btn:focus-visible {
+  outline: 2px solid #0284c7;
+  outline-offset: 1px;
+}
