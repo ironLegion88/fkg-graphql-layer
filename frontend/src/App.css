@@ -97,6 +97,37 @@ button { font: inherit; }
   cursor: not-allowed;
 }
 
+.icon-actions button.active-pin {
+  background: #d7972f;
+  color: #ffffff;
+  border-color: #b87b1c;
+}
+
+.icon-actions button.active-pin:hover:not(:disabled) {
+  background: #b87b1c;
+  color: #ffffff;
+}
+
+.layout-select {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #c6d4cb;
+  border-radius: 6px;
+  background: #fffdf8;
+  color: #173b37;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s;
+}
+
+.layout-select:focus {
+  border-color: #287b73;
+  box-shadow: 0 0 0 2px rgba(40, 123, 115, 0.2);
+}
+
 .graph-notice {
   display: flex;
   gap: 8px;
@@ -402,4 +433,19 @@ button { font: inherit; }
 }
 .spin {
   animation: spin 0.9s linear infinite;
+}
+
+/* RC-008, AX-004: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .spin {
+    animation: none !important;
+  }
 }
