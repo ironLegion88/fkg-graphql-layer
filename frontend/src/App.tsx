@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useRef, useState, useMemo } from 'react'
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   CircleAlert,
@@ -422,7 +422,7 @@ function App() {
     setNotice(isPinned ? `Unpinned "${label}".` : `Pinned "${label}" position in place.`)
   }
 
-  function handleUndo() {
+  const handleUndo = useCallback(() => {
     const { graph: newGraph, stack: newStack, undoneRecord } = applyUndo(graph, undoRedoStack)
     if (!undoneRecord) {
       return
@@ -438,9 +438,9 @@ function App() {
       setSelectedId(null)
     }
     setNotice(null)
-  }
+  }, [graph, undoRedoStack, selectedId])
 
-  function handleRedo() {
+  const handleRedo = useCallback(() => {
     const { graph: newGraph, stack: newStack, redoneRecord } = applyRedo(
       graph,
       undoRedoStack,
@@ -452,7 +452,7 @@ function App() {
     setGraph(newGraph)
     setUndoRedoStack(newStack)
     setNotice(null)
-  }
+  }, [graph, undoRedoStack])
 
   function handleCollapseSelectedExpansion() {
     if (!selectedId) return
@@ -505,7 +505,7 @@ function App() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [graph, undoRedoStack])
+  }, [handleRedo, handleUndo])
 
   function toggleRelation(relation: string) {
     setNextCursorByEntity({})

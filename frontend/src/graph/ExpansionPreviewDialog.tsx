@@ -38,16 +38,16 @@ export function ExpansionPreviewDialog({
   onExpand,
   onCancel,
 }: ExpansionPreviewDialogProps) {
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
+  const [prevPreview, setPrevPreview] = useState(preview)
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => {
+    return new Set(preview?.groups ? preview.groups.map(getGroupKey) : [])
+  })
 
-  // Initialize selected keys when preview data changes
-  useEffect(() => {
-    if (preview?.groups) {
-      setSelectedKeys(new Set(preview.groups.map(getGroupKey)))
-    } else {
-      setSelectedKeys(new Set())
-    }
-  }, [preview])
+  // Synchronize selected keys when preview data changes
+  if (prevPreview !== preview) {
+    setPrevPreview(preview)
+    setSelectedKeys(new Set(preview?.groups ? preview.groups.map(getGroupKey) : []))
+  }
 
   // Close on Escape key
   useEffect(() => {

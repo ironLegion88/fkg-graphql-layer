@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCytoscapeElements, getNodeStyling } from './CytoscapeGraph'
+import { buildCytoscapeElements, getNodeStyling } from './styling'
 import type { GraphEntity, GraphRelationship, SemanticCategory } from '../interfaces/models'
 import type { ExplorerGraph } from './state'
 
