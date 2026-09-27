@@ -275,12 +275,16 @@ const CytoscapeGraph = forwardRef<GraphRendererHandle, CytoscapeGraphProps>(
           style: { 'background-color': color },
         }),
       ),
-      // Selection highlight
+      // Selection highlight with redundant non-color underlay halo (AX-003, AC-106)
       {
         selector: 'node:selected',
         style: {
-          'border-color': '#173b37',
+          'border-color': '#0284c7',
           'border-width': '5px',
+          'underlay-color': '#38bdf8',
+          'underlay-padding': '5px',
+          'underlay-opacity': 0.5,
+          'underlay-shape': 'data(shape)',
         },
       },
       // Pinned node border indicator

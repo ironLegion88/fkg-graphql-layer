@@ -10,6 +10,7 @@ import {
   ExternalLink,
   LoaderCircle,
   FileCheck,
+  Info,
 } from 'lucide-react'
 import type { BuildStatus } from '../interfaces/models'
 import './ConsistencyPanel.css'
@@ -36,6 +37,17 @@ function compactIri(iri: string): string {
     // fallback
   }
   return iri
+}
+
+function getSeverityIcon(severity: string) {
+  const s = severity.toLowerCase()
+  if (s === 'error' || s === 'violation') {
+    return <AlertOctagon size={12} aria-hidden="true" />
+  }
+  if (s === 'warning') {
+    return <AlertTriangle size={12} aria-hidden="true" />
+  }
+  return <Info size={12} aria-hidden="true" />
 }
 
 export const ConsistencyPanel: React.FC<ConsistencyPanelProps> = ({
@@ -258,9 +270,19 @@ export const ConsistencyPanel: React.FC<ConsistencyPanelProps> = ({
                         : f.severity.toLowerCase() === 'warning'
                         ? '#92400e'
                         : '#0369a1',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    border:
+                      f.severity.toLowerCase() === 'error'
+                        ? '1px solid #b91c1c'
+                        : f.severity.toLowerCase() === 'warning'
+                        ? '1px dashed #d97706'
+                        : '1px dotted #0284c7',
                   }}
                 >
-                  {f.severity}
+                  {getSeverityIcon(f.severity)}
+                  <span>{f.severity}</span>
                 </span>
                 <p style={{ margin: 0 }}>{f.message}</p>
                 {f.focus_node && (
