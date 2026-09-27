@@ -1,4 +1,4 @@
-import { startTransition, useRef, useState, useMemo } from 'react'
+import { startTransition, useEffect, useRef, useState, useMemo } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   CircleAlert,
@@ -7,6 +7,7 @@ import {
   Network,
   RotateCcw,
   Undo2,
+  Redo2,
   Search,
   FolderTree,
   Binary,
@@ -31,12 +32,15 @@ import { ExpansionPreviewDialog } from './graph/ExpansionPreviewDialog'
 import {
   DEFAULT_VISIBLE_LIMITS,
   addStandaloneEntity,
-  collapseExpansion,
   emptyGraph,
   mergeExpansion as mergeGraphExpansion,
   relationshipsForEntity,
-  type ExpansionRecord,
+  initialUndoRedoStack,
+  pushUndoExpansion,
+  applyUndo,
+  applyRedo,
   type ExplorerGraph,
+  type UndoRedoStack,
 } from './graph/state'
 import { AppShell } from './shell/AppShell'
 import { SearchPanel } from './navigation/SearchPanel'
@@ -51,7 +55,7 @@ type NavTab = 'search' | 'classes' | 'properties'
 function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [graph, setGraph] = useState<ExplorerGraph>(emptyGraph)
-  const [expansionHistory, setExpansionHistory] = useState<ExpansionRecord[]>([])
+  const [undoRedoStack, setUndoRedoStack] = useState<UndoRedoStack>(initialUndoRedoStack)
   const [nextCursorByEntity, setNextCursorByEntity] = useState<Record<string, string | null>>({})
   const [direction, setDirection] = useState<TraversalDirection>('BOTH')
   const [selectedRelations, setSelectedRelations] = useState<string[]>([])
@@ -109,7 +113,7 @@ function App() {
         result.record.addedNodeIds.length > 0 ||
         result.record.addedRelationshipIds.length > 0
       ) {
-        setExpansionHistory((current) => [...current.slice(-19), result.record])
+        setUndoRedoStack((current) => pushUndoExpansion(current, result.record))
       }
       setNextCursorByEntity((current) => ({
         ...current,
@@ -251,7 +255,7 @@ function App() {
     setGraph(emptyGraph)
     setSelectedId(null)
     setSelectedRelationship(null)
-    setExpansionHistory([])
+    setUndoRedoStack(initialUndoRedoStack)
     setNextCursorByEntity({})
     setNotice(null)
   }
@@ -260,24 +264,61 @@ function App() {
     rendererRef.current?.fit()
   }
 
-  function undoLastExpansion() {
-    const lastExpansion = expansionHistory.at(-1)
-    if (!lastExpansion) {
+  function handleUndo() {
+    const { graph: newGraph, stack: newStack, undoneRecord } = applyUndo(graph, undoRedoStack)
+    if (!undoneRecord) {
       return
     }
-    const collapsed = collapseExpansion(graph, lastExpansion)
-    setGraph(collapsed)
-    setExpansionHistory((current) => current.slice(0, -1))
+    setGraph(newGraph)
+    setUndoRedoStack(newStack)
     setNextCursorByEntity((current) => {
       const next = { ...current }
-      delete next[lastExpansion.centerId]
+      delete next[undoneRecord.centerId]
       return next
     })
-    if (selectedId && !collapsed.entities[selectedId]) {
+    if (selectedId && !newGraph.entities[selectedId]) {
       setSelectedId(null)
     }
     setNotice(null)
   }
+
+  function handleRedo() {
+    const { graph: newGraph, stack: newStack, redoneRecord } = applyRedo(
+      graph,
+      undoRedoStack,
+      DEFAULT_VISIBLE_LIMITS,
+    )
+    if (!redoneRecord) {
+      return
+    }
+    setGraph(newGraph)
+    setUndoRedoStack(newStack)
+    setNotice(null)
+  }
+
+  // Keyboard shortcut listener for Undo (Ctrl+Z) and Redo (Ctrl+Shift+Z / Ctrl+Y)
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null
+      const tagName = target?.tagName?.toLowerCase()
+      if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') return
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+        if (event.shiftKey) {
+          event.preventDefault()
+          handleRedo()
+        } else {
+          event.preventDefault()
+          handleUndo()
+        }
+      } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
+        event.preventDefault()
+        handleRedo()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [graph, undoRedoStack])
 
   function toggleRelation(relation: string) {
     setNextCursorByEntity({})
@@ -331,9 +372,16 @@ function App() {
     {
       id: 'graph-undo',
       title: 'Undo Last Expansion',
-      subtitle: 'Collapse the latest expanded neighborhood',
-      shortcut: 'U',
-      onSelect: undoLastExpansion,
+      subtitle: 'Roll back the latest expanded neighborhood',
+      shortcut: 'Ctrl+Z',
+      onSelect: handleUndo,
+    },
+    {
+      id: 'graph-redo',
+      title: 'Redo Expansion',
+      subtitle: 'Reapply the previously undone expansion',
+      shortcut: 'Ctrl+Shift+Z',
+      onSelect: handleRedo,
     },
     {
       id: 'graph-reset',
@@ -457,12 +505,21 @@ function App() {
         <div className="icon-actions">
           <button
             type="button"
-            title="Undo last expansion"
+            title="Undo last expansion (Ctrl+Z)"
             aria-label="Undo last expansion"
-            onClick={undoLastExpansion}
-            disabled={expansionHistory.length === 0}
+            onClick={handleUndo}
+            disabled={undoRedoStack.undoStack.length === 0}
           >
             <Undo2 size={18} />
+          </button>
+          <button
+            type="button"
+            title="Redo expansion (Ctrl+Shift+Z)"
+            aria-label="Redo expansion"
+            onClick={handleRedo}
+            disabled={undoRedoStack.redoStack.length === 0}
+          >
+            <Redo2 size={18} />
           </button>
           <button
             type="button"

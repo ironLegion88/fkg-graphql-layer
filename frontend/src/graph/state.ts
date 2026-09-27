@@ -18,6 +18,8 @@ export interface ExpansionRecord {
   centerId: string
   addedNodeIds: string[]
   addedRelationshipIds: string[]
+  addedEntities?: Record<string, GraphEntity>
+  addedRelationships?: Record<string, GraphRelationship>
 }
 
 export interface MergeExpansionResult {
@@ -26,6 +28,16 @@ export interface MergeExpansionResult {
   rejectedNodes: number
   rejectedRelationships: number
   limitReached: boolean
+}
+
+export interface UndoRedoStack {
+  undoStack: ExpansionRecord[]
+  redoStack: ExpansionRecord[]
+}
+
+export const initialUndoRedoStack: UndoRedoStack = {
+  undoStack: [],
+  redoStack: [],
 }
 
 export const DEFAULT_VISIBLE_LIMITS: VisibleGraphLimits = {
@@ -71,6 +83,8 @@ export function mergeExpansion(
   const relationships = { ...graph.relationships }
   const addedNodeIds: string[] = []
   const addedRelationshipIds: string[] = []
+  const addedEntities: Record<string, GraphEntity> = {}
+  const addedRelationships: Record<string, GraphRelationship> = {}
   let rejectedNodes = 0
   let rejectedRelationships = 0
 
@@ -88,6 +102,7 @@ export function mergeExpansion(
     } else if (Object.keys(entities).length < limits.maxNodes) {
       entities[entity.id] = entity
       addedNodeIds.push(entity.id)
+      addedEntities[entity.id] = entity
     } else {
       rejectedNodes += 1
     }
@@ -102,6 +117,7 @@ export function mergeExpansion(
     } else if (Object.keys(relationships).length < limits.maxEdges) {
       relationships[key] = relationship
       addedRelationshipIds.push(key)
+      addedRelationships[key] = relationship
     } else {
       rejectedRelationships += 1
     }
@@ -113,6 +129,8 @@ export function mergeExpansion(
       centerId: expansion.center.id,
       addedNodeIds,
       addedRelationshipIds,
+      addedEntities,
+      addedRelationships,
     },
     rejectedNodes,
     rejectedRelationships,
@@ -120,7 +138,7 @@ export function mergeExpansion(
   }
 }
 
-export function collapseExpansion(
+export function undoExpansion(
   graph: ExplorerGraph,
   record: ExpansionRecord,
 ): ExplorerGraph {
@@ -140,6 +158,150 @@ export function collapseExpansion(
     }
   }
   return { entities, relationships }
+}
+
+export function redoExpansion(
+  graph: ExplorerGraph,
+  record: ExpansionRecord,
+  limits: VisibleGraphLimits = DEFAULT_VISIBLE_LIMITS,
+): ExplorerGraph {
+  const entities = { ...graph.entities }
+  const relationships = { ...graph.relationships }
+
+  if (record.addedEntities) {
+    for (const [id, entity] of Object.entries(record.addedEntities)) {
+      if (Object.keys(entities).length < limits.maxNodes) {
+        entities[id] = entity
+      }
+    }
+  }
+
+  if (record.addedRelationships) {
+    for (const [key, relationship] of Object.entries(record.addedRelationships)) {
+      if (
+        entities[relationship.source.id] &&
+        entities[relationship.target.id] &&
+        Object.keys(relationships).length < limits.maxEdges
+      ) {
+        relationships[key] = relationship
+      }
+    }
+  }
+
+  return { entities, relationships }
+}
+
+export function collapseExpansion(
+  graph: ExplorerGraph,
+  record: ExpansionRecord,
+): ExplorerGraph {
+  return undoExpansion(graph, record)
+}
+
+export function pushUndoExpansion(
+  stack: UndoRedoStack,
+  record: ExpansionRecord,
+  maxHistory = 20,
+): UndoRedoStack {
+  return {
+    undoStack: [...stack.undoStack.slice(-(maxHistory - 1)), record],
+    redoStack: [], // New action clears redo stack
+  }
+}
+
+export function applyUndo(
+  graph: ExplorerGraph,
+  stack: UndoRedoStack,
+): { graph: ExplorerGraph; stack: UndoRedoStack; undoneRecord: ExpansionRecord | null } {
+  if (stack.undoStack.length === 0) {
+    return { graph, stack, undoneRecord: null }
+  }
+  const undoneRecord = stack.undoStack[stack.undoStack.length - 1]
+  const newGraph = undoExpansion(graph, undoneRecord)
+  return {
+    graph: newGraph,
+    stack: {
+      undoStack: stack.undoStack.slice(0, -1),
+      redoStack: [...stack.redoStack, undoneRecord],
+    },
+    undoneRecord,
+  }
+}
+
+export function applyRedo(
+  graph: ExplorerGraph,
+  stack: UndoRedoStack,
+  limits: VisibleGraphLimits = DEFAULT_VISIBLE_LIMITS,
+): { graph: ExplorerGraph; stack: UndoRedoStack; redoneRecord: ExpansionRecord | null } {
+  if (stack.redoStack.length === 0) {
+    return { graph, stack, redoneRecord: null }
+  }
+  const redoneRecord = stack.redoStack[stack.redoStack.length - 1]
+  const newGraph = redoExpansion(graph, redoneRecord, limits)
+  return {
+    graph: newGraph,
+    stack: {
+      undoStack: [...stack.undoStack, redoneRecord],
+      redoStack: stack.redoStack.slice(0, -1),
+    },
+    redoneRecord,
+  }
+}
+
+/**
+ * Remove a specific node and all connected edges from the visible graph (GE-005).
+ */
+export function removeNode(
+  graph: ExplorerGraph,
+  nodeId: string,
+): ExplorerGraph {
+  if (!graph.entities[nodeId]) {
+    return graph
+  }
+
+  const entities = { ...graph.entities }
+  delete entities[nodeId]
+
+  const relationships = { ...graph.relationships }
+  for (const [key, relationship] of Object.entries(relationships)) {
+    if (relationship.source.id === nodeId || relationship.target.id === nodeId) {
+      delete relationships[key]
+    }
+  }
+
+  return { entities, relationships }
+}
+
+/**
+ * Collapse the latest expansion involving a specific node (GE-005).
+ */
+export function collapseNodeExpansion(
+  graph: ExplorerGraph,
+  nodeId: string,
+  stack: UndoRedoStack,
+): { graph: ExplorerGraph; stack: UndoRedoStack; collapsedRecord: ExpansionRecord | null } {
+  const index = stack.undoStack.findLastIndex(
+    (record) => record.centerId === nodeId || record.addedNodeIds.includes(nodeId),
+  )
+  if (index === -1) {
+    return { graph, stack, collapsedRecord: null }
+  }
+
+  const record = stack.undoStack[index]
+  const newGraph = undoExpansion(graph, record)
+  const newUndoStack = [
+    ...stack.undoStack.slice(0, index),
+    ...stack.undoStack.slice(index + 1),
+  ]
+
+  return {
+    graph: newGraph,
+    stack: {
+      undoStack: newUndoStack,
+      redoStack: [...stack.redoStack, record],
+    },
+    collapsedRecord: record,
+  }
 }
 
 export function relationshipsForEntity(
