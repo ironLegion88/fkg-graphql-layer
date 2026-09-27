@@ -93,19 +93,29 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
-  // Autofocus input on open and reset state
-  useEffect(() => {
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+  const [prevItemsLength, setPrevItemsLength] = useState(combinedItems.length)
+
+  if (prevIsOpen !== isOpen) {
+    setPrevIsOpen(isOpen)
     if (isOpen) {
       setQuery('')
       setSelectedIndex(0)
-      setTimeout(() => inputRef.current?.focus(), 50)
+    }
+  }
+
+  if (prevItemsLength !== combinedItems.length) {
+    setPrevItemsLength(combinedItems.length)
+    setSelectedIndex(0)
+  }
+
+  // Autofocus input on open
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => inputRef.current?.focus(), 50)
+      return () => clearTimeout(timer)
     }
   }, [isOpen])
-
-  // Reset selected index when combinedItems change
-  useEffect(() => {
-    setSelectedIndex(0)
-  }, [combinedItems.length])
 
   // Keyboard navigation inside palette
   const handleKeyDown = (e: React.KeyboardEvent) => {

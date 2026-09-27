@@ -579,10 +579,10 @@ function App() {
         }
       }}
       onExpand={() => void expandSelected()}
-      onShowInstances={(_classIri) => {
+      onShowInstances={() => {
         setActiveNavTab('search')
       }}
-      onShowSubclasses={(_classIri) => {
+      onShowSubclasses={() => {
         setActiveNavTab('classes')
       }}
       onFilterByProperty={(propIri) => {

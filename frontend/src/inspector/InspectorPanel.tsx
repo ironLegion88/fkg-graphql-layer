@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Info,
@@ -56,7 +56,21 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
   onFilterByProperty,
   traversalControls,
 }) => {
-  const [activeTab, setActiveTab] = useState<InspectorTab>('resource')
+  const normalizedId = selectedId ?? null
+  const relKey = selectedRelationship
+    ? `${selectedRelationship.source.id}:${selectedRelationship.relation}:${selectedRelationship.target.id}`
+    : null
+
+  const [prevId, setPrevId] = useState<string | null>(normalizedId)
+  const [prevRelKey, setPrevRelKey] = useState<string | null>(relKey)
+  const [userTab, setUserTab] = useState<InspectorTab | null>(null)
+
+  // Reset tab override when selected entity or relationship changes
+  if (prevId !== normalizedId || prevRelKey !== relKey) {
+    setPrevId(normalizedId)
+    setPrevRelKey(relKey)
+    setUserTab(null)
+  }
 
   // Query resource metadata for selected entity
   const {
@@ -81,6 +95,19 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
     semanticKind.includes('property') ||
     metadata?.asserted_types.some((t) => t.toLowerCase().includes('property')) ||
     false
+
+  // Derive default active tab
+  let defaultTab: InspectorTab = 'resource'
+  if (selectedRelationship) {
+    defaultTab = 'provenance'
+  } else if (selectedId && isClass) {
+    defaultTab = 'class'
+  } else if (selectedId && isProperty) {
+    defaultTab = 'property'
+  }
+
+  const activeTab = userTab ?? defaultTab
+  const setActiveTab = (tab: InspectorTab) => setUserTab(tab)
 
   // Query class info if selected item is a class
   const {
@@ -114,17 +141,6 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
     queryKey: ['build-status', activeBuildId],
     queryFn: () => getBuildStatus(),
   })
-
-  // Synchronize tab selection with selection type changes
-  useEffect(() => {
-    if (selectedRelationship) {
-      setActiveTab('provenance')
-    } else if (selectedId && isClass && activeTab !== 'class' && activeTab !== 'resource') {
-      setActiveTab('class')
-    } else if (selectedId && isProperty && activeTab !== 'property' && activeTab !== 'resource') {
-      setActiveTab('property')
-    }
-  }, [selectedRelationship, selectedId, isClass, isProperty])
 
   return (
     <div className="inspector-container" data-testid="inspector-panel">

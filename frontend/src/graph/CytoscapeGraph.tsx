@@ -17,7 +17,7 @@ export interface GraphRendererHandle {
   fit(): void
 }
 
-interface CytoscapeGraphProps extends DetailGraphRenderer {}
+type CytoscapeGraphProps = DetailGraphRenderer
 
 
 const defaultCategoryColors: Record<string, string> = {

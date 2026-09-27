@@ -76,12 +76,12 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
     enabled: isQueryActive,
   })
 
-  const entities = searchResult?.entities ?? []
   const totalMatches = searchResult?.total_matches ?? 0
   const totalPages = Math.ceil(totalMatches / PAGE_SIZE)
 
   // Filter entities locally by namespace if selected
   const displayedEntities = React.useMemo(() => {
+    const entities = searchResult?.entities ?? []
     if (selectedNamespace === 'ALL') return entities
     return entities.filter((e) => {
       if (selectedNamespace.includes(':')) {
@@ -89,7 +89,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
       }
       return e.id.toLowerCase().includes(selectedNamespace.toLowerCase())
     })
-  }, [entities, selectedNamespace])
+  }, [searchResult?.entities, selectedNamespace])
 
   const handleKindToggle = (kind: string) => {
     setPage(0)
