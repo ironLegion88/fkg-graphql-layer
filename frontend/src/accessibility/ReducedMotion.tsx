@@ -1,21 +1,14 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { EyeOff, Eye } from 'lucide-react'
 import { usePrefersReducedMotion } from '../graph/usePrefersReducedMotion'
+import {
+  ReducedMotionContext,
+  useReducedMotion,
+  type ReducedMotionContextType,
+} from './ReducedMotionContext'
 import './ReducedMotion.css'
 
-export interface ReducedMotionContextType {
-  reducedMotion: boolean
-  toggleReducedMotion: () => void
-  setReducedMotion: (enabled: boolean) => void
-  isSystemPreference: boolean
-}
-
-const ReducedMotionContext = createContext<ReducedMotionContextType>({
-  reducedMotion: false,
-  toggleReducedMotion: () => {},
-  setReducedMotion: () => {},
-  isSystemPreference: false,
-})
+export type { ReducedMotionContextType }
 
 export interface ReducedMotionProviderProps {
   children: React.ReactNode
@@ -48,16 +41,23 @@ export const ReducedMotionProvider: React.FC<ReducedMotionProviderProps> = ({
     }
   }, [reducedMotion])
 
-  const setPreference = (enabled: boolean) => {
+  const setPreference = useCallback((enabled: boolean) => {
     setUserOverride(enabled)
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('fkg_reduced_motion', String(enabled))
     }
-  }
+  }, [])
 
-  const toggleReducedMotion = () => {
-    setPreference(!reducedMotion)
-  }
+  const toggleReducedMotion = useCallback(() => {
+    setUserOverride((prev) => {
+      const current = prev !== null ? prev : systemPrefersReducedMotion
+      const next = !current
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('fkg_reduced_motion', String(next))
+      }
+      return next
+    })
+  }, [systemPrefersReducedMotion])
 
   const value = useMemo(
     () => ({
@@ -66,7 +66,7 @@ export const ReducedMotionProvider: React.FC<ReducedMotionProviderProps> = ({
       setReducedMotion: setPreference,
       isSystemPreference: userOverride === null,
     }),
-    [reducedMotion, userOverride],
+    [reducedMotion, toggleReducedMotion, setPreference, userOverride],
   )
 
   return (
@@ -74,13 +74,6 @@ export const ReducedMotionProvider: React.FC<ReducedMotionProviderProps> = ({
       {children}
     </ReducedMotionContext.Provider>
   )
-}
-
-/**
- * Hook to consume the reduced motion preference throughout the application.
- */
-export function useReducedMotion(): ReducedMotionContextType {
-  return useContext(ReducedMotionContext)
 }
 
 export interface ReducedMotionToggleProps {

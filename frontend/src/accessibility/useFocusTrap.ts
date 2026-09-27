@@ -111,3 +111,17 @@ export function useFocusTrap<T extends HTMLElement = HTMLDivElement>({
 
   return containerRef
 }
+
+/**
+ * Utility function to shift keyboard focus to an element by ID.
+ */
+export function focusElementById(id: string): boolean {
+  if (typeof document === 'undefined') return false
+  const el = document.getElementById(id)
+  if (!el) return false
+  if (!el.hasAttribute('tabindex')) {
+    el.setAttribute('tabindex', '-1')
+  }
+  el.focus()
+  return true
+}

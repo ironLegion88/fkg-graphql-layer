@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { renderToString } from 'react-dom/server'
-import { SkipLinks, FocusTrap, focusElementById } from './FocusManager'
+import { SkipLinks, FocusTrap } from './FocusManager'
+import { focusElementById } from './useFocusTrap'
 import { AppShell } from '../shell/AppShell'
 
 describe('FocusManager & Accessibility Navigation (AX-001, AX-003)', () => {

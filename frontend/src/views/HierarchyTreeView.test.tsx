@@ -1,13 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { renderToString } from 'react-dom/server'
+import { HierarchyTreeView, type TreeNode } from './HierarchyTreeView'
 import {
-  HierarchyTreeView,
   buildClassHierarchyTree,
   buildPathTree,
   buildComparisonTree,
   buildProofTree,
-  type TreeNode,
-} from './HierarchyTreeView'
+} from './treeBuilders'
 import type { ClassInfo, GraphEntity, GraphRelationship } from '../interfaces/models'
 
 describe('HierarchyTreeView (AX-001, AX-002)', () => {

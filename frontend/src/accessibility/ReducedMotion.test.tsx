@@ -28,9 +28,9 @@ describe('ReducedMotion & Animation Controls (AX-004, AX-006)', () => {
   })
 
   it('ReducedMotion.css contains prefers-reduced-motion media query and body overrides', async () => {
-    // @ts-ignore
+    // @ts-expect-error dynamic node import
     const fs = await import('node:fs')
-    // @ts-ignore
+    // @ts-expect-error dynamic node import
     const path = await import('node:path')
     const cssPath = path.resolve('src/accessibility/ReducedMotion.css')
     if (fs.existsSync(cssPath)) {
