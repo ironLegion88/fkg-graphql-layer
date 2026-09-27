@@ -15,6 +15,9 @@ import {
   Binary,
   Layers,
   X,
+  Focus,
+  Pin,
+  PinOff,
 } from 'lucide-react'
 import './App.css'
 import {
@@ -84,6 +87,8 @@ function App() {
     visitedCount: number
   } | null>(null)
   const multiHopAbortController = useRef<AbortController | null>(null)
+  const [layoutName, setLayoutName] = useState<string>('breadthfirst')
+  const [pinnedNodeIds, setPinnedNodeIds] = useState<string[]>([])
 
   const rendererRef = useRef<GraphRendererHandle | null>(null)
 
@@ -392,12 +397,29 @@ function App() {
     setSelectedId(null)
     setSelectedRelationship(null)
     setUndoRedoStack(initialUndoRedoStack)
+    setPinnedNodeIds([])
     setNextCursorByEntity({})
     setNotice(null)
   }
 
   function fitGraph() {
     rendererRef.current?.fit()
+  }
+
+  function focusSelected() {
+    if (selectedId) {
+      rendererRef.current?.focusNode(selectedId)
+    }
+  }
+
+  function togglePinSelectedNode() {
+    if (!selectedId) return
+    const isPinned = pinnedNodeIds.includes(selectedId)
+    setPinnedNodeIds((prev) =>
+      isPinned ? prev.filter((id) => id !== selectedId) : [...prev, selectedId],
+    )
+    const label = selectedEntity?.label || selectedId
+    setNotice(isPinned ? `Unpinned "${label}".` : `Pinned "${label}" position in place.`)
   }
 
   function handleUndo() {
@@ -564,6 +586,20 @@ function App() {
             onSelect: () => void expandSelected(),
           },
           {
+            id: 'graph-focus-selected',
+            title: `Focus "${selectedEntity.label}"`,
+            subtitle: 'Center camera and zoom to selected node',
+            onSelect: focusSelected,
+          },
+          {
+            id: 'graph-pin-selected',
+            title: pinnedNodeIds.includes(selectedEntity.id)
+              ? `Unpin "${selectedEntity.label}"`
+              : `Pin "${selectedEntity.label}" in place`,
+            subtitle: 'Toggle fixed position lock for selected node',
+            onSelect: togglePinSelectedNode,
+          },
+          {
             id: 'graph-collapse-selected',
             title: `Collapse "${selectedEntity.label}" expansion`,
             subtitle: 'Undo the latest expansion involving this node',
@@ -577,6 +613,42 @@ function App() {
           },
         ]
       : []),
+    {
+      id: 'layout-breadthfirst',
+      title: 'Layout: Breadthfirst Tree',
+      subtitle: 'Organize nodes in hierarchical tree layout',
+      onSelect: () => {
+        setLayoutName('breadthfirst')
+        rendererRef.current?.runLayout('breadthfirst')
+      },
+    },
+    {
+      id: 'layout-cose',
+      title: 'Layout: CoSE Force-Directed',
+      subtitle: 'Organize nodes with physics/force simulation',
+      onSelect: () => {
+        setLayoutName('cose')
+        rendererRef.current?.runLayout('cose')
+      },
+    },
+    {
+      id: 'layout-dagre',
+      title: 'Layout: Dagre Hierarchical DAG',
+      subtitle: 'Organize nodes in directed acyclic layers',
+      onSelect: () => {
+        setLayoutName('dagre')
+        rendererRef.current?.runLayout('dagre')
+      },
+    },
+    {
+      id: 'layout-circle',
+      title: 'Layout: Circle',
+      subtitle: 'Arrange all nodes in a circle',
+      onSelect: () => {
+        setLayoutName('circle')
+        rendererRef.current?.runLayout('circle')
+      },
+    },
   ]
 
   // Left Navigation Panel Content
@@ -675,9 +747,29 @@ function App() {
   const canvasContent = (
     <div className="canvas-wrapper">
       <div className="canvas-toolbar">
-        <div>
-          <p className="eyebrow">Explore</p>
-          <h2>Relationship map</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div>
+            <p className="eyebrow">Explore</p>
+            <h2>Relationship map</h2>
+          </div>
+          <select
+            id="layout-select"
+            value={layoutName}
+            onChange={(e) => {
+              const newLayout = e.target.value
+              setLayoutName(newLayout)
+              rendererRef.current?.runLayout(newLayout)
+            }}
+            className="layout-select"
+            aria-label="Select layout algorithm"
+            title="Choose layout algorithm (RC-007)"
+          >
+            <option value="breadthfirst">Breadthfirst (Tree)</option>
+            <option value="cose">CoSE (Force-Directed)</option>
+            <option value="dagre">Dagre (Hierarchical DAG)</option>
+            <option value="circle">Circle</option>
+            <option value="concentric">Concentric</option>
+          </select>
         </div>
         <div className="icon-actions">
           <button
@@ -700,6 +792,31 @@ function App() {
           </button>
           {selectedEntity && (
             <>
+              <button
+                type="button"
+                title={`Focus on "${selectedEntity.label}"`}
+                aria-label="Focus on selected node"
+                onClick={focusSelected}
+              >
+                <Focus size={18} />
+              </button>
+              <button
+                type="button"
+                title={
+                  pinnedNodeIds.includes(selectedEntity.id)
+                    ? `Unpin "${selectedEntity.label}"`
+                    : `Pin "${selectedEntity.label}" position in place`
+                }
+                aria-label="Toggle pin node"
+                className={pinnedNodeIds.includes(selectedEntity.id) ? 'active-pin' : ''}
+                onClick={togglePinSelectedNode}
+              >
+                {pinnedNodeIds.includes(selectedEntity.id) ? (
+                  <PinOff size={18} />
+                ) : (
+                  <Pin size={18} />
+                )}
+              </button>
               <button
                 type="button"
                 title={`Collapse expansion for ${selectedEntity.label}`}
@@ -762,6 +879,8 @@ function App() {
           selectedId={selectedId}
           categories={profile?.categories}
           categoryColors={categoryColors}
+          layoutName={layoutName}
+          pinnedNodeIds={pinnedNodeIds}
           onSelectEntity={setSelectedId}
         />
       </div>
