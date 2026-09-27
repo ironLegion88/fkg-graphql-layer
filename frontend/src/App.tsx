@@ -426,6 +426,7 @@ function App() {
           ref={rendererRef}
           graph={graph}
           selectedId={selectedId}
+          categories={profile?.categories}
           categoryColors={categoryColors}
           onSelectEntity={setSelectedId}
         />

@@ -14,6 +14,7 @@
     "@cosmos.gl/graph": "^3.3.0",
     "@tanstack/react-query": "^5.101.2",
     "cytoscape": "^3.34.0",
+    "cytoscape-dagre": "^4.0.1",
     "graphql-request": "^7.4.0",
     "lucide-react": "^1.25.0",
     "react": "^19.2.7",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/cytoscape-dagre": "^2.3.4",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-cytoscapejs": "^1.2.6",
