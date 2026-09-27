@@ -1,0 +1,258 @@
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+import {
+  client,
+  fetchProfile,
+  listClasses,
+  listProperties,
+  getClassInfo,
+  getPropertyInfo,
+  getResourceMetadata,
+  getExpansionPreview,
+  advancedSearch,
+} from './graph'
+import type {
+  ActiveProfile,
+  ClassInfo,
+  PropertyInfo,
+  ResourceMetadata,
+  ExpansionPreview,
+  SearchResult,
+} from '../interfaces/models'
+
+describe('GraphQL Client Queries', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('fetchProfile requests and returns full ActiveProfile', async () => {
+    const mockProfile: ActiveProfile = {
+      metadata: {
+        package_id: 'test-ontology',
+        version: '1.0.0',
+        title: 'Test Wine Ontology',
+        description: 'Wine knowledge graph',
+        ontology_iris: ['http://example.org/wine'],
+      },
+      prefixes: [{ prefix: 'wine', iri: 'http://example.org/wine#' }],
+      categories: [
+        {
+          name: 'Wine',
+          class_iris: ['http://example.org/wine#Wine'],
+          color: '#b83c50',
+          icon: null,
+          label: 'Wine',
+        },
+      ],
+      predicates: [
+        {
+          name: 'hasMaker',
+          iri: 'http://example.org/wine#hasMaker',
+          label: 'has maker',
+          traversable: true,
+          hidden: false,
+        },
+      ],
+      limits: { max_depth: 3, max_nodes: 500, max_edges: 1000 },
+      languages: { preferred_languages: ['en', 'fr'] },
+      reasoning_profile: 'hermit',
+      build_id: 'bld_12345',
+    }
+
+    vi.spyOn(client, 'request').mockResolvedValueOnce({
+      get_active_profile: mockProfile,
+    })
+
+    const result = await fetchProfile()
+    expect(result.metadata.title).toBe('Test Wine Ontology')
+    expect(result.build_id).toBe('bld_12345')
+    expect(result.reasoning_profile).toBe('hermit')
+    expect(result.prefixes).toHaveLength(1)
+    expect(result.limits.max_nodes).toBe(500)
+  })
+
+  it('listClasses returns ClassInfo array', async () => {
+    const mockClasses: ClassInfo[] = [
+      {
+        iri: 'http://example.org/wine#Wine',
+        compact_iri: { full_iri: 'http://example.org/wine#Wine', prefix: 'wine', local_name: 'Wine' },
+        label: 'Wine',
+        direct_parents: ['http://www.w3.org/2002/07/owl#Thing'],
+        all_ancestors: ['http://www.w3.org/2002/07/owl#Thing'],
+        direct_children: ['http://example.org/wine#RedWine'],
+        all_descendants: ['http://example.org/wine#RedWine'],
+        equivalent_classes: [],
+        disjoint_classes: [],
+        instance_count: 42,
+        annotations: [],
+        restrictions: [],
+      },
+    ]
+
+    vi.spyOn(client, 'request').mockResolvedValueOnce({
+      list_classes: mockClasses,
+    })
+
+    const result = await listClasses(10, 0)
+    expect(result).toHaveLength(1)
+    expect(result[0].label).toBe('Wine')
+    expect(result[0].instance_count).toBe(42)
+  })
+
+  it('listProperties returns PropertyInfo array', async () => {
+    const mockProps: PropertyInfo[] = [
+      {
+        iri: 'http://example.org/wine#hasMaker',
+        compact_iri: { full_iri: 'http://example.org/wine#hasMaker', prefix: 'wine', local_name: 'hasMaker' },
+        label: 'has maker',
+        property_kind: 'ObjectProperty',
+        domains: ['http://example.org/wine#Wine'],
+        ranges: ['http://example.org/wine#Winery'],
+        inverse_of: 'http://example.org/wine#makesWine',
+        characteristics: ['Functional'],
+        usage_count: 88,
+        annotations: [],
+      },
+    ]
+
+    vi.spyOn(client, 'request').mockResolvedValueOnce({
+      list_properties: mockProps,
+    })
+
+    const result = await listProperties(10, 0)
+    expect(result).toHaveLength(1)
+    expect(result[0].property_kind).toBe('ObjectProperty')
+    expect(result[0].domains).toEqual(['http://example.org/wine#Wine'])
+    expect(result[0].usage_count).toBe(88)
+  })
+
+  it('getClassInfo returns single ClassInfo or null', async () => {
+    const mockClass: ClassInfo = {
+      iri: 'http://example.org/wine#RedWine',
+      compact_iri: { full_iri: 'http://example.org/wine#RedWine', prefix: 'wine', local_name: 'RedWine' },
+      label: 'Red Wine',
+      direct_parents: ['http://example.org/wine#Wine'],
+      all_ancestors: ['http://example.org/wine#Wine', 'http://www.w3.org/2002/07/owl#Thing'],
+      direct_children: [],
+      all_descendants: [],
+      equivalent_classes: [],
+      disjoint_classes: ['http://example.org/wine#WhiteWine'],
+      instance_count: 24,
+      annotations: [],
+      restrictions: ['hasColor value Red'],
+    }
+
+    vi.spyOn(client, 'request').mockResolvedValueOnce({
+      get_class_info: mockClass,
+    })
+
+    const result = await getClassInfo('http://example.org/wine#RedWine')
+    expect(result).not.toBeNull()
+    expect(result?.label).toBe('Red Wine')
+    expect(result?.disjoint_classes).toContain('http://example.org/wine#WhiteWine')
+  })
+
+  it('getPropertyInfo returns single PropertyInfo or null', async () => {
+    const mockProp: PropertyInfo = {
+      iri: 'http://example.org/wine#hasSugar',
+      compact_iri: { full_iri: 'http://example.org/wine#hasSugar', prefix: 'wine', local_name: 'hasSugar' },
+      label: 'has sugar',
+      property_kind: 'DatatypeProperty',
+      domains: ['http://example.org/wine#Wine'],
+      ranges: ['http://www.w3.org/2001/XMLSchema#string'],
+      inverse_of: null,
+      characteristics: ['Functional'],
+      usage_count: 55,
+      annotations: [],
+    }
+
+    vi.spyOn(client, 'request').mockResolvedValueOnce({
+      get_property_info: mockProp,
+    })
+
+    const result = await getPropertyInfo('http://example.org/wine#hasSugar')
+    expect(result).not.toBeNull()
+    expect(result?.property_kind).toBe('DatatypeProperty')
+  })
+
+  it('getResourceMetadata returns ResourceMetadata or null', async () => {
+    const mockMeta: ResourceMetadata = {
+      iri: 'http://example.org/wine#ChateauMargaux',
+      compact_iri: { full_iri: 'http://example.org/wine#ChateauMargaux', prefix: 'wine', local_name: 'ChateauMargaux' },
+      semantic_kind: 'Wine',
+      asserted_types: ['http://example.org/wine#Margaux'],
+      inferred_types: ['http://example.org/wine#Wine'],
+      labels: [{ value: 'Château Margaux', language: 'fr', predicate_iri: 'rdfs:label' }],
+      preferred_label: 'Château Margaux',
+      descriptions: [{ value: 'Premier Grand Cru Classé', language: 'fr', predicate_iri: 'rdfs:comment' }],
+      annotations: [],
+      source_graphs: ['http://example.org/graphs/wines'],
+      build_id: 'bld_12345',
+    }
+
+    vi.spyOn(client, 'request').mockResolvedValueOnce({
+      get_resource_metadata: mockMeta,
+    })
+
+    const result = await getResourceMetadata('http://example.org/wine#ChateauMargaux')
+    expect(result?.preferred_label).toBe('Château Margaux')
+    expect(result?.semantic_kind).toBe('Wine')
+    expect(result?.inferred_types).toContain('http://example.org/wine#Wine')
+  })
+
+  it('getExpansionPreview returns ExpansionPreview structure', async () => {
+    const mockPreview: ExpansionPreview = {
+      entity_id: 'wine:Margaux',
+      total_count: 15,
+      groups: [
+        { relation: 'hasMaker', direction: 'OUTGOING', count: 1 },
+        { relation: 'madeFromGrape', direction: 'OUTGOING', count: 3 },
+        { relation: 'producesWine', direction: 'INCOMING', count: 11 },
+      ],
+    }
+
+    vi.spyOn(client, 'request').mockResolvedValueOnce({
+      get_expansion_preview: mockPreview,
+    })
+
+    const result = await getExpansionPreview('wine:Margaux')
+    expect(result.total_count).toBe(15)
+    expect(result.groups).toHaveLength(3)
+    expect(result.groups[0].direction).toBe('OUTGOING')
+  })
+
+  it('advancedSearch sends search input and returns SearchResult', async () => {
+    const mockResult: SearchResult = {
+      entities: [
+        { __typename: 'Wine', id: 'wine:Cabernet', label: 'Cabernet Sauvignon', description: 'Red wine' },
+      ],
+      total_matches: 1,
+    }
+
+    const spy = vi.spyOn(client, 'request').mockResolvedValueOnce({
+      search: mockResult,
+    })
+
+    const result = await advancedSearch({
+      query: 'Cabernet',
+      limit: 10,
+      offset: 0,
+      kinds: ['Wine'],
+      require_description: true,
+    })
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        options: {
+          query: 'Cabernet',
+          limit: 10,
+          offset: 0,
+          kinds: ['Wine'],
+          require_description: true,
+        },
+      }),
+    )
+    expect(result.total_matches).toBe(1)
+    expect(result.entities[0].label).toBe('Cabernet Sauvignon')
+  })
+})
