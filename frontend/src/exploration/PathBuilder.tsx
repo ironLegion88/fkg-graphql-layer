@@ -21,6 +21,10 @@ import './PathBuilder.css'
 export interface PathBuilderProps {
   currentEntity?: GraphEntity | null
   visibleEntities?: GraphEntity[]
+  initialSourceId?: string
+  initialTargetId?: string
+  initialPathResult?: PathResult | null
+  initialLoading?: boolean
   onSelectEntity?: (entity: GraphEntity) => void
   onHighlightPath?: (path: GraphPath) => void
   onClose?: () => void
@@ -29,14 +33,20 @@ export interface PathBuilderProps {
 export const PathBuilder: React.FC<PathBuilderProps> = ({
   currentEntity,
   visibleEntities = [],
+  initialSourceId,
+  initialTargetId,
+  initialPathResult = null,
+  initialLoading = false,
   onSelectEntity,
   onHighlightPath,
   onClose,
 }) => {
-  const [sourceId, setSourceId] = useState<string>(currentEntity?.id || '')
-  const [sourceLabel, setSourceLabel] = useState<string>(currentEntity?.label || currentEntity?.id || '')
-  const [targetId, setTargetId] = useState<string>('')
-  const [targetLabel, setTargetLabel] = useState<string>('')
+  const [sourceId, setSourceId] = useState<string>(initialSourceId || currentEntity?.id || '')
+  const [sourceLabel, setSourceLabel] = useState<string>(
+    initialSourceId || currentEntity?.label || currentEntity?.id || ''
+  )
+  const [targetId, setTargetId] = useState<string>(initialTargetId || '')
+  const [targetLabel, setTargetLabel] = useState<string>(initialTargetId || '')
 
   // Search autocomplete states
   const [sourceSearchQuery, setSourceSearchQuery] = useState('')
@@ -47,9 +57,9 @@ export const PathBuilder: React.FC<PathBuilderProps> = ({
   const [isSearchingTarget, setIsSearchingTarget] = useState(false)
 
   // Execution state
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(initialLoading)
   const [error, setError] = useState<string | null>(null)
-  const [pathResult, setPathResult] = useState<PathResult | null>(null)
+  const [pathResult, setPathResult] = useState<PathResult | null>(initialPathResult)
 
   // Sync currentEntity into source if changed and source not set yet
   const [prevEntity, setPrevEntity] = useState<GraphEntity | null>(currentEntity || null)

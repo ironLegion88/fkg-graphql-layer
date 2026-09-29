@@ -113,25 +113,48 @@ export const ExplanationPanel: React.FC<ExplanationPanelProps> = ({
             </div>
 
             <div className="fact-statement">
-              <button
-                type="button"
-                className="entity-link"
-                onClick={() => onNavigate?.(relationship.source.id)}
-                title={`Inspect source entity ${relationship.source.label || relationship.source.id}`}
-              >
-                {relationship.source.label || relationship.source.id}
-              </button>
-              <span className="predicate-pill">
-                —[{relationship.predicate_label || relationship.relation}]→
-              </span>
-              <button
-                type="button"
-                className="entity-link"
-                onClick={() => onNavigate?.(relationship.target.id)}
-                title={`Inspect target entity ${relationship.target.label || relationship.target.id}`}
-              >
-                {relationship.target.label || relationship.target.id}
-              </button>
+              {(() => {
+                const sourceLabel =
+                  typeof relationship.source === 'string'
+                    ? relationship.source
+                    : relationship.source.label || relationship.source.id
+                const sourceId =
+                  typeof relationship.source === 'string'
+                    ? relationship.source
+                    : relationship.source.id
+                const targetLabel =
+                  typeof relationship.target === 'string'
+                    ? relationship.target
+                    : relationship.target.label || relationship.target.id
+                const targetId =
+                  typeof relationship.target === 'string'
+                    ? relationship.target
+                    : relationship.target.id
+                const predicate =
+                  relationship.predicate_label || relationship.relation || 'relatedTo'
+
+                return (
+                  <>
+                    <button
+                      type="button"
+                      className="entity-link"
+                      onClick={() => onNavigate?.(sourceId)}
+                      title={`Inspect source entity ${sourceLabel}`}
+                    >
+                      {sourceLabel}
+                    </button>
+                    <span className="predicate-pill">—[{predicate}]→</span>
+                    <button
+                      type="button"
+                      className="entity-link"
+                      onClick={() => onNavigate?.(targetId)}
+                      title={`Inspect target entity ${targetLabel}`}
+                    >
+                      {targetLabel}
+                    </button>
+                  </>
+                )
+              })()}
             </div>
 
             {handle && (

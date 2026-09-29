@@ -23,6 +23,9 @@ import './EntityComparison.css'
 export interface EntityComparisonProps {
   currentEntity?: GraphEntity | null
   pinnedEntities?: GraphEntity[]
+  initialComparisonResult?: ComparisonResult | null
+  initialMode?: 'cards' | 'tree'
+  initialLoading?: boolean
   onPinEntity?: (entity: GraphEntity) => void
   onUnpinEntity?: (entityId: string) => void
   onSelectEntity?: (entity: GraphEntity) => void
@@ -32,6 +35,9 @@ export interface EntityComparisonProps {
 export const EntityComparison: React.FC<EntityComparisonProps> = ({
   currentEntity,
   pinnedEntities = [],
+  initialComparisonResult = null,
+  initialMode = 'cards',
+  initialLoading = false,
   onPinEntity,
   onUnpinEntity,
   onSelectEntity,
@@ -49,10 +55,10 @@ export const EntityComparison: React.FC<EntityComparisonProps> = ({
   const [isSearchingB, setIsSearchingB] = useState(false)
 
   // Comparison execution states
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(initialLoading)
   const [error, setError] = useState<string | null>(null)
-  const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null)
-  const [displayMode, setDisplayMode] = useState<'cards' | 'tree'>('cards')
+  const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(initialComparisonResult)
+  const [displayMode, setDisplayMode] = useState<'cards' | 'tree'>(initialMode)
 
   // When pinnedEntities changes, if entityA or entityB is null, prefill
   const [prevPinned, setPrevPinned] = useState(pinnedEntities)

@@ -1,4 +1,4 @@
-﻿import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 import {
   client,
   fetchProfile,
@@ -10,6 +10,9 @@ import {
   getExpansionPreview,
   advancedSearch,
   getBuildStatus,
+  findPath,
+  compareEntities,
+  getExplanation,
 } from './graph'
 import type {
   ActiveProfile,
@@ -19,6 +22,9 @@ import type {
   ExpansionPreview,
   SearchResult,
   BuildStatus,
+  PathResult,
+  ComparisonResult,
+  ExplanationResult,
 } from '../interfaces/models'
 
 describe('GraphQL Client Queries', () => {
@@ -285,5 +291,84 @@ describe('GraphQL Client Queries', () => {
     expect(result.consistency).toBe('consistent')
     expect(result.inferred_count).toBe(700)
     expect(result.findings).toHaveLength(1)
+  })
+
+  it('findPath requests and returns PathResult with path entities and relations (GQ-109)', async () => {
+    const mockResult: PathResult = {
+      status: 'FOUND',
+      path: {
+        entities: [
+          { __typename: 'OntologyEntity', id: 'wine:Merlot', label: 'Merlot', description: null },
+          { __typename: 'OntologyEntity', id: 'wine:Bordeaux', label: 'Bordeaux', description: null },
+        ],
+        relations: ['locatedIn'],
+      },
+      visited_nodes: 5,
+    }
+
+    const requestSpy = vi.spyOn(client, 'request').mockResolvedValueOnce({
+      find_path: mockResult,
+    })
+
+    const result = await findPath('wine:Merlot', 'wine:Bordeaux')
+    expect(requestSpy).toHaveBeenCalledWith(
+      expect.stringContaining('find_path'),
+      { sourceId: 'wine:Merlot', targetId: 'wine:Bordeaux' },
+    )
+    expect(result.status).toBe('FOUND')
+    expect(result.visited_nodes).toBe(5)
+    expect(result.path?.entities).toHaveLength(2)
+    expect(result.path?.relations).toEqual(['locatedIn'])
+  })
+
+  it('compareEntities requests and returns ComparisonResult (GQ-111)', async () => {
+    const mockComparison: ComparisonResult = {
+      common_types: ['wine:RedWine'],
+      unique_types_a: ['wine:BordeauxWine'],
+      unique_types_b: ['wine:BurgundyWine'],
+      common_properties: ['wine:hasMaker'],
+      unique_properties_a: ['wine:hasVintage'],
+      unique_properties_b: ['wine:hasOak'],
+      shared_neighbors: [
+        { __typename: 'OntologyEntity', id: 'wine:France', label: 'France', description: null },
+      ],
+    }
+
+    const requestSpy = vi.spyOn(client, 'request').mockResolvedValueOnce({
+      compare: mockComparison,
+    })
+
+    const result = await compareEntities('wine:Merlot', 'wine:Pinot')
+    expect(requestSpy).toHaveBeenCalledWith(
+      expect.stringContaining('compare'),
+      { idA: 'wine:Merlot', idB: 'wine:Pinot' },
+    )
+    expect(result.common_types).toEqual(['wine:RedWine'])
+    expect(result.unique_types_a).toEqual(['wine:BordeauxWine'])
+    expect(result.shared_neighbors).toHaveLength(1)
+    expect(result.shared_neighbors[0].label).toBe('France')
+  })
+
+  it('getExplanation requests and returns ExplanationResult (GQ-112)', async () => {
+    const mockExplanation: ExplanationResult = {
+      available: false,
+      proof_steps: [],
+      reasoner: 'HermiT 1.4.3',
+      message: 'Explanation service is not yet available.',
+    }
+
+    const requestSpy = vi.spyOn(client, 'request').mockResolvedValueOnce({
+      get_explanation: mockExplanation,
+    })
+
+    const result = await getExplanation('handle_proof_99')
+    expect(requestSpy).toHaveBeenCalledWith(
+      expect.stringContaining('get_explanation'),
+      { handle: 'handle_proof_99' },
+    )
+    expect(result.available).toBe(false)
+    expect(result.proof_steps).toEqual([])
+    expect(result.reasoner).toBe('HermiT 1.4.3')
+    expect(result.message).toContain('not yet available')
   })
 })
