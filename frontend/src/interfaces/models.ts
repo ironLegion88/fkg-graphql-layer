@@ -206,7 +206,7 @@ export interface BuildStatus {
   findings: ValidationFinding[]
 }
 
-export type PathStatus = 'FOUND' | 'NO_PATH' | 'TIMEOUT' | 'BUDGET_EXHAUSTED'
+export type PathStatus = 'FOUND' | 'SUCCESS' | 'NO_PATH' | 'TIMEOUT' | 'BUDGET_EXHAUSTED'
 
 export interface GraphPath {
   entities: GraphEntity[]

@@ -149,6 +149,7 @@ export const PathBuilder: React.FC<PathBuilderProps> = ({
     const status: PathStatus = result.status
 
     switch (status) {
+      case 'SUCCESS':
       case 'FOUND': {
         if (!result.path || result.path.entities.length === 0) {
           return (
