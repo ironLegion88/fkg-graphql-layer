@@ -242,6 +242,30 @@ class ExplanationResult:
 
 
 @strawberry.type
+class OverviewCluster:
+    class_iri: str
+    label: str
+    instance_count: int
+    color: str | None = None
+
+
+@strawberry.type
+class OverviewEdge:
+    source_class: str
+    target_class: str
+    predicate: str
+    count: int
+
+
+@strawberry.type
+class OverviewData:
+    clusters: list[OverviewCluster]
+    edges: list[OverviewEdge]
+    total_instances: int
+    total_relationships: int
+
+
+@strawberry.type
 class CompactIRIType:
     full_iri: str
     prefix: str | None = None
@@ -935,6 +959,107 @@ class Query:
             findings=findings,
         )
 
+    @strawberry.field
+    async def get_overview(
+        self,
+        info: Info[GraphQLContext, None],
+    ) -> OverviewData:
+        try:
+            semantic_repo = _semantic_repository(info)
+            profile = _graph_service(info).get_active_profile()
+
+            all_classes = await semantic_repo.list_classes(limit=200, offset=0)
+            sorted_classes = sorted(all_classes, key=lambda c: c.instance_count, reverse=True)[:100]
+
+            class_to_color: dict[str, str] = {}
+            for cat in profile.categories.values():
+                if cat.color:
+                    for term in cat.class_iris:
+                        resolved = (
+                            semantic_repo._resolve_iri(term)
+                            if hasattr(semantic_repo, "_resolve_iri")
+                            else term
+                        )
+                        class_to_color[resolved] = cat.color
+                        class_to_color[term] = cat.color
+
+            clusters: list[OverviewCluster] = []
+            class_iris: set[str] = set()
+            for c in sorted_classes:
+                class_iris.add(c.iri)
+                color = class_to_color.get(c.iri)
+                if not color:
+                    for parent in c.direct_parents:
+                        if parent in class_to_color:
+                            color = class_to_color[parent]
+                            break
+                if not color:
+                    for anc in c.all_ancestors:
+                        if anc in class_to_color:
+                            color = class_to_color[anc]
+                            break
+                if not color:
+                    for cat_name, cat in profile.categories.items():
+                        if cat_name.lower() == c.label.lower() and cat.color:
+                            color = cat.color
+                            break
+
+                clusters.append(
+                    OverviewCluster(
+                        class_iri=c.iri,
+                        label=c.label,
+                        instance_count=c.instance_count,
+                        color=color,
+                    )
+                )
+
+            raw_edges = await semantic_repo.get_inter_class_edges(class_iris, limit=500)
+            edges = [
+                OverviewEdge(
+                    source_class=sc,
+                    target_class=tc,
+                    predicate=p,
+                    count=cnt,
+                )
+                for sc, tc, p, cnt in raw_edges
+            ]
+
+            total_instances = sum(cl.instance_count for cl in clusters)
+            total_relationships = sum(e.count for e in edges)
+
+            return OverviewData(
+                clusters=clusters,
+                edges=edges,
+                total_instances=total_instances,
+                total_relationships=total_relationships,
+            )
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
+
+    @strawberry.field
+    async def get_class_instances(
+        self,
+        info: Info[GraphQLContext, None],
+        class_iri: str,
+        limit: int = 50,
+    ) -> list[OntologyEntity]:
+        try:
+            semantic_repo = _semantic_repository(info)
+            bounded_limit = max(1, min(limit, 100))
+            instances = await semantic_repo.get_class_instances(class_iri, limit=bounded_limit)
+            return [
+                OntologyEntity(
+                    id=strawberry.ID(inst.iri),
+                    label=inst.preferred_label,
+                    description=inst.descriptions[0].value if inst.descriptions else None,
+                    kind="NAMED_INDIVIDUAL",
+                )
+                for inst in instances
+            ]
+        except GraphServiceError as error:
+            msg = "The graph service is unavailable" if error.code == GraphQLErrorCode.INTERNAL_ERROR else error.message
+            raise GraphQLError(msg, extensions={"code": error.code.value}) from None
 
 
 schema = strawberry.Schema(
@@ -962,6 +1087,9 @@ schema = strawberry.Schema(
         SearchResultType,
         ValidationFindingType,
         BuildStatusType,
+        OverviewCluster,
+        OverviewEdge,
+        OverviewData,
     ],
 
     extensions=[GraphQLSafetyExtension],
