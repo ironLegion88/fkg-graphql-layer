@@ -3,10 +3,10 @@
 - **Document type:** Supplementary implementation context for LLM agent delegation
 - **Status:** Active — Phase 0 complete, Phase 1 in progress
 - **Created:** 2026-09-19
-- **Last Updated:** 2026-09-29 (Batch 2E complete)
+- **Last Updated:** 2026-09-29 (Batch 2F complete)
 - **Current Sprint:** Sprint 2 (Supported Application)
 - **Phase 0 Status:** ✅ COMPLETE (all 9 gaps resolved, 142 backend + 6 frontend tests passing)
-- **Phase 1 Progress:** Batch 2A (AppShell & Navigation), Batch 2B (Semantic Inspector & Provenance), Batch 2C (Cytoscape Detail Exploration), Batch 2D (Textual & Accessible Views), and Batch 2E (Paths, Comparison & Explanation UI) ✅ COMPLETE
+- **Phase 1 Progress:** Batch 2A (AppShell & Navigation), Batch 2B (Semantic Inspector & Provenance), Batch 2C (Cytoscape Detail Exploration), Batch 2D (Textual & Accessible Views), Batch 2E (Paths, Comparison & Explanation UI), and Batch 2F (Sessions, Restore & Deep Links) ✅ COMPLETE
 - **Sprint 2 Baseline Branch:** `sprint-2/cytoscape` (created from `sprint-1/core-platform`, with `sprint-2/gap-remediation` merged)
 - **Per-batch branches:** Each Phase 1 batch gets a dedicated branch from `sprint-2/cytoscape`, merged back upon completion
 - **Prerequisite reading:** Before beginning any batch, read these documents in order:
@@ -1003,27 +1003,67 @@ From `package.json` (Phase 1):
 
 ---
 
-## 22. Post-Batch-2E Context for Batches 2F–2H
+## 23. Batch 2F Completion Summary: Sessions, Restore & Deep Links
 
-### Remaining State for Batches 2F–2H
+- **Completed:** 2026-09-29
+- **Branch:** `batch-2f/sessions`
+- **Scope Delivered:**
+  1. **Renderer-Neutral Session Schema (`sessionSchema.ts`, `SE-001`, `GQ-114`):**
+     - Versioned schema (`CURRENT_SESSION_VERSION = '1.0.0'`) capturing canonical entities, relationships, selected entity, camera coordinates (zoom & pan), layout name, traversal direction, inferred toggle, and node positions.
+     - Strict shape validation in `deserializeSession` with error messages.
+  2. **Browser Storage Persistence (`sessionStorage.ts`, `SE-002`, `UW-008`):**
+     - Active session storage under `fkg_explorer_session` with automatic 2-second debounced auto-save.
+     - Named bookmarks under `fkg_explorer_saved_sessions` with individual load/delete management.
+     - Storage quota error handling and auto-save preference toggling.
+  3. **File Export and Import (`sessionFile.ts`, `UW-008`, `SE-001`):**
+     - Client-side download of `.fkg-session.json` formatted files.
+     - File upload with schema validation and 10MB file size guard.
+  4. **Compatibility Checks & Partial Restore (`sessionCompatibility.ts`, `OP-009`, `SE-001`):**
+     - Detection of schema major version divergence (blocking error).
+     - Detection of profile mismatch, build mismatch, and missing IRIs (non-blocking warnings).
+     - `filterSessionForPartialRestore` to selectively restore valid entities while pruning missing nodes and dangling edges.
+  5. **Deep Link Parameters (`deepLinks.ts`, `OP-009`, `SE-003`):**
+     - Parameter encoding in URL hash (`#entities=...&selected=...&layout=...&direction=...&inferred=...`).
+     - Initialization of graph state from shared URL on mount.
+     - URL hash updates using `history.replaceState` to prevent history stack pollution.
+     - One-click copy link with user feedback.
+  6. **Session Manager Component & Cytoscape Bindings (`SessionManager.tsx`, `CytoscapeGraph.tsx`, `App.tsx`):**
+     - Modal dialog with 3 tabs: Save & Export, Restore & Import, and Share & Deep Link.
+     - Color-blind accessible compatibility cards with distinct icons and status messages.
+     - Imperative camera and node position accessors on `GraphRendererHandle`.
+     - AppShell header trigger button with auto-save active indicator.
+     - Global keyboard shortcuts: `Ctrl+S` (Save) and `Ctrl+O` (Restore).
+
+### Test Counts After Batch 2F
+- **Frontend:** **129 passed** (vitest, 16 test files, +25 new tests)
+- **Frontend build:** Clean (`tsc -b && vite build` passed)
+- **ESLint:** Clean (`0 errors, 0 warnings`)
+- **Backend:** **144 passed** (pytest), 9 deprecation warnings
+- **Ruff:** Clean (`All checks passed!`)
+
+---
+
+## 24. Post-Batch-2F Context for Batches 2G–2H
+
+### Remaining State for Batches 2G–2H
 
 | Batch | Name | Focus | Backend State |
 |---|---|---|---|
-| **2F** | Sessions | Save/restore, compatibility, deep links | Frontend local storage & JSON export/import |
 | **2G** | cosmos.gl Overview | Class clusters, GPU fallback, drill-down | Needs `get_overview` backend resolver |
 | **2H** | E2E Testing | Playwright, accessibility, performance, memory | Full stack regression and integration tests |
 
-### TypeScript Types for Batch 2F
+### TypeScript Types for Batch 2G
 ```typescript
-export interface ExplorerSession {
-  version: string
-  profile_id: string
-  build_id: string | null
-  created_at: string
-  entities: Record<string, GraphEntity>
-  relationships: Record<string, GraphRelationship>
-  selected_id: string | null
-  camera?: { zoom: number; pan: { x: number; y: number } }
-  pinned_nodes?: string[]
+export interface OverviewCluster {
+  cluster_id: string
+  label: string
+  entity_count: number
+  central_iris: string[]
+}
+
+export interface OverviewGraph {
+  clusters: OverviewCluster[]
+  aggregate_edges: { source_cluster: string; target_cluster: string; count: number }[]
+  truncated: boolean
 }
 ```

@@ -27,6 +27,10 @@ export interface GraphRendererHandle {
   focusNode(id: string): void
   runLayout(name?: string): void
   getCy(): Core | null
+  getCamera(): { zoom: number; pan: { x: number; y: number } }
+  setCamera(camera: { zoom: number; pan: { x: number; y: number } }): void
+  getNodePositions(): Record<string, { x: number; y: number }>
+  setNodePositions(positions: Record<string, { x: number; y: number }>): void
 }
 
 export interface CytoscapeGraphProps extends DetailGraphRenderer {
@@ -180,6 +184,46 @@ const CytoscapeGraph = forwardRef<GraphRendererHandle, CytoscapeGraphProps>(
       },
       getCy() {
         return cyRef.current
+      },
+      getCamera() {
+        const cy = cyRef.current
+        if (!cy) return { zoom: 1, pan: { x: 0, y: 0 } }
+        return {
+          zoom: cy.zoom(),
+          pan: { ...cy.pan() },
+        }
+      },
+      setCamera(camera: { zoom: number; pan: { x: number; y: number } }) {
+        const cy = cyRef.current
+        if (!cy || !camera) return
+        if (typeof camera.zoom === 'number' && !isNaN(camera.zoom)) {
+          cy.zoom(camera.zoom)
+        }
+        if (camera.pan && typeof camera.pan.x === 'number' && typeof camera.pan.y === 'number') {
+          cy.pan(camera.pan)
+        }
+      },
+      getNodePositions() {
+        const cy = cyRef.current
+        const positions: Record<string, { x: number; y: number }> = {}
+        if (!cy) return positions
+        cy.nodes().forEach((node) => {
+          const pos = node.position()
+          positions[node.id()] = { x: pos.x, y: pos.y }
+        })
+        return positions
+      },
+      setNodePositions(positions: Record<string, { x: number; y: number }>) {
+        const cy = cyRef.current
+        if (!cy || !positions) return
+        cy.batch(() => {
+          for (const [id, pos] of Object.entries(positions)) {
+            const node = cy.getElementById(id)
+            if (node && node.length > 0) {
+              node.position(pos)
+            }
+          }
+        })
       },
     }))
 

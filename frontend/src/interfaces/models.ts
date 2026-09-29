@@ -235,3 +235,30 @@ export interface ExplanationResult {
   reasoner: string | null
   message: string | null
 }
+
+export interface ExplorerSession {
+  version: string
+  profile_id: string
+  build_id: string | null
+  created_at: string
+  updated_at: string
+  entities: Record<string, GraphEntity>
+  relationships: Record<string, GraphRelationship>
+  selected_id: string | null
+  camera: { zoom: number; pan: { x: number; y: number } }
+  pinned_nodes: string[]
+  layout_name: string
+  direction: TraversalDirection
+  include_inferred: boolean
+  node_positions?: Record<string, { x: number; y: number }>
+  name?: string
+}
+
+export interface SessionCompatibility {
+  compatible: boolean
+  warnings: string[]
+  errors: string[]
+  missing_iris: string[]
+  profile_mismatch: boolean
+  build_mismatch: boolean
+}
