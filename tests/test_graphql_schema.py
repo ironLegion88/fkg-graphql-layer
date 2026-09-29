@@ -185,3 +185,30 @@ async def test_get_build_status_query() -> None:
     assert status["status"] == "ready"
     assert status["semantic_profile"] is not None
     assert isinstance(status["unsatisfiable_classes"], list)
+
+
+async def test_get_explanation_stub() -> None:
+    entities, relationships, _ = wine_graph_fixture()
+    service = GraphService(FakeGraphRepository(entities, relationships), get_profile())
+    result = await schema.execute(
+        """
+        query GetExplanation($handle: String!) {
+          get_explanation(handle: $handle) {
+            available
+            proof_steps
+            reasoner
+            message
+          }
+        }
+        """,
+        variable_values={"handle": "handle_test_456"},
+        context_value={"graph_service": service, "role": "operator"},
+    )
+
+    assert result.errors is None
+    assert result.data is not None
+    explanation = result.data["get_explanation"]
+    assert explanation["available"] is False
+    assert explanation["proof_steps"] == []
+    assert explanation["reasoner"] is None
+    assert "not yet available" in explanation["message"]
