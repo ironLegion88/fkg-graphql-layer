@@ -262,3 +262,26 @@ export interface SessionCompatibility {
   profile_mismatch: boolean
   build_mismatch: boolean
 }
+
+export interface OverviewCluster {
+  class_iri: string
+  label: string
+  instance_count: number
+  color: string | null
+  x?: number
+  y?: number
+}
+
+export interface OverviewEdge {
+  source_class: string
+  target_class: string
+  predicate: string
+  count: number
+}
+
+export interface OverviewData {
+  clusters: OverviewCluster[]
+  edges: OverviewEdge[]
+  total_instances: number
+  total_relationships: number
+}
