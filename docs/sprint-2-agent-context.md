@@ -413,9 +413,9 @@ A batch is complete only when:
 | Batch | Name | Depends On | Status | Focus |
 |---|---|---|---|---|
 | **2A** | App Shell & Navigation | Phase 0 | ✅ DONE | Three-panel layout, class tree, search, command palette |
-| **2B** | Semantic Inspector | 2A | Pending | Resource, class, property, consistency, provenance panels |
-| **2C** | Cytoscape Detail | 2A | Pending | Preview, undo/redo, multi-hop, layouts |
-| **2D** | Accessible Views | 2A | Pending | Table, trees, ARIA, responsive, reduced motion |
+| **2B** | Semantic Inspector | 2A | ✅ DONE | Resource, class, property, consistency, provenance panels + backend `get_build_status` |
+| **2C** | Cytoscape Detail | 2A | ✅ DONE | Profile styling, preview dialog, undo/redo, multi-hop, layouts, reduced motion |
+| **2D** | Accessible Views | 2A | ✅ DONE | Table, trees, ARIA, skip links, screen reader, responsive |
 | **2E** | Paths/Comparison/Explanation UI | 2B | Pending | Path builder, comparison, "Why?" panel |
 | **2F** | Sessions | 2B, 2C | Pending | Save/restore, compatibility, deep links |
 | **2G** | cosmos.gl Overview | 2A | Pending | Class-based clusters, GPU fallback, drill-down |
@@ -893,3 +893,71 @@ From `package.json`:
 - **ESLint:** Clean (`0 errors, 0 warnings`)
 - **Backend:** **143 passed** (pytest), 9 deprecation warnings
 - **Git whitespace check:** Clean (`git diff --check` passed)
+
+---
+
+## 20. Post-Batch-2D Context for Batches 2E–2H
+
+### Missing Frontend Functions for Batches 2E–2H
+
+These backend queries exist but have **no frontend query function** yet:
+
+| Backend Query | Frontend Function Needed | Used By |
+|---|---|---|
+| `find_path(source_id, target_id)` | `findPath(sourceId, targetId)` | **2E** (Path Builder) |
+| `compare(id_a, id_b)` | `compareEntities(idA, idB)` | **2E** (Comparison Panel) |
+| *(does not exist yet)* `get_explanation(handle)` | `getExplanation(handle)` | **2E** ("Why?" Panel) |
+
+### Missing TypeScript Types for Batches 2E–2H
+
+Add to `interfaces/models.ts`:
+
+```typescript
+// For Batch 2E
+export type PathStatus = 'FOUND' | 'NO_PATH' | 'TIMEOUT' | 'BUDGET_EXHAUSTED'
+export interface GraphPath { entities: GraphEntity[]; relations: string[] }
+export interface PathResult { status: PathStatus; path: GraphPath | null; visited_nodes: number }
+export interface ComparisonResult {
+  common_types: string[]; unique_types_a: string[]; unique_types_b: string[]
+  common_properties: string[]; unique_properties_a: string[]; unique_properties_b: string[]
+  shared_neighbors: GraphEntity[]
+}
+
+// For Batch 2F
+export interface ExplorerSession {
+  version: string; profile_id: string; build_id: string | null; created_at: string
+  entities: Record<string, GraphEntity>; relationships: Record<string, GraphRelationship>
+  selected_id: string | null
+  camera?: { zoom: number; pan: { x: number; y: number } }
+  pinned_nodes?: string[]
+}
+```
+
+### Backend State for Remaining Batches
+
+| Query | Status | Notes |
+|---|---|---|
+| `find_path` | ✅ Exists (line 677 of graphql_schema.py) | Returns `PathResult` with status |
+| `compare` | ✅ Exists (line 703) | Returns `ComparisonResult` |
+| `get_build_status` | ✅ Exists (line 864) | Added in Batch 2B |
+| `get_explanation` | ❌ NOT IMPLEMENTED | No domain model. Batch 2E should add stub returning `EXPLANATION_UNAVAILABLE` |
+| `get_overview` | ❌ NOT IMPLEMENTED | Batch 2G needs class-based clustering query |
+
+### App.tsx State Management Summary (1282 lines)
+
+All application state lives in `App.tsx`:
+- `graph: ExplorerGraph`, `selectedId`, `selectedRelationship`
+- `expansionHistory` / `redoStack` (undo/redo)
+- `pinnedNodeIds`, `nextCursorByEntity` (pagination)
+- `direction`, `selectedRelations`, `includeInferred` (traversal filters)
+- `layoutName`, `multiHopEnabled`, `multiHopDepth`
+- `viewMode: 'canvas' | 'table'`
+- Profile data via `useQuery('profile', fetchProfile)`
+
+Batches 2E/2F will add state (path results, comparison, session) to this file.
+
+### npm Dependencies Available
+
+From `package.json` (2 added in Phase 1):
+- `cytoscape-dagre@^3.0.0` (Batch 2C — dagre layout)
+- `@testing-library/react@^16.0.0` (Batch 2A — component testing)
