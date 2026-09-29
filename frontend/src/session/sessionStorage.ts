@@ -138,9 +138,9 @@ export function saveNamedSession(session: ExplorerSession, name: string): Storag
       updated_at: new Date().toISOString(),
     }
 
-    // Replace if existing by matching name or created_at, else append
+    // Replace if existing by matching name or unique session id/timestamp and name, else append
     const existingIndex = currentList.findIndex(
-      (s) => s.created_at === namedSession.created_at || (s.name && s.name.toLowerCase() === namedSession.name?.toLowerCase())
+      (s) => s.name && s.name.trim().toLowerCase() === namedSession.name?.trim().toLowerCase()
     )
     if (existingIndex >= 0) {
       currentList[existingIndex] = namedSession

@@ -35,12 +35,12 @@ export function parseDeepLink(hashString?: string): DeepLinkState | null {
   if (entitiesParam) {
     entities = entitiesParam
       .split(',')
-      .map((item) => decodeURIComponent(item.trim()))
+      .map((item) => item.trim())
       .filter((item) => item.length > 0)
   }
 
   const selectedParam = params.get('selected')
-  const selected = selectedParam ? decodeURIComponent(selectedParam.trim()) : null
+  const selected = selectedParam ? selectedParam.trim() : null
 
   const layout = params.get('layout') || undefined
 
@@ -81,12 +81,11 @@ export function formatDeepLinkHash(state: DeepLinkState): string {
   const params = new URLSearchParams()
 
   if (state.entities && state.entities.length > 0) {
-    const encoded = state.entities.map((iri) => encodeURIComponent(iri)).join(',')
-    params.set('entities', encoded)
+    params.set('entities', state.entities.join(','))
   }
 
   if (state.selected) {
-    params.set('selected', encodeURIComponent(state.selected))
+    params.set('selected', state.selected)
   }
 
   if (state.layout && state.layout !== 'breadthfirst') {
@@ -117,9 +116,12 @@ export function formatDeepLinkHash(state: DeepLinkState): string {
  * Generates the full shareable deep link URL.
  */
 export function generateDeepLinkUrl(state: DeepLinkState): string {
-  if (typeof window === 'undefined') return ''
   const hash = formatDeepLinkHash(state)
-  return `${window.location.origin}${window.location.pathname}${hash}`
+  const base =
+    typeof window !== 'undefined' && window.location
+      ? `${window.location.origin}${window.location.pathname}`
+      : 'https://explorer.example.org/'
+  return `${base}${hash}`
 }
 
 /**
