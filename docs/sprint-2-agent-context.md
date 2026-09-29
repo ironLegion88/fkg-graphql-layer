@@ -3,10 +3,10 @@
 - **Document type:** Supplementary implementation context for LLM agent delegation
 - **Status:** Active — Phase 0 complete, Phase 1 in progress
 - **Created:** 2026-09-19
-- **Last Updated:** 2026-09-28 (Batch 2D complete)
+- **Last Updated:** 2026-09-29 (Batch 2E complete)
 - **Current Sprint:** Sprint 2 (Supported Application)
 - **Phase 0 Status:** ✅ COMPLETE (all 9 gaps resolved, 142 backend + 6 frontend tests passing)
-- **Phase 1 Progress:** Batch 2A (AppShell & Navigation), Batch 2B (Semantic Inspector & Provenance), Batch 2C (Cytoscape Detail Exploration), and Batch 2D (Textual & Accessible Views) ✅ COMPLETE
+- **Phase 1 Progress:** Batch 2A (AppShell & Navigation), Batch 2B (Semantic Inspector & Provenance), Batch 2C (Cytoscape Detail Exploration), Batch 2D (Textual & Accessible Views), and Batch 2E (Paths, Comparison & Explanation UI) ✅ COMPLETE
 - **Sprint 2 Baseline Branch:** `sprint-2/cytoscape` (created from `sprint-1/core-platform`, with `sprint-2/gap-remediation` merged)
 - **Per-batch branches:** Each Phase 1 batch gets a dedicated branch from `sprint-2/cytoscape`, merged back upon completion
 - **Prerequisite reading:** Before beginning any batch, read these documents in order:
@@ -416,7 +416,7 @@ A batch is complete only when:
 | **2B** | Semantic Inspector | 2A | ✅ DONE | Resource, class, property, consistency, provenance panels + backend `get_build_status` |
 | **2C** | Cytoscape Detail | 2A | ✅ DONE | Profile styling, preview dialog, undo/redo, multi-hop, layouts, reduced motion |
 | **2D** | Accessible Views | 2A | ✅ DONE | Table, trees, ARIA, skip links, screen reader, responsive |
-| **2E** | Paths/Comparison/Explanation UI | 2B | Pending | Path builder, comparison, "Why?" panel |
+| **2E** | Paths/Comparison/Explanation UI | 2B | ✅ DONE | Path builder, comparison, "Why?" panel |
 | **2F** | Sessions | 2B, 2C | Pending | Save/restore, compatibility, deep links |
 | **2G** | cosmos.gl Overview | 2A | Pending | Class-based clusters, GPU fallback, drill-down |
 | **2H** | E2E Testing | 2A–2G | Pending | Playwright, accessibility, performance, memory |
@@ -958,6 +958,72 @@ Batches 2E/2F will add state (path results, comparison, session) to this file.
 
 ### npm Dependencies Available
 
-From `package.json` (2 added in Phase 1):
-- `cytoscape-dagre@^3.0.0` (Batch 2C — dagre layout)
-- `@testing-library/react@^16.0.0` (Batch 2A — component testing)
+From `package.json` (Phase 1):
+- `cytoscape-dagre@^4.0.1` (Batch 2C — dagre layout)
+- `@tanstack/react-query@^5.101.2`
+- `graphql-request@^7.4.0`
+- `lucide-react@^1.25.0`
+
+---
+
+## 21. Batch 2E Completion Summary: Paths, Comparison & Explanation UI
+
+- **Completed:** 2026-09-29
+- **Branch:** `batch-2e/paths-comparison`
+- **Scope Delivered:**
+  1. **Path Builder UI (`PathBuilder.tsx`, `UW-004`, `GQ-109`, `GQ-110`, `AC-108`):**
+     - Source/target selectors with autocomplete entity search and quick picks from visible canvas entities.
+     - Endpoint swap control.
+     - Visualizes all 4 `PathStatus` outcomes: `FOUND` / `SUCCESS`, `NO_PATH`, `TIMEOUT`, `BUDGET_EXHAUSTED`.
+     - Ordered path flow chips and expandable `HierarchyTreeView` via `buildPathTree`.
+     - "Highlight on Canvas" action to add missing path elements and focus Cytoscape viewport.
+  2. **Entity Comparison Panel (`EntityComparison.tsx`, `UW-005`, `GQ-111`, `AC-107`):**
+     - Side-by-side diff comparing shared and unique types, properties, and shared neighbors.
+     - Pinned entities bar supporting pinning/unpinning from canvas/inspector and Slot A/B assignment.
+     - Non-color cues (distinct icons and semantic labels `[Shared]`, `[Unique A]`, `[Unique B]`).
+     - Dual display modes: Structured Diff Cards and Hierarchical ARIA Tree (`buildComparisonTree`).
+  3. **Explanation Panel ("Why?") (`ExplanationPanel.tsx`, `UW-006`, `GQ-112`, `GE-013`):**
+     - Slideover modal dialog triggered from `ProvenancePanel`'s "Why is this inferred?" button.
+     - Handles `available: false` with reasoner details, status badge, and informative message.
+     - Handles `available: true` with proof deduction steps rendered in `HierarchyTreeView` via `buildProofTree`.
+     - Full keyboard accessibility with `Escape` dismiss and focus trap restoration.
+  4. **Backend GraphQL Stub (`graphql_schema.py`):**
+     - Added `ExplanationResult` Strawberry type and `get_explanation(handle)` resolver stub returning `available=False`.
+     - Tested in `tests/test_graphql_schema.py`.
+  5. **Frontend API Functions & Types (`api/graph.ts`, `interfaces/models.ts`):**
+     - Added `findPath`, `compareEntities`, and `getExplanation`.
+     - Added `PathStatus`, `GraphPath`, `PathResult`, `ComparisonResult`, and `ExplanationResult`.
+
+### Test Counts After Batch 2E
+- **Frontend:** **104 passed** (vitest, 15 test files)
+- **Frontend build:** Clean (`tsc -b && vite build` passed)
+- **ESLint:** Clean (`0 errors, 0 warnings`)
+- **Backend:** **144 passed** (pytest), 9 deprecation warnings
+- **Ruff:** Clean (`All checks passed!`)
+
+---
+
+## 22. Post-Batch-2E Context for Batches 2F–2H
+
+### Remaining State for Batches 2F–2H
+
+| Batch | Name | Focus | Backend State |
+|---|---|---|---|
+| **2F** | Sessions | Save/restore, compatibility, deep links | Frontend local storage & JSON export/import |
+| **2G** | cosmos.gl Overview | Class clusters, GPU fallback, drill-down | Needs `get_overview` backend resolver |
+| **2H** | E2E Testing | Playwright, accessibility, performance, memory | Full stack regression and integration tests |
+
+### TypeScript Types for Batch 2F
+```typescript
+export interface ExplorerSession {
+  version: string
+  profile_id: string
+  build_id: string | null
+  created_at: string
+  entities: Record<string, GraphEntity>
+  relationships: Record<string, GraphRelationship>
+  selected_id: string | null
+  camera?: { zoom: number; pan: { x: number; y: number } }
+  pinned_nodes?: string[]
+}
+```
