@@ -459,3 +459,74 @@ async def test_semantic_repository_injected_into_context(monkeypatch, tmp_path: 
             assert meta["compact_iri"]["local_name"] == "DemoWine"
             classes = data["data"]["list_classes"]
             assert len(classes) >= 1
+
+
+@pytest.mark.asyncio
+async def test_get_overview_query(graphql_context) -> None:
+    result = await schema.execute(
+        """
+        query TestOverview {
+          get_overview {
+            total_instances
+            total_relationships
+            clusters {
+              class_iri
+              label
+              instance_count
+              color
+            }
+            edges {
+              source_class
+              target_class
+              predicate
+              count
+            }
+          }
+        }
+        """,
+        context_value=graphql_context,
+    )
+
+    assert result.errors is None
+    assert result.data is not None
+    overview = result.data["get_overview"]
+    assert overview["total_instances"] > 0
+    assert len(overview["clusters"]) > 0
+
+    # Verify cluster properties
+    wine_cluster = next((c for c in overview["clusters"] if "Wine" in c["label"]), None)
+    assert wine_cluster is not None
+    assert wine_cluster["instance_count"] >= 1
+    assert wine_cluster["color"] is not None
+
+    # Verify edge properties
+    assert isinstance(overview["edges"], list)
+    if overview["edges"]:
+        edge = overview["edges"][0]
+        assert "source_class" in edge
+        assert "target_class" in edge
+        assert "predicate" in edge
+        assert edge["count"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_get_class_instances_query(graphql_context) -> None:
+    result = await schema.execute(
+        f"""
+        query TestInstances {{
+          get_class_instances(class_iri: "{WINE}Wine", limit: 10) {{
+            id
+            label
+            kind
+          }}
+        }}
+        """,
+        context_value=graphql_context,
+    )
+
+    assert result.errors is None
+    assert result.data is not None
+    instances = result.data["get_class_instances"]
+    assert len(instances) >= 1
+    assert instances[0]["kind"] == "NAMED_INDIVIDUAL"
+    assert instances[0]["id"] == f"{WINE}DemoWine"

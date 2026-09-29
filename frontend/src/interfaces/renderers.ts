@@ -1,4 +1,4 @@
-import type { GraphEntity, GraphExpansion, ExpansionRequest, ActiveProfile } from './models'
+import type { GraphEntity, GraphExpansion, ExpansionRequest, ActiveProfile, OverviewData } from './models'
 
 import type { ExplorerGraph } from '../graph/state'
 
@@ -17,9 +17,12 @@ export interface DetailGraphRenderer {
  * Contract for an aggregate/sample graph renderer (e.g. cosmos.gl).
  */
 export interface OverviewGraphRenderer {
-  graph: ExplorerGraph
+  graph?: ExplorerGraph
+  overviewData: OverviewData
+  selectedClusterIri?: string | null
+  categoryColors?: Record<string, string>
   onSelectCluster(clusterId: string): void
-  onSelectEntity(entityId: string): void
+  onSelectEntity?(entityId: string): void
 }
 
 /**

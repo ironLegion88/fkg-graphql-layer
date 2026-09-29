@@ -104,6 +104,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
   // Refresh recent sessions and sync initial tab on open
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveTab(initialTab)
       setFeedback(null)
       setCandidateSession(null)

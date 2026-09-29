@@ -29,6 +29,9 @@ import type {
   PathResult,
   ComparisonResult,
   ExplanationResult,
+  OverviewCluster,
+  OverviewEdge,
+  OverviewData,
 } from '../interfaces/models'
 
 export type {
@@ -61,6 +64,9 @@ export type {
   PathResult,
   ComparisonResult,
   ExplanationResult,
+  OverviewCluster,
+  OverviewEdge,
+  OverviewData,
 }
 
 export const client = new GraphQLClient(
@@ -484,3 +490,49 @@ export async function getExplanation(handle: string): Promise<ExplanationResult>
   )
   return response.get_explanation
 }
+
+const getOverviewQuery = /* GraphQL */ `
+  query GetOverview {
+    get_overview {
+      total_instances
+      total_relationships
+      clusters {
+        class_iri
+        label
+        instance_count
+        color
+      }
+      edges {
+        source_class
+        target_class
+        predicate
+        count
+      }
+    }
+  }
+`
+
+const getClassInstancesQuery = /* GraphQL */ `
+  query GetClassInstances($classIri: String!, $limit: Int) {
+    get_class_instances(class_iri: $classIri, limit: $limit) {
+      id
+      label
+      description
+      kind
+    }
+  }
+`
+
+export async function fetchOverview(): Promise<OverviewData> {
+  const response = await client.request<{ get_overview: OverviewData }>(getOverviewQuery)
+  return response.get_overview
+}
+
+export async function fetchClassInstances(classIri: string, limit = 50): Promise<GraphEntity[]> {
+  const response = await client.request<{ get_class_instances: GraphEntity[] }>(
+    getClassInstancesQuery,
+    { classIri, limit },
+  )
+  return response.get_class_instances
+}
+

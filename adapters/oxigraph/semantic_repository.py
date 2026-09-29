@@ -65,6 +65,12 @@ class OxigraphSemanticRepository:
     async def list_properties(self, limit: int = 100, offset: int = 0) -> list[PropertyInfo]:
         return await asyncio.to_thread(self._list_properties, limit, offset)
 
+    async def get_class_instances(self, class_iri: str, limit: int = 50) -> list[ResourceMetadata]:
+        return await asyncio.to_thread(self._get_class_instances, class_iri, limit)
+
+    async def get_inter_class_edges(self, class_iris: set[str], limit: int = 500) -> list[tuple[str, str, str, int]]:
+        return await asyncio.to_thread(self._get_inter_class_edges, class_iris, limit)
+
     def _get_resource_metadata(self, iri: str) -> ResourceMetadata | None:
         node = NamedNode(iri)
         if not any(self._store.quads_for_pattern(node, None, None, None)) and \
@@ -193,3 +199,46 @@ class OxigraphSemanticRepository:
             if info:
                 props.append(info)
         return props
+
+    def _get_class_instances(self, class_iri: str, limit: int = 50) -> list[ResourceMetadata]:
+        class_node = NamedNode(class_iri)
+        results: list[ResourceMetadata] = []
+        seen_instances: set[str] = set()
+        for quad in self._store.quads_for_pattern(None, RDF_TYPE, class_node, None):
+            if isinstance(quad.subject, NamedNode):
+                inst_iri = quad.subject.value
+                if inst_iri not in seen_instances:
+                    seen_instances.add(inst_iri)
+                    meta = self._get_resource_metadata(inst_iri)
+                    if meta:
+                        results.append(meta)
+                    if len(results) >= limit:
+                        break
+        return results
+
+    def _get_inter_class_edges(self, class_iris: set[str], limit: int = 500) -> list[tuple[str, str, str, int]]:
+        sparql = """
+            SELECT ?sc ?p ?tc (COUNT(*) AS ?cnt)
+            WHERE {
+              ?s ?p ?o .
+              ?s a ?sc .
+              ?o a ?tc .
+              FILTER(?sc != ?tc)
+              FILTER(?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)
+              FILTER(?p != <http://www.w3.org/2000/01/rdf-schema#subClassOf>)
+            }
+            GROUP BY ?sc ?p ?tc
+            ORDER BY DESC(?cnt)
+            LIMIT 1000
+        """
+        edges: list[tuple[str, str, str, int]] = []
+        for r in self._store.query(sparql, use_default_graph_as_union=True):
+            sc = r["sc"].value
+            tc = r["tc"].value
+            p = r["p"].value
+            cnt = int(r["cnt"].value)
+            if sc in class_iris and tc in class_iris:
+                edges.append((sc, tc, p, cnt))
+            if len(edges) >= limit:
+                break
+        return edges
