@@ -1043,27 +1043,53 @@ From `package.json` (Phase 1):
 
 ---
 
-## 24. Post-Batch-2F Context for Batches 2G–2H
+## 24. Batch 2G Completion Summary: cosmos.gl Overview & GPU Fallback
 
-### Remaining State for Batches 2G–2H
+Batch 2G delivered the GPU-accelerated overview visualization subsystem using cosmos.gl, class-based clustering, WebGL 2 capability detection with graceful fallback, overview-to-detail drill-down transitions, bundle isolation via dynamic `import()`, and backend `get_overview` GraphQL query.
 
-| Batch | Name | Focus | Backend State |
+### What Was Built
+1. **Domain Types & Models (`interfaces/models.ts`, `interfaces/renderers.ts`):**
+   - Added `OverviewCluster`, `OverviewEdge`, and `OverviewData` interfaces.
+   - Defined `OverviewGraphRenderer` interface for lifecycle management.
+2. **Backend Class-Based Clustering Query (`api/graphql_schema.py`, `domain/ports.py`, `adapters/oxigraph/semantic_repository.py`):**
+   - Implemented `get_overview` query: aggregates all ontology classes, instance counts, inter-class relationship edges, and maps profile category colors (capped at 100 clusters, 500 edges).
+   - Implemented `get_class_instances` query: retrieves bounded instances (`GraphEntity[]`) for a selected class IRI.
+3. **Frontend API Queries (`api/graph.ts`):**
+   - Added `fetchOverview()` and `fetchClassInstances()`.
+4. **WebGL 2 Hardware Detection (`graph/webglDetect.ts`, `AC-111`, `RC-006`):**
+   - Detects WebGL 2 context on temporary canvas, extracts GPU vendor/renderer info, caches results, and handles headless/non-browser environments.
+5. **CosmosOverview Renderer (`graph/CosmosOverview.tsx`, `CosmosOverview.css`, `RC-003`, `RC-004`, `RC-005`, `RC-009`):**
+   - `@cosmos.gl/graph` integration with physics simulation.
+   - Precalculated Archimedean phyllotaxis cluster layout for instant stable positioning.
+   - Node sizing proportional to `Math.sqrt(instance_count)`.
+   - Scaled link widths for inter-class edge counts.
+   - Toolbar stats badge, class filter search, quick cluster pills, selection card, and zoom/fit controls.
+6. **Overview-to-Detail Drill-Down Transition (`App.tsx`, `RC-005`, `RC-006`, `NF-004`):**
+   - Clicking cluster "Drill down to Detail" loads bounded class instances into the Cytoscape detail canvas.
+   - Breadcrumb navigation bar with "Back to Overview".
+   - Motion reduced support.
+7. **Bundle Isolation via Dynamic Import (`graph/LazyCosmosOverview.tsx`, `NF-008`):**
+   - Isolated cosmos.gl and luma.gl into dynamic chunks (`CosmosOverview-*.js` and `dist-*.js`).
+   - Protected with `OverviewErrorBoundary` and `Suspense` loading overlay.
+8. **GPU Fallback (`App.tsx`, `AC-111`):**
+   - Overview toggle hidden when WebGL 2 is unavailable.
+   - Automatic fallback to Cytoscape detail canvas / table view with non-intrusive notification.
+
+### Test Counts After Batch 2G
+- **Frontend:** **142 passed** (vitest, 18 test files, +13 new tests)
+- **Frontend build:** Clean (`tsc -b && vite build` passed; separate bundle chunks verified)
+- **ESLint:** Clean (`0 errors`)
+- **Backend:** **146 passed** (pytest, +2 new tests)
+- **Ruff:** Clean (`All checks passed!`)
+
+---
+
+## 25. Post-Batch-2G Context for Batch 2H (E2E Testing & Hardening)
+
+### Remaining State for Batch 2H
+
+| Batch | Name | Focus | Status |
 |---|---|---|---|
-| **2G** | cosmos.gl Overview | Class clusters, GPU fallback, drill-down | Needs `get_overview` backend resolver |
-| **2H** | E2E Testing | Playwright, accessibility, performance, memory | Full stack regression and integration tests |
+| **2G** | cosmos.gl Overview | Class clusters, GPU fallback, drill-down, bundle isolation | **COMPLETE** |
+| **2H** | E2E Testing | Playwright, full stack regression, accessibility, memory | Pending |
 
-### TypeScript Types for Batch 2G
-```typescript
-export interface OverviewCluster {
-  cluster_id: string
-  label: string
-  entity_count: number
-  central_iris: string[]
-}
-
-export interface OverviewGraph {
-  clusters: OverviewCluster[]
-  aggregate_edges: { source_cluster: string; target_cluster: string; count: number }[]
-  truncated: boolean
-}
-```
