@@ -457,6 +457,104 @@
   color: #94a3b8;
 }
 
+/* Loading Overlay */
+.cosmos-loading-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  background: #0d131f;
+  color: #94a3b8;
+  gap: 16px;
+}
+
+.cosmos-loading-overlay p {
+  font-size: 14px;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.spin-animation {
+  color: #6366f1;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Overview Drilldown Breadcrumb Bar */
+.overview-breadcrumb-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.1));
+  border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+  font-size: 13px;
+  color: #cbd5e1;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.back-to-overview-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #4f46e5;
+  color: #ffffff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.back-to-overview-btn:hover {
+  background: #4338ca;
+  transform: translateX(-1px);
+}
+
+.breadcrumb-separator {
+  color: #64748b;
+  font-weight: 300;
+}
+
+.breadcrumb-current {
+  color: #f1f5f9;
+}
+
+.breadcrumb-current strong {
+  color: #a5b4fc;
+}
+
+.clear-breadcrumb-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-breadcrumb-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+}
+
 /* Prefers-reduced-motion overrides */
 @media (prefers-reduced-motion: reduce) {
   .cosmos-selection-card {
@@ -464,5 +562,14 @@
   }
   .drilldown-btn:hover {
     transform: none;
+  }
+  .spin-animation {
+    animation: none;
+  }
+  .back-to-overview-btn:hover {
+    transform: none;
+  }
+  .overview-breadcrumb-bar {
+    animation: none;
   }
 }
