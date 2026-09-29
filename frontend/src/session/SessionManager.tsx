@@ -27,7 +27,6 @@ import {
   CURRENT_SESSION_VERSION,
 } from './sessionSchema'
 import {
-  saveToLocalStorage,
   loadFromLocalStorage,
   clearLocalStorage,
   listSavedSessions,

@@ -22,8 +22,21 @@ import {
   Play,
   Route,
   GitCompare,
+  FolderSync,
 } from 'lucide-react'
 import './App.css'
+import {
+  SessionManager,
+  serializeSession,
+  saveToLocalStorage,
+  loadFromLocalStorage,
+  clearLocalStorage,
+  getAutoSaveEnabled,
+  setAutoSaveEnabled,
+  parseDeepLink,
+  updateBrowserUrl,
+  type ExplorerSession,
+} from './session'
 import { VisibleGraphTable } from './views/VisibleGraphTable'
 import { GraphSummary } from './accessibility/GraphSummary'
 import { ReducedMotionProvider, ReducedMotionToggle } from './accessibility/ReducedMotion'
@@ -126,6 +139,15 @@ function App() {
   }, [])
 
   const rendererRef = useRef<GraphRendererHandle | null>(null)
+  const [isSessionManagerOpen, setIsSessionManagerOpen] = useState(false)
+  const [sessionManagerTab, setSessionManagerTab] = useState<'save' | 'restore' | 'share'>('save')
+  const [autoSaveEnabled, setAutoSaveEnabledState] = useState<boolean>(() => getAutoSaveEnabled())
+  const initialRestoreDone = useRef(false)
+
+  const handleToggleAutoSave = (enabled: boolean) => {
+    setAutoSaveEnabledState(enabled)
+    setAutoSaveEnabled(enabled)
+  }
 
   const {
     data: profile,
@@ -135,6 +157,155 @@ function App() {
     queryKey: ['active-profile'],
     queryFn: () => fetchProfile(),
   })
+
+  // Initial load: parse Deep Link parameters or auto-restore from browser localStorage (SE-002, OP-009)
+  useEffect(() => {
+    if (initialRestoreDone.current) return
+    initialRestoreDone.current = true
+
+    // Check deep link URL hash first
+    const deepLink = parseDeepLink()
+    if (deepLink && deepLink.entities && deepLink.entities.length > 0) {
+      if (deepLink.layout) setLayoutName(deepLink.layout)
+      if (deepLink.direction) setDirection(deepLink.direction)
+      if (deepLink.inferred !== undefined) setIncludeInferred(deepLink.inferred)
+
+      const initialEntities: Record<string, GraphEntity> = {}
+      for (const iri of deepLink.entities) {
+        const shortName = iri.includes('#') ? iri.split('#')[1] : iri.split('/').pop() || iri
+        initialEntities[iri] = {
+          __typename: 'OntologyEntity',
+          id: iri,
+          label: shortName,
+          description: null,
+        }
+      }
+      setGraph({ entities: initialEntities, relationships: {} })
+
+      const sel = deepLink.selected && initialEntities[deepLink.selected]
+        ? deepLink.selected
+        : deepLink.entities[0]
+      setSelectedId(sel)
+      setNotice(`Loaded ${deepLink.entities.length} entities from shared link.`)
+      return
+    }
+
+    // Otherwise, auto-restore active session from browser storage if present (SE-002)
+    const saved = loadFromLocalStorage()
+    if (saved && Object.keys(saved.entities).length > 0) {
+      setGraph({
+        entities: saved.entities,
+        relationships: saved.relationships,
+      })
+      setSelectedId(saved.selected_id)
+      setPinnedNodeIds(saved.pinned_nodes || [])
+      if (saved.layout_name) setLayoutName(saved.layout_name)
+      if (saved.direction) setDirection(saved.direction)
+      if (saved.include_inferred !== undefined) setIncludeInferred(saved.include_inferred)
+
+      window.setTimeout(() => {
+        if (saved.node_positions && rendererRef.current?.setNodePositions) {
+          rendererRef.current.setNodePositions(saved.node_positions)
+        }
+        if (saved.camera && rendererRef.current?.setCamera) {
+          rendererRef.current.setCamera(saved.camera)
+        }
+      }, 150)
+      setNotice(`Restored active session (${Object.keys(saved.entities).length} nodes).`)
+    }
+  }, [])
+
+  // Auto-save to localStorage with 2-second debounce (SE-002)
+  useEffect(() => {
+    if (!autoSaveEnabled) return
+    const entityCount = Object.keys(graph.entities).length
+    if (entityCount === 0) return
+
+    const timer = window.setTimeout(() => {
+      const camera = rendererRef.current?.getCamera()
+      const node_positions = rendererRef.current?.getNodePositions()
+      const session = serializeSession({
+        profile_id: profile?.metadata?.package_id || 'unknown-profile',
+        build_id: profile?.build_id || null,
+        entities: graph.entities,
+        relationships: graph.relationships,
+        selected_id: selectedId,
+        camera,
+        pinned_nodes: pinnedNodeIds,
+        layout_name: layoutName,
+        direction,
+        include_inferred: includeInferred,
+        node_positions,
+      })
+      saveToLocalStorage(session)
+    }, 2000)
+
+    return () => window.clearTimeout(timer)
+  }, [
+    graph,
+    selectedId,
+    layoutName,
+    direction,
+    includeInferred,
+    pinnedNodeIds,
+    autoSaveEnabled,
+    profile?.metadata?.package_id,
+    profile?.build_id,
+  ])
+
+  // Update deep link URL hash as user explores (debounced 500ms, using replaceState to avoid history pollution)
+  useEffect(() => {
+    const entityIds = Object.keys(graph.entities)
+    if (entityIds.length === 0) return
+
+    const timer = window.setTimeout(() => {
+      updateBrowserUrl({
+        entities: entityIds,
+        selected: selectedId,
+        layout: layoutName,
+        direction: direction !== 'BOTH' ? direction : undefined,
+        inferred: includeInferred ? undefined : false,
+        profile: profile?.metadata?.package_id,
+        build: profile?.build_id || null,
+      })
+    }, 500)
+
+    return () => window.clearTimeout(timer)
+  }, [
+    graph.entities,
+    selectedId,
+    layoutName,
+    direction,
+    includeInferred,
+    profile?.metadata?.package_id,
+    profile?.build_id,
+  ])
+
+  // Global keyboard shortcuts: Ctrl+S (Save), Ctrl+O (Open/Restore)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      const isInput =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+
+      if (isInput) return
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        setSessionManagerTab('save')
+        setIsSessionManagerOpen(true)
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'o') {
+        e.preventDefault()
+        setSessionManagerTab('restore')
+        setIsSessionManagerOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const RELATION_OPTIONS = useMemo(() => {
     return profile?.predicates.filter((p) => !p.hidden && p.traversable).map((p) => p.name) || []
@@ -439,6 +610,36 @@ function App() {
     setNextCursorByEntity({})
     setNotice(null)
   }
+
+  const handleRestoreSession = useCallback((session: ExplorerSession) => {
+    setGraph({
+      entities: session.entities,
+      relationships: session.relationships,
+    })
+    setSelectedId(session.selected_id)
+    setPinnedNodeIds(session.pinned_nodes || [])
+    if (session.layout_name) setLayoutName(session.layout_name)
+    if (session.direction) setDirection(session.direction)
+    if (session.include_inferred !== undefined) setIncludeInferred(session.include_inferred)
+
+    window.setTimeout(() => {
+      if (session.node_positions && rendererRef.current?.setNodePositions) {
+        rendererRef.current.setNodePositions(session.node_positions)
+      }
+      if (session.camera && rendererRef.current?.setCamera) {
+        rendererRef.current.setCamera(session.camera)
+      }
+    }, 100)
+
+    setNotice(`Restored session "${session.name || 'Untitled'}" (${Object.keys(session.entities).length} entities).`)
+  }, [])
+
+  const handleClearSession = useCallback(() => {
+    resetGraph()
+    clearLocalStorage()
+    updateBrowserUrl({})
+    setNotice('Graph and active session cleared.')
+  }, [])
 
   function fitGraph() {
     rendererRef.current?.fit()
@@ -757,6 +958,35 @@ function App() {
       onSelect: () => {
         setLayoutName('circle')
         rendererRef.current?.runLayout('circle')
+      },
+    },
+    {
+      id: 'session-save',
+      title: 'Save Session...',
+      subtitle: 'Save graph state to browser storage or export file (Ctrl+S)',
+      shortcut: 'Ctrl+S',
+      onSelect: () => {
+        setSessionManagerTab('save')
+        setIsSessionManagerOpen(true)
+      },
+    },
+    {
+      id: 'session-restore',
+      title: 'Restore Session...',
+      subtitle: 'Load session from browser storage or file (Ctrl+O)',
+      shortcut: 'Ctrl+O',
+      onSelect: () => {
+        setSessionManagerTab('restore')
+        setIsSessionManagerOpen(true)
+      },
+    },
+    {
+      id: 'session-share',
+      title: 'Share Deep Link...',
+      subtitle: 'Generate and copy shareable URL for current graph',
+      onSelect: () => {
+        setSessionManagerTab('share')
+        setIsSessionManagerOpen(true)
       },
     },
   ]
@@ -1453,6 +1683,20 @@ function App() {
 
   const headerActions = (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <button
+        type="button"
+        className="session-header-trigger"
+        onClick={() => {
+          setSessionManagerTab('save')
+          setIsSessionManagerOpen(true)
+        }}
+        title="Session Manager (Ctrl+S to save, Ctrl+O to open)"
+        aria-label="Open Session Manager"
+      >
+        <FolderSync size={14} aria-hidden="true" />
+        <span>Sessions</span>
+        {autoSaveEnabled && <span className="session-autosave-dot" title="Auto-save enabled" />}
+      </button>
       <ReducedMotionToggle />
       <LanguageSelector
         preferredLanguages={profile?.languages?.preferred_languages}
@@ -1517,6 +1761,26 @@ function App() {
             void inspectEntity(newEntity)
           }
         }}
+      />
+
+      <SessionManager
+        isOpen={isSessionManagerOpen}
+        onClose={() => setIsSessionManagerOpen(false)}
+        initialTab={sessionManagerTab}
+        currentProfile={profile}
+        currentBuildId={profile?.build_id}
+        currentGraph={graph}
+        selectedId={selectedId}
+        layoutName={layoutName}
+        direction={direction}
+        includeInferred={includeInferred}
+        pinnedNodeIds={pinnedNodeIds}
+        camera={rendererRef.current?.getCamera()}
+        nodePositions={rendererRef.current?.getNodePositions()}
+        autoSaveEnabled={autoSaveEnabled}
+        onToggleAutoSave={handleToggleAutoSave}
+        onRestoreSession={handleRestoreSession}
+        onClearSession={handleClearSession}
       />
     </ReducedMotionProvider>
   )
