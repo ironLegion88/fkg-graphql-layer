@@ -1,0 +1,363 @@
+.explanation-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.explanation-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.explanation-slideover {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.explanation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.header-title-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-icon {
+  color: #7c3aed;
+}
+
+.explanation-title {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.explanation-subtitle {
+  margin: 2px 0 0 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.explanation-close-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.explanation-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Fact summary card */
+.fact-summary-card {
+  padding: 16px 20px;
+  background: #faf5ff;
+  border-bottom: 1px solid #f3e8ff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fact-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inferred-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px dashed #d8b4fe;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.source-graph-badge {
+  font-size: 0.6875rem;
+  color: #64748b;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.fact-statement {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.875rem;
+}
+
+.entity-link {
+  background: transparent;
+  border: none;
+  color: #7c3aed;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  text-decoration: underline;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.entity-link:hover {
+  background: #ede9fe;
+}
+
+.predicate-pill {
+  font-size: 0.8125rem;
+  color: #475569;
+  font-weight: 600;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.handle-text {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.handle-text code {
+  background: #ffffff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #e9d5ff;
+  color: #581c87;
+  font-size: 0.75rem;
+}
+
+/* Body content */
+.explanation-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.explanation-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 16px;
+  color: #64748b;
+}
+
+.explanation-loading h4 {
+  margin: 12px 0 4px 0;
+  font-size: 1rem;
+  color: #1e293b;
+}
+
+.explanation-loading p {
+  margin: 0;
+  font-size: 0.8125rem;
+  max-width: 320px;
+}
+
+.explanation-error-card {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.explanation-error-card h4 {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: #991b1b;
+}
+
+.explanation-error-card p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #b91c1c;
+}
+
+.retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #b91c1c;
+  color: #ffffff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 4px;
+  min-height: 38px;
+}
+
+.retry-btn:hover {
+  background: #991b1b;
+}
+
+/* Proof Available View */
+.proof-available-view {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.proof-meta-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  color: #334155;
+}
+
+.proof-steps-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.proof-heading {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Proof Unavailable Card */
+.proof-unavailable-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.info-icon {
+  color: #0284c7;
+}
+
+.proof-unavailable-card h4 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.unavailable-message {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #334155;
+  line-height: 1.5;
+  max-width: 400px;
+}
+
+.reasoner-details-box {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  margin-top: 6px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.8125rem;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #475569;
+  min-width: 120px;
+}
+
+.status-badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.status-badge.unavailable {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.unavailable-help-copy {
+  margin: 4px 0 0 0;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.4;
+  font-style: italic;
+}
