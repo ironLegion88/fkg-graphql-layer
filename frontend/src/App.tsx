@@ -155,8 +155,17 @@ function App() {
   const rendererRef = useRef<GraphRendererHandle | null>(null)
   const [isSessionManagerOpen, setIsSessionManagerOpen] = useState(false)
   const [sessionManagerTab, setSessionManagerTab] = useState<'save' | 'restore' | 'share'>('save')
+  const [sessionCamera, setSessionCamera] = useState<{ zoom: number; pan: { x: number; y: number } } | undefined>(undefined)
+  const [sessionNodePositions, setSessionNodePositions] = useState<Record<string, { x: number; y: number }> | undefined>(undefined)
   const [autoSaveEnabled, setAutoSaveEnabledState] = useState<boolean>(() => getAutoSaveEnabled())
   const initialRestoreDone = useRef(false)
+
+  useEffect(() => {
+    if (isSessionManagerOpen) {
+      setSessionCamera(rendererRef.current?.getCamera())
+      setSessionNodePositions(rendererRef.current?.getNodePositions())
+    }
+  }, [isSessionManagerOpen])
 
   const handleToggleAutoSave = (enabled: boolean) => {
     setAutoSaveEnabledState(enabled)
@@ -1948,8 +1957,8 @@ function App() {
         direction={direction}
         includeInferred={includeInferred}
         pinnedNodeIds={pinnedNodeIds}
-        camera={rendererRef.current?.getCamera()}
-        nodePositions={rendererRef.current?.getNodePositions()}
+        camera={sessionCamera}
+        nodePositions={sessionNodePositions}
         autoSaveEnabled={autoSaveEnabled}
         onToggleAutoSave={handleToggleAutoSave}
         onRestoreSession={handleRestoreSession}

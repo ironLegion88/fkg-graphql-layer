@@ -509,6 +509,13 @@ export const CosmosOverview: React.FC<CosmosOverviewProps> = ({
             )}
           </div>
         )}
+
+        {/* Empty Ontology Classes Notice */}
+        {overviewData.clusters.length === 0 && !initError && (
+          <div className="cosmos-empty-overlay" role="status">
+            <p>No ontology classes found for overview visualization.</p>
+          </div>
+        )}
       </div>
 
       {/* Cluster Navigation Pill Bar */}
