@@ -20,7 +20,7 @@ export interface GraphSummaryProps {
   filters?: GraphSummaryFilters
   isTruncated?: boolean
   limitReached?: boolean
-  viewMode?: 'canvas' | 'table'
+  viewMode?: 'canvas' | 'overview' | 'table'
   className?: string
   showVisualDisclosure?: boolean
 }
@@ -50,7 +50,7 @@ export const GraphSummary: React.FC<GraphSummaryProps> = ({
     parts.push(`${inferredCount} inferred.`)
 
     // 2. View Mode
-    parts.push(`Current view: ${viewMode === 'table' ? 'whole-graph table' : 'graph canvas'}.`)
+    parts.push(`Current view: ${viewMode === 'table' ? 'whole-graph table' : viewMode === 'overview' ? 'GPU class overview' : 'graph canvas'}.`)
 
     // 3. Selection
     if (selectedRelationship) {

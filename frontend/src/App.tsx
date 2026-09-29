@@ -23,6 +23,8 @@ import {
   Route,
   GitCompare,
   FolderSync,
+  Sparkles,
+  ArrowLeft,
 } from 'lucide-react'
 import './App.css'
 import {
@@ -52,7 +54,11 @@ import {
   expandGraph,
   fetchProfile,
   getExpansionPreview,
+  fetchOverview,
+  fetchClassInstances,
 } from './api/graph'
+import { isWebGL2Supported } from './graph/webglDetect'
+import { LazyCosmosOverview } from './graph/LazyCosmosOverview'
 import { InspectorPanel } from './inspector'
 import { PathBuilder, EntityComparison, ExplanationPanel } from './exploration'
 import CytoscapeGraph, { type GraphRendererHandle } from './graph/CytoscapeGraph'
@@ -115,8 +121,16 @@ function App() {
   const multiHopAbortController = useRef<AbortController | null>(null)
   const [layoutName, setLayoutName] = useState<string>('breadthfirst')
   const [pinnedNodeIds, setPinnedNodeIds] = useState<string[]>([])
+  const webglSupported = useMemo(() => isWebGL2Supported(), [])
+  const [drillDownBreadcrumb, setDrillDownBreadcrumb] = useState<{
+    classIri: string
+    label: string
+    instanceCount: number
+  } | null>(null)
+  const [selectedClusterIri, setSelectedClusterIri] = useState<string | null>(null)
+
   // On mobile (<768px), textual VisibleGraphTable is the primary accessible view (AX-007)
-  const [centerViewMode, setCenterViewMode] = useState<'canvas' | 'table'>(() => {
+  const [centerViewMode, setCenterViewMode] = useState<'canvas' | 'overview' | 'table'>(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
       return 'table'
     }
@@ -157,6 +171,32 @@ function App() {
     queryKey: ['active-profile'],
     queryFn: () => fetchProfile(),
   })
+
+  const {
+    data: overviewData,
+    isLoading: isOverviewLoading,
+    error: overviewError,
+  } = useQuery({
+    queryKey: ['ontology-overview'],
+    queryFn: () => fetchOverview(),
+    enabled: centerViewMode === 'overview',
+  })
+
+  // WebGL 2 GPU fallback (AC-111, RC-006): if overview mode is active but WebGL is unsupported, fallback
+  useEffect(() => {
+    if (centerViewMode === 'overview' && !webglSupported) {
+      setCenterViewMode('canvas')
+      setNotice('GPU acceleration unavailable. Showing table and detail views.')
+    }
+  }, [centerViewMode, webglSupported])
+
+  // Graceful fallback on overview fetch error
+  useEffect(() => {
+    if (overviewError && centerViewMode === 'overview') {
+      setNotice('Failed to load ontology overview data. Switched to table view.')
+      setCenterViewMode('table')
+    }
+  }, [overviewError, centerViewMode])
 
   // Initial load: parse Deep Link parameters or auto-restore from browser localStorage (SE-002, OP-009)
   useEffect(() => {
@@ -638,8 +678,53 @@ function App() {
     resetGraph()
     clearLocalStorage()
     updateBrowserUrl({})
+    setDrillDownBreadcrumb(null)
     setNotice('Graph and active session cleared.')
   }, [])
+
+  const handleDrillDownToClass = async (classIri: string) => {
+    try {
+      const cluster = overviewData?.clusters.find((c) => c.class_iri === classIri)
+      const classLabel =
+        cluster?.label ||
+        (classIri.includes('#') ? classIri.split('#')[1] : classIri.split('/').pop() || classIri)
+      setDrillDownBreadcrumb({
+        classIri,
+        label: classLabel,
+        instanceCount: cluster?.instance_count || 0,
+      })
+
+      // Fetch bounded instances for the class (RC-005)
+      const instances = await fetchClassInstances(classIri, 50)
+      if (instances && instances.length > 0) {
+        const newEntities: Record<string, GraphEntity> = {}
+        for (const inst of instances) {
+          newEntities[inst.id] = inst
+        }
+        setGraph({ entities: newEntities, relationships: {} })
+        setSelectedId(instances[0].id)
+        setSelectedRelationship(null)
+        void inspectEntity(instances[0])
+      } else {
+        const classEntity: GraphEntity = {
+          __typename: 'OntologyEntity',
+          id: classIri,
+          label: classLabel,
+          description: null,
+          kind: 'Class',
+        }
+        setGraph({ entities: { [classIri]: classEntity }, relationships: {} })
+        setSelectedId(classIri)
+        setSelectedRelationship(null)
+        void inspectEntity(classEntity)
+      }
+
+      setCenterViewMode('canvas')
+    } catch (err) {
+      console.error('Failed to drill down to class instances:', err)
+      setNotice(`Failed to load instances for class ${classIri}`)
+    }
+  }
 
   function fitGraph() {
     rendererRef.current?.fit()
@@ -1147,11 +1232,24 @@ function App() {
               className={`view-mode-btn ${centerViewMode === 'canvas' ? 'active' : ''}`}
               onClick={() => setCenterViewMode('canvas')}
               aria-pressed={centerViewMode === 'canvas'}
-              title="Interactive Cytoscape Canvas View"
+              title="Interactive Cytoscape Detail Canvas View (AC-110)"
             >
               <Network size={14} aria-hidden="true" />
-              <span>Canvas</span>
+              <span>Detail</span>
             </button>
+            {webglSupported && (
+              <button
+                type="button"
+                className={`view-mode-btn ${centerViewMode === 'overview' ? 'active' : ''}`}
+                onClick={() => setCenterViewMode('overview')}
+                aria-pressed={centerViewMode === 'overview'}
+                title="GPU-Accelerated cosmos.gl Overview View (RC-003, AC-110)"
+                data-testid="view-mode-overview-btn"
+              >
+                <Sparkles size={14} aria-hidden="true" />
+                <span>Overview</span>
+              </button>
+            )}
             <button
               type="button"
               className={`view-mode-btn ${centerViewMode === 'table' ? 'active' : ''}`}
@@ -1352,8 +1450,83 @@ function App() {
             })
           }}
         />
+      ) : centerViewMode === 'overview' ? (
+        overviewData ? (
+          <LazyCosmosOverview
+            overviewData={overviewData}
+            selectedClusterIri={selectedClusterIri}
+            categoryColors={categoryColors}
+            onSelectCluster={(classIri) => {
+              setSelectedClusterIri(classIri || null)
+              if (classIri) {
+                const cl = overviewData.clusters.find((c) => c.class_iri === classIri)
+                if (cl) {
+                  const classEntity: GraphEntity = {
+                    __typename: 'OntologyEntity',
+                    id: classIri,
+                    label: cl.label,
+                    description: null,
+                    kind: 'Class',
+                  }
+                  void inspectEntity(classEntity)
+                }
+              }
+            }}
+            onDrillDown={(classIri) => {
+              void handleDrillDownToClass(classIri)
+            }}
+            onFallbackRequested={() => {
+              setCenterViewMode('table')
+              setNotice('GPU acceleration unavailable or initialization failed. Switched to table view.')
+            }}
+          />
+        ) : isOverviewLoading ? (
+          <div className="cosmos-loading-overlay" role="status" aria-live="polite">
+            <LoaderCircle size={36} className="spin-animation" aria-hidden="true" />
+            <p>Loading ontology overview data...</p>
+          </div>
+        ) : (
+          <div className="cosmos-error-overlay" role="alert">
+            <h3>Overview Data Unavailable</h3>
+            <p>Failed to retrieve ontology class overview data.</p>
+            <button
+              type="button"
+              className="fallback-btn"
+              onClick={() => setCenterViewMode('canvas')}
+            >
+              Return to Detail Canvas
+            </button>
+          </div>
+        )
       ) : (
         <>
+          {drillDownBreadcrumb && (
+            <div className="overview-breadcrumb-bar" role="navigation" aria-label="Drill-down breadcrumb">
+              <button
+                type="button"
+                className="back-to-overview-btn"
+                onClick={() => setCenterViewMode('overview')}
+                aria-label="Back to Overview"
+                data-testid="back-to-overview-btn"
+              >
+                <ArrowLeft size={14} aria-hidden="true" />
+                <span>Back to Overview</span>
+              </button>
+              <span className="breadcrumb-separator">/</span>
+              <span className="breadcrumb-current">
+                Class: <strong>{drillDownBreadcrumb.label}</strong> ({drillDownBreadcrumb.instanceCount} instances)
+              </span>
+              <button
+                type="button"
+                className="clear-breadcrumb-btn"
+                onClick={() => setDrillDownBreadcrumb(null)}
+                title="Clear drill-down context"
+                aria-label="Clear drill-down context"
+              >
+                <X size={12} aria-hidden="true" />
+              </button>
+            </div>
+          )}
           <div className="graph-canvas">
             {nodeCount === 0 && (
               <div className="empty-graph">

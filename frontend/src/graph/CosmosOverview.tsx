@@ -6,14 +6,13 @@ import {
   ZoomOut,
   Maximize2,
   Search,
-  Info,
   Sparkles,
   ArrowRight,
   AlertTriangle,
 } from 'lucide-react'
 import type { OverviewGraphRenderer } from '../interfaces/renderers'
-import type { OverviewCluster, OverviewData } from '../interfaces/models'
-import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
+import type { OverviewCluster } from '../interfaces/models'
+import { usePrefersReducedMotion } from './usePrefersReducedMotion'
 import './CosmosOverview.css'
 
 export interface CosmosOverviewProps extends OverviewGraphRenderer {
@@ -283,19 +282,33 @@ export const CosmosOverview: React.FC<CosmosOverviewProps> = ({
   // Canvas zoom/fit controls
   const handleZoomIn = () => {
     if (cosmosRef.current) {
-      cosmosRef.current.zoomIn?.()
+      try {
+        const current = cosmosRef.current.getZoomLevel()
+        cosmosRef.current.setZoomLevel(current * 1.3, 200)
+      } catch {
+        // ignore
+      }
     }
   }
 
   const handleZoomOut = () => {
     if (cosmosRef.current) {
-      cosmosRef.current.zoomOut?.()
+      try {
+        const current = cosmosRef.current.getZoomLevel()
+        cosmosRef.current.setZoomLevel(current / 1.3, 200)
+      } catch {
+        // ignore
+      }
     }
   }
 
   const handleFitView = () => {
     if (cosmosRef.current) {
-      cosmosRef.current.fitView?.()
+      try {
+        cosmosRef.current.fitView(250)
+      } catch {
+        // ignore
+      }
     }
   }
 
