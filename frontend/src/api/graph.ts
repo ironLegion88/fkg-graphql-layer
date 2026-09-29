@@ -1,4 +1,4 @@
-﻿import { GraphQLClient } from 'graphql-request'
+import { GraphQLClient } from 'graphql-request'
 import type {
   SemanticCategory,
   PredicateInfo,
@@ -24,6 +24,11 @@ import type {
   SearchOptions,
   ValidationFinding,
   BuildStatus,
+  PathStatus,
+  GraphPath,
+  PathResult,
+  ComparisonResult,
+  ExplanationResult,
 } from '../interfaces/models'
 
 export type {
@@ -51,6 +56,11 @@ export type {
   SearchOptions,
   ValidationFinding,
   BuildStatus,
+  PathStatus,
+  GraphPath,
+  PathResult,
+  ComparisonResult,
+  ExplanationResult,
 }
 
 export const client = new GraphQLClient(
@@ -297,6 +307,56 @@ const getBuildStatusQuery = `
   }
 `
 
+const findPathQuery = `
+  query FindPath($sourceId: ID!, $targetId: ID!) {
+    find_path(source_id: $sourceId, target_id: $targetId) {
+      status
+      path {
+        entities {
+          __typename
+          id
+          label
+          description
+          ... on OntologyEntity { kind }
+        }
+        relations
+      }
+      visited_nodes
+    }
+  }
+`
+
+const compareEntitiesQuery = `
+  query CompareEntities($idA: ID!, $idB: ID!) {
+    compare(id_a: $idA, id_b: $idB) {
+      common_types
+      unique_types_a
+      unique_types_b
+      common_properties
+      unique_properties_a
+      unique_properties_b
+      shared_neighbors {
+        __typename
+        id
+        label
+        description
+        ... on OntologyEntity { kind }
+      }
+    }
+  }
+`
+
+const getExplanationQuery = `
+  query GetExplanation($handle: String!) {
+    get_explanation(handle: $handle) {
+      available
+      proof_steps
+      reasoner
+      message
+    }
+  }
+`
+
 export function entityKind(entity: GraphEntity): string {
   if (entity.kind) {
     return entity.kind
@@ -399,4 +459,28 @@ export async function advancedSearch(options: SearchOptions): Promise<SearchResu
 export async function getBuildStatus(): Promise<BuildStatus> {
   const response = await client.request<{ get_build_status: BuildStatus }>(getBuildStatusQuery)
   return response.get_build_status
+}
+
+export async function findPath(sourceId: string, targetId: string): Promise<PathResult> {
+  const response = await client.request<{ find_path: PathResult }>(findPathQuery, {
+    sourceId,
+    targetId,
+  })
+  return response.find_path
+}
+
+export async function compareEntities(idA: string, idB: string): Promise<ComparisonResult> {
+  const response = await client.request<{ compare: ComparisonResult }>(compareEntitiesQuery, {
+    idA,
+    idB,
+  })
+  return response.compare
+}
+
+export async function getExplanation(handle: string): Promise<ExplanationResult> {
+  const response = await client.request<{ get_explanation: ExplanationResult }>(
+    getExplanationQuery,
+    { handle },
+  )
+  return response.get_explanation
 }

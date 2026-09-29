@@ -1,4 +1,4 @@
-﻿export interface SemanticCategory {
+export interface SemanticCategory {
   name: string
   class_iris: string[]
   color: string | null
@@ -204,4 +204,34 @@ export interface BuildStatus {
   unsatisfiable_classes: string[]
   unsupported_constructs: string[]
   findings: ValidationFinding[]
+}
+
+export type PathStatus = 'FOUND' | 'SUCCESS' | 'NO_PATH' | 'TIMEOUT' | 'BUDGET_EXHAUSTED'
+
+export interface GraphPath {
+  entities: GraphEntity[]
+  relations: string[]
+}
+
+export interface PathResult {
+  status: PathStatus
+  path: GraphPath | null
+  visited_nodes: number
+}
+
+export interface ComparisonResult {
+  common_types: string[]
+  unique_types_a: string[]
+  unique_types_b: string[]
+  common_properties: string[]
+  unique_properties_a: string[]
+  unique_properties_b: string[]
+  shared_neighbors: GraphEntity[]
+}
+
+export interface ExplanationResult {
+  available: boolean
+  proof_steps: string[]
+  reasoner: string | null
+  message: string | null
 }

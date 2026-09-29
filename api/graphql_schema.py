@@ -234,6 +234,14 @@ class ComparisonResult:
 
 
 @strawberry.type
+class ExplanationResult:
+    available: bool
+    proof_steps: list[str]
+    reasoner: str | None = None
+    message: str | None = None
+
+
+@strawberry.type
 class CompactIRIType:
     full_iri: str
     prefix: str | None = None
@@ -720,6 +728,20 @@ class Query:
             unique_properties_a=list(result.unique_properties_a),
             unique_properties_b=list(result.unique_properties_b),
             shared_neighbors=[_to_api_entity(e) for e in result.shared_neighbors]
+        )
+
+    @strawberry.field
+    async def get_explanation(
+        self,
+        info: Info[GraphQLContext, None],
+        handle: str,
+    ) -> ExplanationResult:
+        """Stub: explanation service not yet implemented."""
+        return ExplanationResult(
+            available=False,
+            proof_steps=[],
+            reasoner=None,
+            message="Explanation service is not yet available. The inference was produced by the configured reasoner.",
         )
 
     @strawberry.field

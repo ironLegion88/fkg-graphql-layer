@@ -9,7 +9,7 @@ import {
   FileText,
 } from 'lucide-react'
 import type { TreeNode } from './HierarchyTreeView'
-import type { ClassInfo, GraphEntity, GraphRelationship } from '../interfaces/models'
+import type { ClassInfo, ComparisonResult, GraphEntity, GraphRelationship } from '../interfaces/models'
 
 /**
  * Builds a hierarchical class tree from ClassInfo objects (AX-002).
@@ -123,21 +123,173 @@ export function buildPathTree(
 
 /**
  * Builds comparison hierarchy tree showing shared and unique relationships (AX-002).
+ * Supports either ComparisonResult directly or individual relationship arrays.
  */
 export function buildComparisonTree(
-  shared: GraphRelationship[],
-  uniqueA: GraphRelationship[],
-  uniqueB: GraphRelationship[],
+  sharedOrResult: GraphRelationship[] | ComparisonResult,
+  uniqueAOrLabelA?: GraphRelationship[] | string,
+  uniqueBOrLabelB?: GraphRelationship[] | string,
   labelA: string = 'Entity A',
   labelB: string = 'Entity B',
 ): TreeNode[] {
+  // If passed a ComparisonResult:
+  if (sharedOrResult && 'common_types' in sharedOrResult) {
+    const res = sharedOrResult as ComparisonResult
+    const nameA = typeof uniqueAOrLabelA === 'string' ? uniqueAOrLabelA : labelA
+    const nameB = typeof uniqueBOrLabelB === 'string' ? uniqueBOrLabelB : labelB
+    const result: TreeNode[] = []
+
+    // 1. Shared Types
+    if (res.common_types.length > 0) {
+      result.push({
+        id: 'group_shared_types',
+        label: `Shared Types (${res.common_types.length})`,
+        subtitle: `Types assigned to both ${nameA} and ${nameB}`,
+        icon: <GitCompare size={15} style={{ color: '#059669' }} />,
+        badge: `${res.common_types.length} shared`,
+        badgeVariant: 'success',
+        children: res.common_types.map((t, idx) => ({
+          id: `common_type_${idx}`,
+          label: t,
+          icon: <Check size={13} style={{ color: '#059669' }} />,
+          badge: 'Shared Type',
+          badgeVariant: 'success',
+        })),
+      })
+    }
+
+    // 2. Unique Types A
+    if (res.unique_types_a.length > 0) {
+      result.push({
+        id: 'group_unique_types_a',
+        label: `Unique Types to ${nameA} (${res.unique_types_a.length})`,
+        subtitle: `Types present only in ${nameA}`,
+        icon: <Tag size={15} style={{ color: '#2563eb' }} />,
+        badge: `${res.unique_types_a.length} unique`,
+        badgeVariant: 'info',
+        children: res.unique_types_a.map((t, idx) => ({
+          id: `unique_type_a_${idx}`,
+          label: t,
+          icon: <Tag size={13} style={{ color: '#2563eb' }} />,
+          badge: `Unique to ${nameA}`,
+          badgeVariant: 'info',
+        })),
+      })
+    }
+
+    // 3. Unique Types B
+    if (res.unique_types_b.length > 0) {
+      result.push({
+        id: 'group_unique_types_b',
+        label: `Unique Types to ${nameB} (${res.unique_types_b.length})`,
+        subtitle: `Types present only in ${nameB}`,
+        icon: <Tag size={15} style={{ color: '#d97706' }} />,
+        badge: `${res.unique_types_b.length} unique`,
+        badgeVariant: 'warning',
+        children: res.unique_types_b.map((t, idx) => ({
+          id: `unique_type_b_${idx}`,
+          label: t,
+          icon: <Tag size={13} style={{ color: '#d97706' }} />,
+          badge: `Unique to ${nameB}`,
+          badgeVariant: 'warning',
+        })),
+      })
+    }
+
+    // 4. Shared Properties
+    if (res.common_properties.length > 0) {
+      result.push({
+        id: 'group_shared_properties',
+        label: `Shared Properties (${res.common_properties.length})`,
+        subtitle: `Predicates connected to both ${nameA} and ${nameB}`,
+        icon: <GitCompare size={15} style={{ color: '#059669' }} />,
+        badge: `${res.common_properties.length} shared`,
+        badgeVariant: 'success',
+        children: res.common_properties.map((p, idx) => ({
+          id: `common_prop_${idx}`,
+          label: p,
+          icon: <Check size={13} style={{ color: '#059669' }} />,
+          badge: 'Shared Property',
+          badgeVariant: 'success',
+        })),
+      })
+    }
+
+    // 5. Unique Properties A
+    if (res.unique_properties_a.length > 0) {
+      result.push({
+        id: 'group_unique_properties_a',
+        label: `Unique Properties to ${nameA} (${res.unique_properties_a.length})`,
+        subtitle: `Predicates connected only to ${nameA}`,
+        icon: <Tag size={15} style={{ color: '#2563eb' }} />,
+        badge: `${res.unique_properties_a.length} unique`,
+        badgeVariant: 'info',
+        children: res.unique_properties_a.map((p, idx) => ({
+          id: `unique_prop_a_${idx}`,
+          label: p,
+          icon: <Tag size={13} style={{ color: '#2563eb' }} />,
+          badge: `Unique to ${nameA}`,
+          badgeVariant: 'info',
+        })),
+      })
+    }
+
+    // 6. Unique Properties B
+    if (res.unique_properties_b.length > 0) {
+      result.push({
+        id: 'group_unique_properties_b',
+        label: `Unique Properties to ${nameB} (${res.unique_properties_b.length})`,
+        subtitle: `Predicates connected only to ${nameB}`,
+        icon: <Tag size={15} style={{ color: '#d97706' }} />,
+        badge: `${res.unique_properties_b.length} unique`,
+        badgeVariant: 'warning',
+        children: res.unique_properties_b.map((p, idx) => ({
+          id: `unique_prop_b_${idx}`,
+          label: p,
+          icon: <Tag size={13} style={{ color: '#d97706' }} />,
+          badge: `Unique to ${nameB}`,
+          badgeVariant: 'warning',
+        })),
+      })
+    }
+
+    // 7. Shared Neighbors
+    if (res.shared_neighbors.length > 0) {
+      result.push({
+        id: 'group_shared_neighbors',
+        label: `Shared Neighbors (${res.shared_neighbors.length})`,
+        subtitle: `Neighboring entities connected to both ${nameA} and ${nameB}`,
+        icon: <GitCompare size={15} style={{ color: '#059669' }} />,
+        badge: `${res.shared_neighbors.length} neighbors`,
+        badgeVariant: 'success',
+        children: res.shared_neighbors.map((n, idx) => ({
+          id: `shared_neighbor_${idx}_${n.id}`,
+          label: n.label || n.id,
+          subtitle: n.id,
+          icon: <Check size={13} style={{ color: '#059669' }} />,
+          badge: 'Shared Neighbor',
+          badgeVariant: 'success',
+          data: n,
+        })),
+      })
+    }
+
+    return result
+  }
+
+  // Otherwise, use relationship-based comparison (backwards compatible)
+  const shared = (sharedOrResult as GraphRelationship[]) || []
+  const uniqueA = (uniqueAOrLabelA as GraphRelationship[]) || []
+  const uniqueB = (uniqueBOrLabelB as GraphRelationship[]) || []
+  const effectiveLabelA = typeof labelA === 'string' ? labelA : 'Entity A'
+  const effectiveLabelB = typeof labelB === 'string' ? labelB : 'Entity B'
   const result: TreeNode[] = []
 
   // Shared Group
   result.push({
     id: 'group_shared',
     label: `Shared Facts (${shared.length})`,
-    subtitle: `Relationships present in both ${labelA} and ${labelB}`,
+    subtitle: `Relationships present in both ${effectiveLabelA} and ${effectiveLabelB}`,
     icon: <GitCompare size={15} style={{ color: '#059669' }} />,
     badge: `${shared.length} shared`,
     badgeVariant: 'success',
@@ -154,8 +306,8 @@ export function buildComparisonTree(
   // Unique A Group
   result.push({
     id: 'group_unique_a',
-    label: `Unique to ${labelA} (${uniqueA.length})`,
-    subtitle: `Relationships present only for ${labelA}`,
+    label: `Unique to ${effectiveLabelA} (${uniqueA.length})`,
+    subtitle: `Relationships present only for ${effectiveLabelA}`,
     icon: <Tag size={15} style={{ color: '#2563eb' }} />,
     badge: `${uniqueA.length} unique`,
     badgeVariant: 'info',
@@ -172,8 +324,8 @@ export function buildComparisonTree(
   // Unique B Group
   result.push({
     id: 'group_unique_b',
-    label: `Unique to ${labelB} (${uniqueB.length})`,
-    subtitle: `Relationships present only for ${labelB}`,
+    label: `Unique to ${effectiveLabelB} (${uniqueB.length})`,
+    subtitle: `Relationships present only for ${effectiveLabelB}`,
     icon: <Tag size={15} style={{ color: '#d97706' }} />,
     badge: `${uniqueB.length} unique`,
     badgeVariant: 'warning',
@@ -190,30 +342,45 @@ export function buildComparisonTree(
   return result
 }
 
+export interface ProofStepItem {
+  step: number
+  conclusion: string
+  premises: string[]
+  rule?: string
+}
+
 /**
- * Builds proof steps explanation tree (AX-002).
+ * Builds proof steps explanation tree (AX-002, UW-006).
+ * Accepts either detailed ProofStepItem objects or flat string proof lines.
  */
 export function buildProofTree(
-  proofSteps: {
-    step: number
-    conclusion: string
-    premises: string[]
-    rule?: string
-  }[],
+  proofSteps: (ProofStepItem | string)[],
 ): TreeNode[] {
-  return proofSteps.map((step) => ({
-    id: `proof_step_${step.step}`,
-    label: `Step ${step.step}: ${step.conclusion}`,
-    subtitle: step.rule ? `Rule: ${step.rule}` : undefined,
-    icon: <FileText size={14} style={{ color: '#7c3aed' }} />,
-    badge: step.rule || `Step ${step.step}`,
-    badgeVariant: 'info',
-    children: step.premises.map((premise, pIdx) => ({
-      id: `proof_step_${step.step}_premise_${pIdx}`,
-      label: premise,
-      icon: <Check size={13} style={{ color: '#059669' }} />,
-      badge: 'Premise',
-      badgeVariant: 'default',
-    })),
-  }))
+  return proofSteps.map((stepItem, index) => {
+    if (typeof stepItem === 'string') {
+      return {
+        id: `proof_step_${index + 1}`,
+        label: stepItem.startsWith('Step') ? stepItem : `Step ${index + 1}: ${stepItem}`,
+        icon: <FileText size={14} style={{ color: '#7c3aed' }} />,
+        badge: `Step ${index + 1}`,
+        badgeVariant: 'info',
+      }
+    }
+
+    return {
+      id: `proof_step_${stepItem.step}`,
+      label: `Step ${stepItem.step}: ${stepItem.conclusion}`,
+      subtitle: stepItem.rule ? `Rule: ${stepItem.rule}` : undefined,
+      icon: <FileText size={14} style={{ color: '#7c3aed' }} />,
+      badge: stepItem.rule || `Step ${stepItem.step}`,
+      badgeVariant: 'info',
+      children: stepItem.premises.map((premise, pIdx) => ({
+        id: `proof_step_${stepItem.step}_premise_${pIdx}`,
+        label: premise,
+        icon: <Check size={13} style={{ color: '#059669' }} />,
+        badge: 'Premise',
+        badgeVariant: 'default',
+      })),
+    }
+  })
 }
