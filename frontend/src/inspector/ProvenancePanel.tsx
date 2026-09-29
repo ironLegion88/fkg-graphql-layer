@@ -215,8 +215,11 @@ export const ProvenancePanel: React.FC<ProvenancePanelProps> = ({
               type="button"
               className="why-btn"
               onClick={() => {
-                if (activeRel.explanation_handle && onWhyClick) {
-                  onWhyClick(activeRel.explanation_handle)
+                if (onWhyClick) {
+                  const handle =
+                    activeRel.explanation_handle ||
+                    `inf:${activeRel.source.id}_${activeRel.relation}_${activeRel.target.id}`
+                  onWhyClick(handle)
                 }
               }}
               title="Open justification proof for this inferred fact"

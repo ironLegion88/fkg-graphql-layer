@@ -51,18 +51,19 @@ export const PathBuilder: React.FC<PathBuilderProps> = ({
   const [error, setError] = useState<string | null>(null)
   const [pathResult, setPathResult] = useState<PathResult | null>(null)
 
-  // Sync currentEntity into source if source is not set yet
-  useEffect(() => {
-    if (currentEntity && !sourceId) {
+  // Sync currentEntity into source if changed and source not set yet
+  const [prevEntity, setPrevEntity] = useState<GraphEntity | null>(currentEntity || null)
+  if (currentEntity && currentEntity !== prevEntity) {
+    setPrevEntity(currentEntity)
+    if (!sourceId) {
       setSourceId(currentEntity.id)
       setSourceLabel(currentEntity.label || currentEntity.id)
     }
-  }, [currentEntity, sourceId])
+  }
 
   // Search entities for source
   useEffect(() => {
     if (!sourceSearchQuery.trim() || sourceSearchQuery.length < 2) {
-      setSourceSearchResults([])
       return
     }
     const timer = setTimeout(async () => {
@@ -82,7 +83,6 @@ export const PathBuilder: React.FC<PathBuilderProps> = ({
   // Search entities for target
   useEffect(() => {
     if (!targetSearchQuery.trim() || targetSearchQuery.length < 2) {
-      setTargetSearchResults([])
       return
     }
     const timer = setTimeout(async () => {
@@ -139,7 +139,7 @@ export const PathBuilder: React.FC<PathBuilderProps> = ({
     const status: PathStatus = result.status
 
     switch (status) {
-      case 'FOUND':
+      case 'FOUND': {
         if (!result.path || result.path.entities.length === 0) {
           return (
             <div className="path-outcome-card outcome-no-path" data-testid="path-outcome-empty">
@@ -213,9 +213,9 @@ export const PathBuilder: React.FC<PathBuilderProps> = ({
             {/* Structured ARIA Hierarchy Tree */}
             <div className="path-tree-wrapper">
               <h5 className="path-tree-title">Step-by-Step Traversal Tree</h5>
-              <HierarchyTreeView
+              <HierarchyTreeView<GraphEntity>
                 nodes={pathTree}
-                onSelectNode={(node) => {
+                onSelect={(node) => {
                   if (node.data && onSelectEntity) {
                     onSelectEntity(node.data)
                   }
@@ -224,6 +224,7 @@ export const PathBuilder: React.FC<PathBuilderProps> = ({
             </div>
           </div>
         )
+      }
 
       case 'NO_PATH':
         return (
@@ -325,9 +326,13 @@ export const PathBuilder: React.FC<PathBuilderProps> = ({
                 placeholder="Search or enter entity IRI..."
                 value={sourceSearchQuery || sourceLabel || sourceId}
                 onChange={(e) => {
-                  setSourceSearchQuery(e.target.value)
-                  setSourceId(e.target.value)
-                  setSourceLabel(e.target.value)
+                  const val = e.target.value
+                  setSourceSearchQuery(val)
+                  setSourceId(val)
+                  setSourceLabel(val)
+                  if (!val.trim() || val.length < 2) {
+                    setSourceSearchResults([])
+                  }
                 }}
                 aria-label="Source entity IRI or label"
               />
@@ -399,9 +404,13 @@ export const PathBuilder: React.FC<PathBuilderProps> = ({
                 placeholder="Search or enter entity IRI..."
                 value={targetSearchQuery || targetLabel || targetId}
                 onChange={(e) => {
-                  setTargetSearchQuery(e.target.value)
-                  setTargetId(e.target.value)
-                  setTargetLabel(e.target.value)
+                  const val = e.target.value
+                  setTargetSearchQuery(val)
+                  setTargetId(val)
+                  setTargetLabel(val)
+                  if (!val.trim() || val.length < 2) {
+                    setTargetSearchResults([])
+                  }
                 }}
                 aria-label="Target entity IRI or label"
               />

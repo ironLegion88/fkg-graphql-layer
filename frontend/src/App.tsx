@@ -20,6 +20,8 @@ import {
   PinOff,
   Table,
   Play,
+  Route,
+  GitCompare,
 } from 'lucide-react'
 import './App.css'
 import { VisibleGraphTable } from './views/VisibleGraphTable'
@@ -29,6 +31,7 @@ import {
   type GraphEntity,
   type GraphExpansion,
   type GraphRelationship,
+  type GraphPath,
   type ExpansionRequest,
   type TraversalDirection,
   type ExpansionPreview,
@@ -38,6 +41,7 @@ import {
   getExpansionPreview,
 } from './api/graph'
 import { InspectorPanel } from './inspector'
+import { PathBuilder, EntityComparison, ExplanationPanel } from './exploration'
 import CytoscapeGraph, { type GraphRendererHandle } from './graph/CytoscapeGraph'
 import { ExpansionPreviewDialog } from './graph/ExpansionPreviewDialog'
 import {
@@ -64,7 +68,7 @@ import { CommandPalette, type CommandPaletteAction } from './navigation/CommandP
 import { SemanticLegend } from './navigation/SemanticLegend'
 import { LanguageSelector } from './navigation/LanguageSelector'
 
-type NavTab = 'search' | 'classes' | 'properties'
+type NavTab = 'search' | 'classes' | 'properties' | 'paths' | 'compare'
 
 function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -78,6 +82,10 @@ function App() {
   const [activeNavTab, setActiveNavTab] = useState<NavTab>('search')
   const [currentLanguage, setCurrentLanguage] = useState('en')
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
+  const [pinnedForComparison, setPinnedForComparison] = useState<GraphEntity[]>([])
+  const [isExplanationOpen, setIsExplanationOpen] = useState(false)
+  const [explanationHandle, setExplanationHandle] = useState<string | null>(null)
+  const [explanationRelationship, setExplanationRelationship] = useState<GraphRelationship | null>(null)
   const [selectedRelationship, setSelectedRelationship] = useState<GraphRelationship | null>(null)
   const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false)
   const [expansionPreview, setExpansionPreview] = useState<ExpansionPreview | null>(null)
@@ -556,6 +564,58 @@ function App() {
     setIncludeInferred(value)
   }
 
+  function handleHighlightPath(path: GraphPath) {
+    const newEntities = { ...graph.entities }
+    const newRelationships = { ...graph.relationships }
+    for (const e of path.entities) {
+      newEntities[e.id] = e
+    }
+    for (let i = 0; i < path.relations.length; i++) {
+      const source = path.entities[i]
+      const target = path.entities[i + 1]
+      const relation = path.relations[i]
+      const relKey = `${source.id}|${relation}|${target.id}`
+      if (!newRelationships[relKey]) {
+        newRelationships[relKey] = {
+          source,
+          target,
+          relation,
+          predicate_iri: null,
+          predicate_label: relation,
+          is_inferred: false,
+          source_graph: null,
+          explanation_handle: null,
+        }
+      }
+    }
+    setGraph({ entities: newEntities, relationships: newRelationships })
+    if (path.entities.length > 0) {
+      setSelectedId(path.entities[0].id)
+    }
+    setCenterViewMode('canvas')
+    setNotice(`Highlighted path with ${path.entities.length} nodes and ${path.relations.length} hops.`)
+    setTimeout(() => {
+      rendererRef.current?.fit()
+    }, 100)
+  }
+
+  function handlePinForComparison(entity: GraphEntity) {
+    if (!pinnedForComparison.some((p) => p.id === entity.id)) {
+      setPinnedForComparison((prev) => [...prev, entity])
+      setNotice(`Pinned "${entity.label || entity.id}" for comparison.`)
+    }
+  }
+
+  function handleUnpinFromComparison(entityId: string) {
+    setPinnedForComparison((prev) => prev.filter((p) => p.id !== entityId))
+  }
+
+  function handleOpenExplanation(handle: string, rel?: GraphRelationship | null) {
+    setExplanationHandle(handle)
+    setExplanationRelationship(rel || selectedRelationship || null)
+    setIsExplanationOpen(true)
+  }
+
   // Command palette actions
   const commandActions: CommandPaletteAction[] = [
     {
@@ -578,6 +638,26 @@ function App() {
       subtitle: 'Browse object and datatype properties',
       shortcut: 'P',
       onSelect: () => setActiveNavTab('properties'),
+    },
+    {
+      id: 'tab-paths',
+      title: 'Switch to Path Builder',
+      subtitle: 'Find bounded shortest path between entities (UW-004)',
+      onSelect: () => setActiveNavTab('paths'),
+    },
+    {
+      id: 'tab-compare',
+      title: 'Switch to Entity Comparison',
+      subtitle: 'Compare shared and unique features between entities (UW-005)',
+      onSelect: () => setActiveNavTab('compare'),
+    },
+    {
+      id: 'pin-current-comparison',
+      title: 'Pin Selected Entity for Comparison',
+      subtitle: selectedEntity ? `Pin "${selectedEntity.label || selectedEntity.id}"` : 'No entity selected',
+      onSelect: () => {
+        if (selectedEntity) handlePinForComparison(selectedEntity)
+      },
     },
     {
       id: 'graph-fit',
@@ -721,6 +801,32 @@ function App() {
           <Binary size={14} aria-hidden="true" />
           <span>Properties</span>
         </button>
+        <button
+          type="button"
+          role="tab"
+          id="tab-paths-btn"
+          aria-selected={activeNavTab === 'paths'}
+          aria-controls="tab-paths-panel"
+          className={`nav-tab-btn ${activeNavTab === 'paths' ? 'active' : ''}`}
+          onClick={() => setActiveNavTab('paths')}
+          title="Find bounded shortest paths (UW-004)"
+        >
+          <Route size={14} aria-hidden="true" />
+          <span>Paths</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="tab-compare-btn"
+          aria-selected={activeNavTab === 'compare'}
+          aria-controls="tab-compare-panel"
+          className={`nav-tab-btn ${activeNavTab === 'compare' ? 'active' : ''}`}
+          onClick={() => setActiveNavTab('compare')}
+          title="Compare entity features (UW-005)"
+        >
+          <GitCompare size={14} aria-hidden="true" />
+          <span>Compare</span>
+        </button>
       </div>
 
       <div className="nav-tab-content">
@@ -766,6 +872,29 @@ function App() {
                 void inspectEntity(propertyEntity)
               }}
               selectedIri={selectedId}
+            />
+          </div>
+        )}
+
+        {activeNavTab === 'paths' && (
+          <div id="tab-paths-panel" role="tabpanel" aria-labelledby="tab-paths-btn" style={{ overflowY: 'auto', padding: 8 }}>
+            <PathBuilder
+              currentEntity={selectedEntity || null}
+              visibleEntities={Object.values(graph.entities)}
+              onSelectEntity={(entity) => void inspectEntity(entity)}
+              onHighlightPath={handleHighlightPath}
+            />
+          </div>
+        )}
+
+        {activeNavTab === 'compare' && (
+          <div id="tab-compare-panel" role="tabpanel" aria-labelledby="tab-compare-btn" style={{ overflowY: 'auto', padding: 8 }}>
+            <EntityComparison
+              currentEntity={selectedEntity || null}
+              pinnedEntities={pinnedForComparison}
+              onPinEntity={handlePinForComparison}
+              onUnpinEntity={handleUnpinFromComparison}
+              onSelectEntity={(entity) => void inspectEntity(entity)}
             />
           </div>
         )}
@@ -882,6 +1011,25 @@ function App() {
                 ) : (
                   <Pin size={18} />
                 )}
+              </button>
+              <button
+                type="button"
+                title={
+                  pinnedForComparison.some((p) => p.id === selectedEntity.id)
+                    ? `Unpin "${selectedEntity.label}" from comparison`
+                    : `Pin "${selectedEntity.label}" for comparison (UW-005)`
+                }
+                aria-label="Toggle pin for comparison"
+                className={pinnedForComparison.some((p) => p.id === selectedEntity.id) ? 'active-pin' : ''}
+                onClick={() => {
+                  if (pinnedForComparison.some((p) => p.id === selectedEntity.id)) {
+                    handleUnpinFromComparison(selectedEntity.id)
+                  } else {
+                    handlePinForComparison(selectedEntity)
+                  }
+                }}
+              >
+                <GitCompare size={18} />
               </button>
               <button
                 type="button"
@@ -1298,6 +1446,7 @@ function App() {
         const propName = propIri.includes('#') ? propIri.split('#')[1] : propIri.split('/').pop() || propIri
         toggleRelation(propName)
       }}
+      onWhyClick={(handle) => handleOpenExplanation(handle, selectedRelationship)}
       traversalControls={traversalControlsBlock}
     />
   )
@@ -1346,6 +1495,27 @@ function App() {
           setIsPreviewDialogOpen(false)
           setPreviewTargetEntity(null)
           setExpansionPreview(null)
+        }}
+      />
+
+      <ExplanationPanel
+        isOpen={isExplanationOpen}
+        handle={explanationHandle}
+        relationship={explanationRelationship}
+        onClose={() => setIsExplanationOpen(false)}
+        onNavigate={(iri) => {
+          setIsExplanationOpen(false)
+          if (graph.entities[iri]) {
+            setSelectedId(iri)
+          } else {
+            const newEntity: GraphEntity = {
+              __typename: 'OntologyEntity',
+              id: iri,
+              label: iri.includes('#') ? iri.split('#')[1] : iri.split('/').pop() || iri,
+              description: null,
+            }
+            void inspectEntity(newEntity)
+          }
         }}
       />
     </ReducedMotionProvider>

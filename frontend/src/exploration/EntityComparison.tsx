@@ -4,7 +4,6 @@ import {
   Pin,
   PinOff,
   ArrowRightLeft,
-  Search,
   CheckCircle2,
   Tag,
   Boxes,
@@ -56,19 +55,20 @@ export const EntityComparison: React.FC<EntityComparisonProps> = ({
   const [displayMode, setDisplayMode] = useState<'cards' | 'tree'>('cards')
 
   // When pinnedEntities changes, if entityA or entityB is null, prefill
-  useEffect(() => {
+  const [prevPinned, setPrevPinned] = useState(pinnedEntities)
+  if (pinnedEntities !== prevPinned) {
+    setPrevPinned(pinnedEntities)
     if (!entityA && pinnedEntities.length > 0) {
       setEntityA(pinnedEntities[0])
     }
     if (!entityB && pinnedEntities.length > 1) {
       setEntityB(pinnedEntities[1])
     }
-  }, [pinnedEntities, entityA, entityB])
+  }
 
   // Search autocomplete for A
   useEffect(() => {
     if (!searchAQuery.trim() || searchAQuery.length < 2) {
-      setSearchResultsA([])
       return
     }
     const timer = setTimeout(async () => {
@@ -88,7 +88,6 @@ export const EntityComparison: React.FC<EntityComparisonProps> = ({
   // Search autocomplete for B
   useEffect(() => {
     if (!searchBQuery.trim() || searchBQuery.length < 2) {
-      setSearchResultsB([])
       return
     }
     const timer = setTimeout(async () => {
@@ -266,7 +265,13 @@ export const EntityComparison: React.FC<EntityComparisonProps> = ({
                 className="slot-input"
                 placeholder="Search or enter Entity A..."
                 value={searchAQuery}
-                onChange={(e) => setSearchAQuery(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setSearchAQuery(val)
+                  if (!val.trim() || val.length < 2) {
+                    setSearchResultsA([])
+                  }
+                }}
                 aria-label="Search Entity A"
               />
               {isSearchingA && <LoaderCircle size={14} className="spin input-spinner" />}
@@ -320,7 +325,13 @@ export const EntityComparison: React.FC<EntityComparisonProps> = ({
                 className="slot-input"
                 placeholder="Search or enter Entity B..."
                 value={searchBQuery}
-                onChange={(e) => setSearchBQuery(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setSearchBQuery(val)
+                  if (!val.trim() || val.length < 2) {
+                    setSearchResultsB([])
+                  }
+                }}
                 aria-label="Search Entity B"
               />
               {isSearchingB && <LoaderCircle size={14} className="spin input-spinner" />}
@@ -632,9 +643,9 @@ export const EntityComparison: React.FC<EntityComparisonProps> = ({
             <div className="comparison-tree-wrapper">
               <HierarchyTreeView
                 nodes={buildComparisonTree(comparisonResult, labelA, labelB)}
-                onSelectNode={(node) => {
+                onSelect={(node) => {
                   if (node.data && onSelectEntity) {
-                    onSelectEntity(node.data)
+                    onSelectEntity(node.data as GraphEntity)
                   }
                 }}
               />

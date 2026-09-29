@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   HelpCircle,
   X,
@@ -8,7 +9,6 @@ import {
   FileText,
   RotateCw,
   LoaderCircle,
-  ExternalLink,
   ShieldAlert,
 } from 'lucide-react'
 import type { GraphRelationship, ExplanationResult } from '../interfaces/models'
@@ -32,41 +32,18 @@ export const ExplanationPanel: React.FC<ExplanationPanelProps> = ({
   onClose,
   onNavigate,
 }) => {
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [explanation, setExplanation] = useState<ExplanationResult | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!isOpen || !handle) {
-      setExplanation(null)
-      setError(null)
-      setIsLoading(false)
-      return
-    }
-
-    let isMounted = true
-    setIsLoading(true)
-    setError(null)
-
-    getExplanation(handle)
-      .then((res) => {
-        if (isMounted) {
-          setExplanation(res)
-          setIsLoading(false)
-        }
-      })
-      .catch((err: unknown) => {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : 'Failed to retrieve inference explanation.')
-          setIsLoading(false)
-        }
-      })
-
-    return () => {
-      isMounted = false
-    }
-  }, [isOpen, handle])
+  const {
+    data: explanation,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<ExplanationResult | null, Error>({
+    queryKey: ['explanation', handle],
+    queryFn: () => (handle ? getExplanation(handle) : Promise.resolve(null)),
+    enabled: isOpen && !!handle,
+  })
 
   // Handle Escape key to close
   useEffect(() => {
@@ -83,18 +60,7 @@ export const ExplanationPanel: React.FC<ExplanationPanelProps> = ({
   if (!isOpen) return null
 
   const handleRetry = () => {
-    if (!handle) return
-    setIsLoading(true)
-    setError(null)
-    getExplanation(handle)
-      .then((res) => {
-        setExplanation(res)
-        setIsLoading(false)
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Failed to retrieve inference explanation.')
-        setIsLoading(false)
-      })
+    void refetch()
   }
 
   return (
@@ -190,7 +156,7 @@ export const ExplanationPanel: React.FC<ExplanationPanelProps> = ({
             <div className="explanation-error-card" role="alert">
               <ShieldAlert size={24} className="text-danger" aria-hidden="true" />
               <h4>Explanation Retrieval Failed</h4>
-              <p>{error}</p>
+              <p>{error.message}</p>
               <button type="button" className="retry-btn" onClick={handleRetry}>
                 <RotateCw size={14} />
                 <span>Retry Query</span>
