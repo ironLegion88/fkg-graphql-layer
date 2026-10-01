@@ -350,6 +350,9 @@ function App() {
         e.preventDefault()
         setSessionManagerTab('restore')
         setIsSessionManagerOpen(true)
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setIsCommandPaletteOpen(true)
       }
     }
     window.addEventListener('keydown', handleKeyDown)

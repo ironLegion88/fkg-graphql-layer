@@ -281,6 +281,9 @@ export const AppShell: React.FC<AppShellProps> = ({
             aria-orientation="vertical"
             aria-label="Resize navigation panel"
             tabIndex={0}
+            aria-valuenow={Math.round(navWidth)}
+            aria-valuemin={200}
+            aria-valuemax={600}
           />
         )}
         {!isNavOpen && <div className="resizer-placeholder" />}
@@ -304,6 +307,9 @@ export const AppShell: React.FC<AppShellProps> = ({
             aria-orientation="vertical"
             aria-label="Resize inspector panel"
             tabIndex={0}
+            aria-valuenow={Math.round(inspectorWidth)}
+            aria-valuemin={260}
+            aria-valuemax={700}
           />
         )}
         {!isInspectorOpen && <div className="resizer-placeholder" />}
