@@ -311,15 +311,42 @@ export async function setupMockGraphQL(page: Page, overrides: Record<string, unk
           data: {
             get_resource_metadata: {
               iri,
-              compact_iri: { full_iri: iri, prefix: 'food', local_name: iri.split('#').pop() || iri },
+              compact_iri: {
+                full_iri: iri,
+                prefix: 'food',
+                local_name: iri.split('#').pop() || iri,
+                namespace: 'http://foodkg.org/ontology/food#',
+              },
               semantic_kind: isClass ? 'Class' : isProp ? 'Property' : 'NamedIndividual',
-              asserted_types: [isClass ? 'http://www.w3.org/2002/07/owl#Class' : isProp ? 'http://www.w3.org/2002/07/owl#ObjectProperty' : 'http://foodkg.org/ontology/food#Recipe'],
+              asserted_types: [
+                isClass
+                  ? 'http://www.w3.org/2002/07/owl#Class'
+                  : isProp
+                    ? 'http://www.w3.org/2002/07/owl#ObjectProperty'
+                    : 'http://foodkg.org/ontology/food#Recipe',
+              ],
               inferred_types: ['http://www.w3.org/2002/07/owl#Thing'],
-              labels: [{ value: 'Hyderabadi Dum Biryani', language: 'en', predicate_iri: 'http://www.w3.org/2000/01/rdf-schema#label' }],
-              preferred_label: 'Hyderabadi Dum Biryani',
-              descriptions: [{ value: 'Rich spiced rice dish cooked dum-style.', language: 'en', predicate_iri: 'http://www.w3.org/2000/01/rdf-schema#comment' }],
+              labels: [
+                {
+                  value: isClass ? 'Recipe' : isProp ? 'has ingredient' : 'Hyderabadi Dum Biryani',
+                  language: 'en',
+                  predicate_iri: 'http://www.w3.org/2000/01/rdf-schema#label',
+                  datatype: null,
+                },
+              ],
+              preferred_label: isClass ? 'Recipe' : isProp ? 'has ingredient' : 'Hyderabadi Dum Biryani',
+              descriptions: [
+                {
+                  value: 'Rich spiced rice dish cooked dum-style.',
+                  language: 'en',
+                  predicate_iri: 'http://www.w3.org/2000/01/rdf-schema#comment',
+                  datatype: null,
+                },
+              ],
+              aliases: [],
               annotations: [],
               source_graphs: ['urn:fkg:graph:asserted'],
+              build_id: 'ca3f45ba',
             },
           },
         }),
@@ -335,7 +362,12 @@ export async function setupMockGraphQL(page: Page, overrides: Record<string, unk
           data: {
             get_class_info: {
               iri: 'http://foodkg.org/ontology/food#Recipe',
-              compact_iri: { full_iri: 'http://foodkg.org/ontology/food#Recipe', prefix: 'food', local_name: 'Recipe' },
+              compact_iri: {
+                full_iri: 'http://foodkg.org/ontology/food#Recipe',
+                prefix: 'food',
+                local_name: 'Recipe',
+                namespace: 'http://foodkg.org/ontology/food#',
+              },
               label: 'Recipe',
               direct_parents: ['http://www.w3.org/2002/07/owl#Thing'],
               all_ancestors: ['http://www.w3.org/2002/07/owl#Thing'],
@@ -345,6 +377,7 @@ export async function setupMockGraphQL(page: Page, overrides: Record<string, unk
               disjoint_classes: [],
               instance_count: 500,
               restrictions: [],
+              annotations: [],
             },
           },
         }),
@@ -360,14 +393,23 @@ export async function setupMockGraphQL(page: Page, overrides: Record<string, unk
           data: {
             get_property_info: {
               iri: 'http://foodkg.org/ontology/food#hasIngredient',
-              compact_iri: { full_iri: 'http://foodkg.org/ontology/food#hasIngredient', prefix: 'food', local_name: 'hasIngredient' },
+              compact_iri: {
+                full_iri: 'http://foodkg.org/ontology/food#hasIngredient',
+                prefix: 'food',
+                local_name: 'hasIngredient',
+                namespace: 'http://foodkg.org/ontology/food#',
+              },
               label: 'has ingredient',
               property_kind: 'ObjectProperty',
               domains: ['http://foodkg.org/ontology/food#Recipe'],
               ranges: ['http://foodkg.org/ontology/food#Ingredient'],
               inverse_of: null,
-              characteristics: [],
+              equivalent_properties: [],
+              sub_properties: [],
+              super_properties: [],
+              characteristics: ['Asymmetric'],
               usage_count: 2500,
+              annotations: [],
             },
           },
         }),
@@ -383,13 +425,17 @@ export async function setupMockGraphQL(page: Page, overrides: Record<string, unk
           data: {
             get_build_status: {
               build_id: 'ca3f45ba12d4e1892790',
-              created_at: '2026-09-29T10:00:00Z',
-              is_consistent: true,
-              total_triples: 16263,
-              inferred_triples: 2456,
+              status: 'READY',
+              consistency: 'CONSISTENT',
+              triple_count: 16263,
+              inferred_count: 2456,
+              semantic_profile: 'tier-m-indian-food',
+              reasoner_status: 'ACTIVE',
               reasoner_name: 'rdfs-parity',
+              validation_summary: 'Clean',
               unsatisfiable_classes: [],
-              validation_findings: [],
+              unsupported_constructs: [],
+              findings: [],
             },
           },
         }),
