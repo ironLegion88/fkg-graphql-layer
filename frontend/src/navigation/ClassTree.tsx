@@ -314,7 +314,7 @@ export const ClassTree: React.FC<ClassTreeProps> = ({ onSelectClass, selectedIri
         )}
       </div>
 
-      <div className="class-tree-list" role="tree">
+      <div className="class-tree-list" role="region" aria-label="Ontology Class Hierarchy">
         {displayedNodes.length === 0 ? (
           <div className="class-tree-empty">
             <p>No classes match current filters.</p>

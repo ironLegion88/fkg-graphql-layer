@@ -151,7 +151,7 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
           role="tab"
           id="tab-resource"
           aria-selected={activeTab === 'resource'}
-          aria-controls="panel-resource"
+          aria-controls={activeTab === 'resource' && selectedId ? 'panel-resource' : undefined}
           className={`inspector-tab-btn ${activeTab === 'resource' ? 'active' : ''}`}
           onClick={() => setActiveTab('resource')}
           disabled={!selectedId}
@@ -165,7 +165,7 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
           role="tab"
           id="tab-class"
           aria-selected={activeTab === 'class'}
-          aria-controls="panel-class"
+          aria-controls={activeTab === 'class' && selectedId ? 'panel-class' : undefined}
           className={`inspector-tab-btn ${activeTab === 'class' ? 'active' : ''} ${
             !isClass ? 'tab-muted' : ''
           }`}
@@ -182,7 +182,7 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
           role="tab"
           id="tab-property"
           aria-selected={activeTab === 'property'}
-          aria-controls="panel-property"
+          aria-controls={activeTab === 'property' && selectedId ? 'panel-property' : undefined}
           className={`inspector-tab-btn ${activeTab === 'property' ? 'active' : ''} ${
             !isProperty ? 'tab-muted' : ''
           }`}
@@ -199,7 +199,7 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
           role="tab"
           id="tab-provenance"
           aria-selected={activeTab === 'provenance'}
-          aria-controls="panel-provenance"
+          aria-controls={activeTab === 'provenance' ? 'panel-provenance' : undefined}
           className={`inspector-tab-btn ${activeTab === 'provenance' ? 'active' : ''}`}
           onClick={() => setActiveTab('provenance')}
         >
@@ -215,7 +215,7 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
           role="tab"
           id="tab-consistency"
           aria-selected={activeTab === 'consistency'}
-          aria-controls="panel-consistency"
+          aria-controls={activeTab === 'consistency' ? 'panel-consistency' : undefined}
           className={`inspector-tab-btn ${activeTab === 'consistency' ? 'active' : ''}`}
           onClick={() => setActiveTab('consistency')}
         >
