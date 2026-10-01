@@ -1,5 +1,10 @@
 import type { Page } from '@playwright/test';
 
+let currentMockPathStatus = 'FOUND';
+export function setMockPathStatus(status: string) {
+  currentMockPathStatus = status;
+}
+
 export const mockProfile = {
   metadata: {
     package_id: 'fkg-food',
@@ -393,7 +398,7 @@ export async function setupMockGraphQL(page: Page, overrides: Record<string, unk
     }
 
     if (query.includes('FindPath') || query.includes('find_path')) {
-      const statusOverride = (overrides.pathStatus as string) || 'FOUND';
+      const statusOverride = currentMockPathStatus || (overrides.pathStatus as string) || 'FOUND';
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -415,23 +420,25 @@ export async function setupMockGraphQL(page: Page, overrides: Record<string, unk
       return;
     }
 
-    if (query.includes('CompareEntities') || query.includes('compare_entities')) {
+    if (query.includes('CompareEntities') || query.includes('compare_entities') || query.includes('compare(')) {
+      const compData = {
+        entity_a: mockEntities.recipeBiryani,
+        entity_b: mockEntities.dishBiryani,
+        common_types: ['http://foodkg.org/ontology/food#CulinaryEntity'],
+        unique_types_a: ['http://foodkg.org/ontology/food#Recipe'],
+        unique_types_b: ['http://foodkg.org/ontology/food#Dish'],
+        common_properties: ['http://foodkg.org/ontology/food#hasCuisine'],
+        unique_properties_a: ['http://foodkg.org/ontology/food#hasIngredient'],
+        unique_properties_b: ['http://foodkg.org/ontology/food#pairsWellWith'],
+        shared_neighbors: [mockEntities.cuisineHyd],
+      };
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           data: {
-            compare_entities: {
-              entity_a: mockEntities.recipeBiryani,
-              entity_b: mockEntities.dishBiryani,
-              common_types: ['http://foodkg.org/ontology/food#CulinaryEntity'],
-              unique_types_a: ['http://foodkg.org/ontology/food#Recipe'],
-              unique_types_b: ['http://foodkg.org/ontology/food#Dish'],
-              common_properties: ['http://foodkg.org/ontology/food#hasCuisine'],
-              unique_properties_a: ['http://foodkg.org/ontology/food#hasIngredient'],
-              unique_properties_b: ['http://foodkg.org/ontology/food#pairsWellWith'],
-              shared_neighbors: [mockEntities.cuisineHyd],
-            },
+            compare: compData,
+            compare_entities: compData,
           },
         }),
       });
