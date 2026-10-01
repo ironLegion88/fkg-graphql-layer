@@ -1,0 +1,157 @@
+{
+  "package_id": "fkg-food",
+  "version": "1.0.0",
+  "title": "Indian Food Knowledge Graph",
+  "description": "Indian Food ontology, recipes, cuisines, and regional gastronomy knowledge graph.",
+  "ontology_iris": [
+    "http://foodkg.org/ontology/food"
+  ],
+  "sources": [
+    {
+      "path": "food_ontology.owl",
+      "format": "rdf-xml",
+      "graph": "urn:fkg:graph:asserted"
+    }
+  ],
+  "imports": {
+    "mode": "disabled",
+    "allowlist": []
+  },
+  "prefixes": {
+    "base_iri": "http://foodkg.org/ontology/food#",
+    "prefixes": {
+      "food": "http://foodkg.org/ontology/food#",
+      "owl": "http://www.w3.org/2002/07/owl#",
+      "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+      "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#"
+    }
+  },
+  "languages": {
+    "preferred_languages": [
+      "en",
+      "hi",
+      "ANY"
+    ]
+  },
+  "labels": {
+    "label_predicates": [
+      "rdfs:label"
+    ],
+    "description_predicates": [
+      "rdfs:comment"
+    ]
+  },
+  "search": {
+    "searchable_classes": [
+      "food:Recipe",
+      "food:Dish",
+      "food:Ingredient",
+      "food:Cuisine",
+      "food:Region",
+      "food:FoodProduct"
+    ]
+  },
+  "predicates": {
+    "traversable_predicates": [
+      "hasIngredient",
+      "hasCuisine",
+      "hasRegion",
+      "belongsToDiet",
+      "hasCookingMethod",
+      "isCourseof",
+      "servedAs",
+      "hasMealType",
+      "hasNutritionalInfo",
+      "contains",
+      "pairsWellWith"
+    ]
+  },
+  "categories": {
+    "Recipe": {
+      "class_iris": [
+        "food:Recipe"
+      ],
+      "label": "Recipe",
+      "color": "#e65100"
+    },
+    "Dish": {
+      "class_iris": [
+        "food:Dish"
+      ],
+      "label": "Dish",
+      "color": "#b83c50"
+    },
+    "Ingredient": {
+      "class_iris": [
+        "food:Ingredient"
+      ],
+      "label": "Ingredient",
+      "color": "#2e7d32"
+    },
+    "Cuisine": {
+      "class_iris": [
+        "food:Cuisine"
+      ],
+      "label": "Cuisine",
+      "color": "#d7972f"
+    },
+    "Region": {
+      "class_iris": [
+        "food:Region"
+      ],
+      "label": "Region",
+      "color": "#0277bd"
+    },
+    "Diet": {
+      "class_iris": [
+        "food:Diet"
+      ],
+      "label": "Diet",
+      "color": "#6a1b9a"
+    },
+    "CookingMethod": {
+      "class_iris": [
+        "food:CookingMethod"
+      ],
+      "label": "Cooking Method",
+      "color": "#ad1457"
+    },
+    "Course": {
+      "class_iris": [
+        "food:Course"
+      ],
+      "label": "Course",
+      "color": "#00838f"
+    },
+    "MealType": {
+      "class_iris": [
+        "food:MealType"
+      ],
+      "label": "Meal Type",
+      "color": "#ef6c00"
+    },
+    "FoodProduct": {
+      "class_iris": [
+        "food:FoodProduct"
+      ],
+      "label": "Food Product",
+      "color": "#4527a0"
+    },
+    "NutritionalInfo": {
+      "class_iris": [
+        "food:NutritionalInfo"
+      ],
+      "label": "Nutritional Info",
+      "color": "#558b2f"
+    }
+  },
+  "reasoning": {
+    "profile_name": "none"
+  },
+  "limits": {
+    "max_depth": 2,
+    "max_nodes": 5000,
+    "max_edges": 10000
+  }
+}
