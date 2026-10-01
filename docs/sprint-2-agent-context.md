@@ -3,10 +3,10 @@
 - **Document type:** Supplementary implementation context for LLM agent delegation
 - **Status:** Active — Phase 0 complete, Phase 1 in progress
 - **Created:** 2026-09-19
-- **Last Updated:** 2026-09-29 (Batch 2F complete)
+- **Last Updated:** 2026-10-01 (Batch 2H complete — Sprint 2 Phase 1 COMPLETE)
 - **Current Sprint:** Sprint 2 (Supported Application)
 - **Phase 0 Status:** ✅ COMPLETE (all 9 gaps resolved, 142 backend + 6 frontend tests passing)
-- **Phase 1 Progress:** Batch 2A (AppShell & Navigation), Batch 2B (Semantic Inspector & Provenance), Batch 2C (Cytoscape Detail Exploration), Batch 2D (Textual & Accessible Views), Batch 2E (Paths, Comparison & Explanation UI), and Batch 2F (Sessions, Restore & Deep Links) ✅ COMPLETE
+- **Phase 1 Progress:** ✅ COMPLETE (Batches 2A through 2H complete, all Sprint 2 Exit Gates met)
 - **Sprint 2 Baseline Branch:** `sprint-2/cytoscape` (created from `sprint-1/core-platform`, with `sprint-2/gap-remediation` merged)
 - **Per-batch branches:** Each Phase 1 batch gets a dedicated branch from `sprint-2/cytoscape`, merged back upon completion
 - **Prerequisite reading:** Before beginning any batch, read these documents in order:
@@ -1084,12 +1084,41 @@ Batch 2G delivered the GPU-accelerated overview visualization subsystem using co
 
 ---
 
-## 25. Post-Batch-2G Context for Batch 2H (E2E Testing & Hardening)
+## 25. Batch 2H Completion Summary: E2E Testing, Accessibility, Fixtures & Performance
 
-### Remaining State for Batch 2H
+Batch 2H is the final batch of Sprint 2 Phase 1. It established full automated end-to-end testing using Playwright, comprehensive accessibility audits using `@axe-core/playwright`, synthetic Indian Food Knowledge Graph ontology fixture generation (16,263 triples), performance latency benchmarks, memory stability verification, and validation of all Sprint 2 Exit Gate criteria.
 
-| Batch | Name | Focus | Status |
-|---|---|---|---|
-| **2G** | cosmos.gl Overview | Class clusters, GPU fallback, drill-down, bundle isolation | **COMPLETE** |
-| **2H** | E2E Testing | Playwright, full stack regression, accessibility, memory | Pending |
+### What Was Built
+1. **Playwright E2E Test Infrastructure (`frontend/playwright.config.ts`, `frontend/e2e/fixtures/mockApi.ts`):**
+   - Headless Chromium harness with auto-starting Vite dev server at `http://localhost:5173`.
+   - Comprehensive deterministic GraphQL API mocking supporting entity search, neighborhood expansion, paths, comparisons, metadata, class trees, property inspection, consistency reports, and cosmos overview clusters.
+2. **Synthetic Indian Food Knowledge Graph Fixture (`scripts/generate_food_ontology.py`, `fixtures/food_ontology.owl`, `fixtures/food_profile.json`):**
+   - 16,263 triples across 11 Classes, 11 Object Properties, 9 Data Properties, 50 Cuisines, 30 Regions, 200 Ingredients, 100 Dishes, 10 Diets, 20 Cooking Methods, 50 Food Products, and 500 Recipes.
+   - Accompanying semantic profile with rich color tokens and entity categories.
+3. **Core E2E User Workflow Test Suites (`frontend/e2e/`):**
+   - `e2e/search-explore.spec.ts`: Search, canvas addition, 1-hop expansion, collapse, redo, and bounded multi-hop traversal (`UW-001`, `UW-002`, `GE-001`, `GE-002`, `AC-105`).
+   - `e2e/path-compare.spec.ts`: Path finding across all 4 `PathStatus` outcomes (`FOUND`, `NO_PATH`, `BUDGET_EXHAUSTED`, `TIMEOUT`), 2-entity comparison diff cards, and reasoning explanation panel (`UW-004`, `UW-005`, `AC-107`, `AC-108`).
+   - `e2e/session.spec.ts`: Browser localStorage auto-restore, `.fkg-session.json` file export/import, schema validation, and URL hash deep linking (`SE-001`, `SE-002`, `UW-008`, `OP-009`).
+   - `e2e/inspector.spec.ts`: Resource Inspector, asserted vs inferred non-color badges, Class hierarchy and instance counts, Property domain/range signatures, and Consistency metrics (`AC-104`, `AC-106`, `TC-008`).
+   - `e2e/overview.spec.ts`: cosmos.gl class clusters, drill-down to Cytoscape detail view, back breadcrumb, and WebGL 2 fallback to table view (`AC-110`, `AC-111`, `RC-003`, `RC-005`, `TC-008`).
+4. **Accessibility Audits & Keyboard Controls (`frontend/e2e/accessibility.spec.ts`, `keyboard.spec.ts`, `responsive.spec.ts`):**
+   - Axe-core audits on initial app state, expanded graph, and inspector panels: **0 critical violations** (`AX-001` - `AX-008`, `TC-010`, `AC-113`).
+   - Skip links navigation, Command Palette (`Ctrl+K`) focus trap/dismiss, Expansion Preview dialog modal focus trap, and Reduced Motion toggling.
+   - Responsive breakpoints verified: Desktop (1280px), Tablet (768px), and Mobile (375px primary table view, ≥ 44px touch targets).
+5. **Performance Benchmarks & Memory Stability (`frontend/e2e/performance.spec.ts`, `memory-stability.spec.ts`):**
+   - Initial empty canvas render: **~548ms** (< 1,000ms, `NF-001`).
+   - Entity search response latency: **~93ms** (< 500ms, `NF-003`).
+   - 1-hop expansion latency: **~252ms** (< 1,000ms).
+   - cosmos.gl overview rendering latency: **~451ms** (< 2,000ms, `NF-004`).
+   - Memory growth over 20 expand/collapse cycles: **0.0%** (Delta: 0.00 MB, `NF-005`).
+
+### Test Counts After Batch 2H & Sprint 2 Conclusion
+- **Backend (Pytest):** **146 passed**, 0 failed
+- **Frontend (Vitest):** **142 passed**, 0 failed
+- **Playwright E2E:** **32 passed**, 0 failed
+- **Total Automated Tests:** **320 passed**, 100% pass rate
+- **Linting:** Clean (`ruff check .` passed, `eslint .` passed with 0 errors)
+- **Production Build:** Clean (`tsc -b && vite build` passed)
+- **Sprint 2 Status:** **COMPLETE** (All Exit Gates Met)
+
 

@@ -56,7 +56,7 @@ test.describe('Overview & Drill-Down Workflow (AC-110, AC-111, RC-003, RC-005, T
         if (contextType === 'webgl2') {
           return null;
         }
-        return (originalGetContext as Function).apply(this, [contextType, ...args]);
+        return (originalGetContext as (...args: unknown[]) => unknown).apply(this, [contextType, ...args]);
       };
     });
 

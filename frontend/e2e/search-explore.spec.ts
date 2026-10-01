@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setupMockGraphQL, mockEntities } from './fixtures/mockApi';
+import { setupMockGraphQL } from './fixtures/mockApi';
 
 test.describe('Search and Explore Workflow (UW-001, UW-002, GE-001, GE-002, AC-105)', () => {
   test.beforeEach(async ({ page }) => {
